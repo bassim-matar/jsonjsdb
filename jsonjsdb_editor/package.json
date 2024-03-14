@@ -1,0 +1,37 @@
+{
+  "name": "jsonjsdb_editor",
+  "version": "0.0.1",
+  "description": "Jsonjsdb database editor",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "json",
+    "database",
+    "jsondb",
+    "jsonjsdb",
+    "jsonjsdb_editor",
+    "local",
+    "file protocol"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bassim-matar/jsonjsdb_editor"
+  },
+  "homepage": "https://github.com/bassim-matar/jsonjsdb_editor#readme",
+  "main": "src/jsonjsdb_editor.js",
+  "exports": {
+    ".": "./src/jsonjsdb_editor.js"
+  },
+  "files": [
+    "src",
+    "jsonjsdb_editor.d.ts"
+  ],
+  "types": "jsonjsdb_editor.d.ts",
+  "scripts": {
+    "test_basic": "cd test/excel_version/basic && node convert_xlsxdb_to_jsonjsdb.js",
+    "test_real_1": "cd test/excel_version/real_1 && node convert_xlsxdb_to_jsonjsdb.js"
+  },
+  "dependencies": {
+    "read-excel-file": "^5.7.1"
+  }
+}

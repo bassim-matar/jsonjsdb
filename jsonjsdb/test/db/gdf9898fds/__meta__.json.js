@@ -1,0 +1,23 @@
+jsonjs.data['__meta__'] = 
+[
+  {
+    "name":"user",
+    "last_modif":1670156892
+  },
+  {
+    "name":"tag",
+    "last_modif":1670156893
+  },
+  {
+    "name":"email",
+    "last_modif":1670156899
+  },
+  {
+    "name":"user_tag",
+    "last_modif":1670156399
+  },
+  {
+    "name":"connexion",
+    "last_modif":1670156399
+  }
+]

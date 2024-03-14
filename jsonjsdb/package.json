@@ -1,0 +1,46 @@
+{
+  "name": "jsonjsdb",
+  "version": "0.2.23",
+  "description": "Jsonjsdb database",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "json",
+    "database",
+    "jsondb",
+    "jsonjsdb",
+    "local",
+    "file protocol"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bassim-matar/jsonjsdb"
+  },
+  "homepage": "https://github.com/bassim-matar/jsonjsdb#readme",
+  "main": "dist/jsonjsdb.esm.js",
+  "exports": {
+    ".": "./dist/jsonjsdb.esm.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "jsonjsdb.d.ts"
+  ],
+  "types": "jsonjsdb.d.ts",
+  "scripts": {
+    "dev": "npm run open-browser && rollup -cw ",
+    "build": "rollup -c",
+    "start": "rollup -c --watch",
+    "open-browser": "(sleep 1; open test/index.html) &"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.12.0"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "localdata": "^0.1.4"
+  }
+}
