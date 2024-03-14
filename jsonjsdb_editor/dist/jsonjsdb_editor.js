@@ -5,12 +5,11 @@ import chokidar from "chokidar";
 export default class Jsonjsdb_editor {
     input_db;
     output_db;
-    tables_metadata_file;
     readable;
+    metadata_filename = "__meta__.json.js";
     constructor(input_db, output_db, option = {}) {
         this.input_db = path.resolve(input_db);
         this.output_db = path.resolve(output_db);
-        this.tables_metadata_file = `${this.output_db}/__meta__.json.js`;
         this.readable = option.readable ?? false;
     }
     async update_db() {
@@ -18,14 +17,15 @@ export default class Jsonjsdb_editor {
             console.error(`input db folder doesn't exist: ${this.input_db}`);
             return;
         }
+        this.output_db = await this.ensure_output_db(this.output_db);
+        const metadata_file = `${this.output_db}/${this.metadata_filename}`;
         const [input_metadata, output_metadata] = await Promise.all([
             this.get_input_metadata(this.input_db, "xlsx"),
-            this.get_output_metadata(),
-            this.ensure_output_db_dir(),
+            this.get_output_metadata(metadata_file),
         ]);
         await Promise.all([
             this.delete_old_files(input_metadata),
-            this.save_metadata(input_metadata),
+            this.save_metadata(input_metadata, metadata_file),
             this.update_tables(input_metadata, output_metadata),
         ]);
     }
@@ -61,17 +61,17 @@ export default class Jsonjsdb_editor {
             return [];
         }
     }
-    async get_output_metadata() {
+    async get_output_metadata(metadata_file) {
         let tables_metadata_list = [];
-        if (existsSync(this.tables_metadata_file)) {
-            const file_content = await fs.readFile(this.tables_metadata_file, "utf-8");
+        if (existsSync(metadata_file)) {
+            const file_content = await fs.readFile(metadata_file, "utf-8");
             try {
                 const lines = file_content.split("\n");
                 lines.shift();
                 tables_metadata_list = JSON.parse(lines.join("\n"));
             }
             catch (e) {
-                console.error(`Error reading ${this.tables_metadata_file}: ${e}`);
+                console.error(`Error reading ${metadata_file}: ${e}`);
             }
         }
         return this.metadata_list_to_object(tables_metadata_list);
@@ -82,10 +82,19 @@ export default class Jsonjsdb_editor {
             return acc;
         }, {});
     }
-    async ensure_output_db_dir() {
-        if (!existsSync(this.output_db)) {
-            await fs.mkdir(this.output_db);
+    async ensure_output_db(output_db) {
+        if (!existsSync(output_db)) {
+            await fs.mkdir(output_db);
+            return output_db;
         }
+        const items = await fs.readdir(output_db, { withFileTypes: true });
+        const files = items.filter(item => item.isFile() && item.name.endsWith(".json.js")).length;
+        if (files > 0)
+            return output_db;
+        const folders = items.filter(item => item.isDirectory());
+        if (folders.length !== 1)
+            return output_db;
+        return output_db = path.join(output_db, folders[0].name);
     }
     async delete_old_files(input_metadata) {
         const delete_promises = [];
@@ -105,10 +114,10 @@ export default class Jsonjsdb_editor {
         }
         await Promise.all(delete_promises);
     }
-    async save_metadata(input_metadata) {
+    async save_metadata(input_metadata, metadata_file) {
         let content = `jsonjs.data['__meta__'] = \n`;
         content += JSON.stringify(input_metadata, null, 2);
-        return fs.writeFile(this.tables_metadata_file, content, "utf-8");
+        return fs.writeFile(metadata_file, content, "utf-8");
     }
     async update_tables(input_metadata, output_metadata) {
         const update_promises = [];

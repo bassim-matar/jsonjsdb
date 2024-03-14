@@ -3,29 +3,29 @@ import { promises as fs, existsSync } from "fs"
 import readExcel from "read-excel-file/node"
 import chokidar from "chokidar"
 
+type MetadataObj = Record<string, number>
+type TableRow = Record<string, any>
+type Path = string
+type Extension = "xlsx"
+
 interface MetadataItem {
   name: string
   last_modif: number
 }
 
-type MetadataObj = Record<string, number>
-
-type TableRow = Record<string, any>
-
 export default class Jsonjsdb_editor {
-  private input_db: string
-  private output_db: string
-  private tables_metadata_file: string
+  private input_db: Path
+  private output_db: Path
   private readable: boolean
+  private metadata_filename: string = "__meta__.json.js"
 
   constructor(
-    input_db: string,
-    output_db: string,
+    input_db: Path,
+    output_db: Path,
     option: { readable?: boolean } = {}
   ) {
     this.input_db = path.resolve(input_db)
     this.output_db = path.resolve(output_db)
-    this.tables_metadata_file = `${this.output_db}/__meta__.json.js`
     this.readable = option.readable ?? false
   }
 
@@ -35,15 +35,17 @@ export default class Jsonjsdb_editor {
       return
     }
 
+    this.output_db = await this.ensure_output_db(this.output_db)
+    const metadata_file = `${this.output_db}/${this.metadata_filename}`
+
     const [input_metadata, output_metadata] = await Promise.all([
       this.get_input_metadata(this.input_db, "xlsx"),
-      this.get_output_metadata(),
-      this.ensure_output_db_dir(),
+      this.get_output_metadata(metadata_file),
     ])
 
     await Promise.all([
       this.delete_old_files(input_metadata),
-      this.save_metadata(input_metadata),
+      this.save_metadata(input_metadata, metadata_file),
       this.update_tables(input_metadata, output_metadata),
     ])
   }
@@ -61,8 +63,8 @@ export default class Jsonjsdb_editor {
   }
 
   private async get_input_metadata(
-    folder_path: string,
-    extension: string
+    folder_path: Path,
+    extension: Extension
   ): Promise<MetadataItem[]> {
     try {
       const files = await fs.readdir(folder_path)
@@ -83,16 +85,16 @@ export default class Jsonjsdb_editor {
     }
   }
 
-  private async get_output_metadata(): Promise<MetadataObj> {
+  private async get_output_metadata(metadata_file: Path): Promise<MetadataObj> {
     let tables_metadata_list = []
-    if (existsSync(this.tables_metadata_file)) {
-      const file_content = await fs.readFile(this.tables_metadata_file, "utf-8")
+    if (existsSync(metadata_file)) {
+      const file_content = await fs.readFile(metadata_file, "utf-8")
       try {
         const lines = file_content.split("\n")
         lines.shift()
         tables_metadata_list = JSON.parse(lines.join("\n"))
       } catch (e) {
-        console.error(`Error reading ${this.tables_metadata_file}: ${e}`)
+        console.error(`Error reading ${metadata_file}: ${e}`)
       }
     }
     return this.metadata_list_to_object(tables_metadata_list)
@@ -105,10 +107,19 @@ export default class Jsonjsdb_editor {
     }, {})
   }
 
-  private async ensure_output_db_dir(): Promise<void> {
-    if (!existsSync(this.output_db)) {
-      await fs.mkdir(this.output_db)
+  private async ensure_output_db(output_db: Path): Promise<Path> {
+    if (!existsSync(output_db)) {
+      await fs.mkdir(output_db)
+      return output_db
     }
+    const items = await fs.readdir(output_db, { withFileTypes: true })
+    const files = items.filter(
+      item => item.isFile() && item.name.endsWith(".json.js")
+    ).length
+    if (files > 0) return output_db
+    const folders = items.filter(item => item.isDirectory())
+    if (folders.length !== 1) return output_db
+    return output_db = path.join(output_db, folders[0].name)
   }
 
   private async delete_old_files(
@@ -129,10 +140,13 @@ export default class Jsonjsdb_editor {
     await Promise.all(delete_promises)
   }
 
-  private async save_metadata(input_metadata: MetadataItem[]): Promise<void> {
+  private async save_metadata(
+    input_metadata: MetadataItem[],
+    metadata_file: Path
+  ): Promise<void> {
     let content = `jsonjs.data['__meta__'] = \n`
     content += JSON.stringify(input_metadata, null, 2)
-    return fs.writeFile(this.tables_metadata_file, content, "utf-8")
+    return fs.writeFile(metadata_file, content, "utf-8")
   }
 
   private async update_tables(
