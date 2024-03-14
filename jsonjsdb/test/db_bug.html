@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="" />
+    <meta charset="utf-8" />
+    <style>
+      html {
+        background: #222;
+        color: #eee;
+      }
+    </style>
+    <script src="../dist/jsonjsdb.min.js"></script>
+    <script>
+      const db = new Jsonjsdb({ path: "db_bug" })
+    </script>
+  </head>
+  <body>
+    <script>
+      db.init().then(() => {
+        console.log(db.tables)
+      })
+    </script>
+  </body>
+</html>

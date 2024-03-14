@@ -39,17 +39,12 @@ export default class Jsonjsdb {
   }
 
   async init(option = {}) {
-    try {
-      this.tables = await this.loader.load(
-        this.config.path,
-        this.config.use_cache,
-        option
-      )
-      return this
-    } catch (error) {
-      console.error(`Jsonjs_db.init() error: ${error}`)
-      return false
-    }
+    this.tables = await this.loader.load(
+      this.config.path,
+      this.config.use_cache,
+      option
+    )
+    return this
   }
   async load(file_path, name) {
     file_path = this.config.path + "/" + file_path

@@ -136,7 +136,8 @@ export default class Loader {
     )
     for (const table of this.db.__meta__) {
       if (this.db[table.name].length === 0) continue
-      if (!this.db[table.name][0].hasOwnProperty(filter.entity + "_id")) continue
+      if (!this.db[table.name][0].hasOwnProperty(filter.entity + "_id"))
+        continue
       const id_to_delete_level_2 = []
       for (const item of this.db[table.name]) {
         if (id_to_delete.includes(item[filter.entity + "_id"])) {
@@ -148,7 +149,8 @@ export default class Loader {
       )
       for (const table_level_2 of this.db.__meta__) {
         if (this.db[table_level_2.name].length === 0) continue
-        if (!this.db[table_level_2.name][0].hasOwnProperty(table.name + "_id")) continue
+        if (!this.db[table_level_2.name][0].hasOwnProperty(table.name + "_id"))
+          continue
         this.db[table_level_2.name] = this.db[table_level_2.name].filter(
           item => !id_to_delete_level_2.includes(item[table.name + "_id"])
         )
@@ -171,6 +173,10 @@ export default class Loader {
     const aliases = this.db.alias
     for (const alias of aliases) {
       const alias_data = []
+      if (!(alias.table in this.db)) {
+        console.error("create_alias() table not found:", alias.table)
+        continue
+      }
       for (const row of this.db[alias.table]) {
         const alias_data_row = { id: row.id }
         alias_data_row[alias.table + "_id"] = row.id
