@@ -14,9 +14,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/bassim-matar/jsonjsdb"
+    "url": "https://github.com/bassim-matar/jsonjsdb/jsonjsdb"
   },
-  "homepage": "https://github.com/bassim-matar/jsonjsdb#readme",
+  "homepage": "https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb#readme",
   "main": "dist/jsonjsdb.esm.js",
   "exports": {
     ".": "./dist/jsonjsdb.esm.js"

@@ -1,16 +1,35 @@
 import path from "path"
 import { promises as fs, existsSync } from "fs"
 import readExcel from "read-excel-file/node"
+import chokidar from "chokidar"
+
+interface MetadataItem {
+  name: string
+  last_modif: number
+}
+
+type MetadataObj = Record<string, number>
+
+type TableRow = Record<string, any>
 
 export default class Jsonjsdb_editor {
-  constructor(input_db, output_db, option = {}) {
+  private input_db: string
+  private output_db: string
+  private tables_metadata_file: string
+  private readable: boolean
+
+  constructor(
+    input_db: string,
+    output_db: string,
+    option: { readable?: boolean } = {}
+  ) {
     this.input_db = path.resolve(input_db)
     this.output_db = path.resolve(output_db)
     this.tables_metadata_file = `${this.output_db}/__meta__.json.js`
-    this.readable = "readable" in option ? option.readable : false
+    this.readable = option.readable ?? false
   }
 
-  async update_db() {
+  public async update_db(): Promise<void> {
     if (!existsSync(this.input_db)) {
       console.error(`input db folder doesn't exist: ${this.input_db}`)
       return
@@ -27,11 +46,24 @@ export default class Jsonjsdb_editor {
       this.save_metadata(input_metadata),
       this.update_tables(input_metadata, output_metadata),
     ])
-
-    console.log("Jsonjsdb updated")
   }
 
-  async get_input_metadata(folder_path, extension) {
+  public watch_db(): void {
+    chokidar
+      .watch(this.input_db, {
+        ignored: /(^|[\/\\])\~\$/,
+        persistent: true,
+        ignoreInitial: true,
+      })
+      .on("all", (event, path) => this.update_db())
+
+    console.log("Started watching for file changes in", this.input_db)
+  }
+
+  private async get_input_metadata(
+    folder_path: string,
+    extension: string
+  ): Promise<MetadataItem[]> {
     try {
       const files = await fs.readdir(folder_path)
       const file_modif_times = []
@@ -51,7 +83,7 @@ export default class Jsonjsdb_editor {
     }
   }
 
-  async get_output_metadata() {
+  private async get_output_metadata(): Promise<MetadataObj> {
     let tables_metadata_list = []
     if (existsSync(this.tables_metadata_file)) {
       const file_content = await fs.readFile(this.tables_metadata_file, "utf-8")
@@ -66,20 +98,22 @@ export default class Jsonjsdb_editor {
     return this.metadata_list_to_object(tables_metadata_list)
   }
 
-  metadata_list_to_object(list) {
-    return list.reduce((acc, row) => {
+  private metadata_list_to_object(list: MetadataItem[]): MetadataObj {
+    return list.reduce((acc: MetadataObj, row) => {
       acc[row.name] = row.last_modif
       return acc
     }, {})
   }
 
-  async ensure_output_db_dir() {
+  private async ensure_output_db_dir(): Promise<void> {
     if (!existsSync(this.output_db)) {
       await fs.mkdir(this.output_db)
     }
   }
 
-  async delete_old_files(input_metadata) {
+  private async delete_old_files(
+    input_metadata: MetadataItem[]
+  ): Promise<void> {
     const delete_promises = []
     const input_metadata_obj = this.metadata_list_to_object(input_metadata)
     const output_files = await fs.readdir(this.output_db)
@@ -95,13 +129,16 @@ export default class Jsonjsdb_editor {
     await Promise.all(delete_promises)
   }
 
-  async save_metadata(input_metadata) {
+  private async save_metadata(input_metadata: MetadataItem[]): Promise<void> {
     let content = `jsonjs.data['__meta__'] = \n`
     content += JSON.stringify(input_metadata, null, 2)
     return fs.writeFile(this.tables_metadata_file, content, "utf-8")
   }
 
-  async update_tables(input_metadata, output_metadata) {
+  private async update_tables(
+    input_metadata: MetadataItem[],
+    output_metadata: MetadataObj
+  ) {
     const update_promises = []
     for (const { name, last_modif } of input_metadata) {
       const is_in_output = name in output_metadata
@@ -111,24 +148,26 @@ export default class Jsonjsdb_editor {
     await Promise.all(update_promises)
   }
 
-  async update_table(table) {
+  private async update_table(table: string): Promise<void> {
     const input_file = path.join(this.input_db, `${table}.xlsx`)
     const output_file = path.join(this.output_db, `${table}.json.js`)
+    let content = `jsonjs.data['${table}'] = \n`
     let table_data = await readExcel(input_file)
     if (this.readable) {
-      table_data = this.convert_to_list_of_objects(table_data)
+      const table_data_obj = this.convert_to_list_of_objects(table_data)
+      content += JSON.stringify(table_data_obj, null, 2)
+    } else {
+      content += JSON.stringify(table_data)
     }
-    let content = `jsonjs.data['${table}'] = \n`
-    content += JSON.stringify(table_data, null, this.readable ? 2 : 0)
-    await fs.writeFile(output_file, content)
+    await fs.writeFile(output_file, content, "utf-8")
     console.log(`Updating ${table}`)
   }
 
-  convert_to_list_of_objects(data) {
-    const headers = data[0]
-    const objects = []
+  private convert_to_list_of_objects(data: [][]): TableRow[] {
+    const headers: string[] = data[0]
+    const objects: TableRow[] = []
     for (const row of data.slice(1)) {
-      let obj = {}
+      const obj: TableRow = {}
       for (const [index, header] of headers.entries()) {
         obj[header] = row[index]
       }
