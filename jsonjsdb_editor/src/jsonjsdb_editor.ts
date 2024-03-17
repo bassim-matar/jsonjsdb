@@ -31,7 +31,7 @@ export default class Jsonjsdb_editor {
 
   public async update_db(): Promise<void> {
     if (!existsSync(this.input_db)) {
-      console.error(`input db folder doesn't exist: ${this.input_db}`)
+      console.error(`Jsonjsdb: input db folder doesn't exist: ${this.input_db}`)
       return
     }
 
@@ -45,8 +45,8 @@ export default class Jsonjsdb_editor {
 
     await Promise.all([
       this.delete_old_files(input_metadata),
-      this.save_metadata(input_metadata, metadata_file),
       this.update_tables(input_metadata, output_metadata),
+      this.save_metadata(input_metadata, output_metadata, metadata_file),
     ])
   }
 
@@ -59,7 +59,7 @@ export default class Jsonjsdb_editor {
       })
       .on("all", (event, path) => this.update_db())
 
-    console.log("Started watching for file changes in", this.input_db)
+    console.log("Jsonjsdb watching changes in", this.input_db)
   }
 
   private async get_input_metadata(
@@ -80,24 +80,26 @@ export default class Jsonjsdb_editor {
       }
       return file_modif_times
     } catch (error) {
-      console.error("get_files_last_modif error:", error)
+      console.error("Jsonjsdb: get_files_last_modif error:", error)
       return []
     }
   }
 
-  private async get_output_metadata(metadata_file: Path): Promise<MetadataObj> {
-    let tables_metadata_list = []
+  private async get_output_metadata(
+    metadata_file: Path
+  ): Promise<MetadataItem[]> {
+    let tables_metadata = []
     if (existsSync(metadata_file)) {
       const file_content = await fs.readFile(metadata_file, "utf-8")
       try {
         const lines = file_content.split("\n")
         lines.shift()
-        tables_metadata_list = JSON.parse(lines.join("\n"))
+        tables_metadata = JSON.parse(lines.join("\n"))
       } catch (e) {
-        console.error(`Error reading ${metadata_file}: ${e}`)
+        console.error(`Jsonjsdb: error reading ${metadata_file}: ${e}`)
       }
     }
-    return this.metadata_list_to_object(tables_metadata_list)
+    return tables_metadata
   }
 
   private metadata_list_to_object(list: MetadataItem[]): MetadataObj {
@@ -119,7 +121,7 @@ export default class Jsonjsdb_editor {
     if (files > 0) return output_db
     const folders = items.filter(item => item.isDirectory())
     if (folders.length !== 1) return output_db
-    return output_db = path.join(output_db, folders[0].name)
+    return (output_db = path.join(output_db, folders[0].name))
   }
 
   private async delete_old_files(
@@ -134,7 +136,7 @@ export default class Jsonjsdb_editor {
       if (file_name === "__meta__.json.js") continue
       if (table in input_metadata_obj) continue
       const file_path = path.join(this.output_db, file_name)
-      console.log(`Deleting ${table}`)
+      console.log(`Jsonjsdb: deleting ${table}`)
       delete_promises.push(fs.unlink(file_path))
     }
     await Promise.all(delete_promises)
@@ -142,21 +144,25 @@ export default class Jsonjsdb_editor {
 
   private async save_metadata(
     input_metadata: MetadataItem[],
+    output_metadata: MetadataItem[],
     metadata_file: Path
   ): Promise<void> {
+    if (JSON.stringify(input_metadata) === JSON.stringify(output_metadata))
+      return
     let content = `jsonjs.data['__meta__'] = \n`
     content += JSON.stringify(input_metadata, null, 2)
-    return fs.writeFile(metadata_file, content, "utf-8")
+    await fs.writeFile(metadata_file, content, "utf-8")
   }
 
   private async update_tables(
     input_metadata: MetadataItem[],
-    output_metadata: MetadataObj
+    output_metadata: MetadataItem[]
   ) {
+    const output_metadata_obj = this.metadata_list_to_object(output_metadata)
     const update_promises = []
     for (const { name, last_modif } of input_metadata) {
-      const is_in_output = name in output_metadata
-      if (is_in_output && output_metadata[name] >= last_modif) continue
+      const is_in_output = name in output_metadata_obj
+      if (is_in_output && output_metadata_obj[name] >= last_modif) continue
       update_promises.push(this.update_table(name))
     }
     await Promise.all(update_promises)
@@ -174,7 +180,7 @@ export default class Jsonjsdb_editor {
       content += JSON.stringify(table_data)
     }
     await fs.writeFile(output_file, content, "utf-8")
-    console.log(`Updating ${table}`)
+    console.log(`Jsonjsdb updating ${table}`)
   }
 
   private convert_to_list_of_objects(data: [][]): TableRow[] {
