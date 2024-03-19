@@ -32,7 +32,6 @@ export default class Integrity_checker {
   }
   _check_duplicate_id(table) {
     const ids = this.tables_ids[table]
-    if (ids.length === 0) return
     const set = new Set(ids)
     let duplicates = ids.filter(item => {
       if (set.has(item)) {
@@ -47,6 +46,7 @@ export default class Integrity_checker {
     }
   }
   _check_parent_id_same(db, table) {
+    if (db[table].length === 0) return
     if (!(Object.keys(db[table][0]).includes("parent_id"))) return
     const parent_id_same = []
     for (const row of db[table]) {
@@ -59,6 +59,7 @@ export default class Integrity_checker {
     }
   }
   _check_parent_id_not_found(db, table) {
+    if (db[table].length === 0) return
     if (!(Object.keys(db[table][0]).includes("parent_id"))) return
     const parent_id_not_found = []
     for (const row of db[table]) {
