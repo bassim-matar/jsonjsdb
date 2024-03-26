@@ -2,6 +2,7 @@ import path from "path";
 import { promises as fs, existsSync } from "fs";
 import readExcel from "read-excel-file/node";
 import chokidar from "chokidar";
+import FullReload from "vite-plugin-full-reload";
 export default class Jsonjsdb_editor {
     input_db;
     output_db;
@@ -160,3 +161,62 @@ export default class Jsonjsdb_editor {
         return objects;
     }
 }
+class Jsonjsdb_watcher_class {
+    input_db;
+    output_db;
+    constructor() {
+        this.input_db = "";
+        this.output_db = "";
+    }
+    is_dev() {
+        return process.env.NODE_ENV === "development";
+    }
+    async watch(input_db, output_db) {
+        this.input_db = input_db;
+        this.output_db = output_db;
+        const jdb_editor = new Jsonjsdb_editor(input_db, output_db);
+        await jdb_editor.update_db();
+        if (this.is_dev())
+            jdb_editor.watch_db();
+    }
+    reload() {
+        if (this.is_dev()) {
+            return FullReload(path.join(this.output_db, "/*/__meta__.json.js"));
+        }
+    }
+}
+export const Jsonjsdb_watcher = new Jsonjsdb_watcher_class();
+class Jsonjsdb_config_class {
+    jsonjsdb_config;
+    out_index;
+    constructor() {
+        this.jsonjsdb_config = "";
+        this.out_index = "";
+    }
+    async init(config_file, out_index) {
+        this.jsonjsdb_config = await fs.readFile(config_file, "utf8");
+        this.out_index = out_index;
+    }
+    add_config() {
+        return [
+            {
+                name: "jsonjsdb_serve_html_transform",
+                apply: "serve",
+                transformIndexHtml: {
+                    order: "post",
+                    handler: (html) => html + "\n\n" + this.jsonjsdb_config,
+                },
+            },
+            {
+                name: "jsonjsdb_write_bundle",
+                apply: "build",
+                writeBundle: async () => {
+                    const out_index_content = await fs.readFile(this.out_index, "utf8");
+                    await fs.copyFile(this.out_index, this.out_index + ".without_config");
+                    await fs.writeFile(this.out_index, [out_index_content, this.jsonjsdb_config].join("\n"));
+                },
+            },
+        ];
+    }
+}
+export const Jsonjsdb_config = new Jsonjsdb_config_class();
