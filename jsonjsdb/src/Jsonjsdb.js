@@ -4,6 +4,17 @@ import Integrity_checker from "./Integrity_checker"
 
 export default class Jsonjsdb {
   constructor(config) {
+    this.default_config = {
+      path: "db",
+      db_key: false,
+      browser_key: false,
+      app_name: "jsonjsdb",
+      use_cache: false,
+      use_encryption: false,
+    }
+    if (typeof config === "string") {
+      config = this._get_html_config(config)
+    }
     if (!config) config = {}
     this._set_config(config)
     this.browser = new DBrowser(
@@ -14,16 +25,19 @@ export default class Jsonjsdb {
     this.loader = new Loader(this.browser)
     this.integrity_checker = new Integrity_checker()
   }
+  _get_html_config(id = "#jsonjsdb_config") {
+    const config_element = document.querySelector(id)
+    if (!config_element) return false
+    const config = {}
+    Object.keys(this.default_config).forEach(key => {
+      if (config_element.dataset[key]) {
+        config[key] = config_element.dataset[key]
+      }
+    })
+    return config
+  }
   _set_config(config) {
-    this.config = {
-      path: "db",
-      db_key: false,
-      browser_key: false,
-      app_name: "jsonjsdb",
-      use_cache: false,
-      use_encryption: false,
-    }
-
+    this.config = this.default_config
     Object.keys(this.config).forEach(key => {
       if (config[key] !== undefined) {
         this.config[key] = config[key]
