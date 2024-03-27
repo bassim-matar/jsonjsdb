@@ -20,7 +20,6 @@ export default class Jsonjsdb_editor {
     private convert_to_list_of_objects;
 }
 declare class Jsonjsdb_watcher_class {
-    private input_db;
     private output_db;
     constructor();
     is_dev(): boolean;
@@ -29,24 +28,13 @@ declare class Jsonjsdb_watcher_class {
 }
 export declare const Jsonjsdb_watcher: Jsonjsdb_watcher_class;
 declare class Jsonjsdb_config_class {
-    private jsonjsdb_config;
-    private out_index;
+    private config;
+    private index;
+    private index_content;
+    private index_noconfig;
     constructor();
-    init(config_file: Path, out_index: Path): Promise<void>;
-    add_config(): ({
-        name: string;
-        apply: string;
-        transformIndexHtml: {
-            order: string;
-            handler: (html: String) => string;
-        };
-        writeBundle?: undefined;
-    } | {
-        name: string;
-        apply: string;
-        writeBundle: () => Promise<void>;
-        transformIndexHtml?: undefined;
-    })[];
+    init({ config_file, index, index_noconfig, }: Record<string, Path>): Promise<void>;
+    add_config(): {}[];
 }
 export declare const Jsonjsdb_config: Jsonjsdb_config_class;
 export {};

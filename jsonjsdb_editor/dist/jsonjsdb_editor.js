@@ -162,17 +162,14 @@ export default class Jsonjsdb_editor {
     }
 }
 class Jsonjsdb_watcher_class {
-    input_db;
     output_db;
     constructor() {
-        this.input_db = "";
         this.output_db = "";
     }
     is_dev() {
         return process.env.NODE_ENV === "development";
     }
     async watch(input_db, output_db) {
-        this.input_db = input_db;
         this.output_db = output_db;
         const jdb_editor = new Jsonjsdb_editor(input_db, output_db);
         await jdb_editor.update_db();
@@ -187,15 +184,21 @@ class Jsonjsdb_watcher_class {
 }
 export const Jsonjsdb_watcher = new Jsonjsdb_watcher_class();
 class Jsonjsdb_config_class {
-    jsonjsdb_config;
-    out_index;
+    config;
+    index;
+    index_content;
+    index_noconfig;
     constructor() {
-        this.jsonjsdb_config = "";
-        this.out_index = "";
+        this.config = "";
+        this.index = "";
+        this.index_content = "";
+        this.index_noconfig = "";
     }
-    async init(config_file, out_index) {
-        this.jsonjsdb_config = await fs.readFile(config_file, "utf8");
-        this.out_index = out_index;
+    async init({ config_file, index, index_noconfig, }) {
+        this.config = await fs.readFile(config_file, "utf8");
+        this.index = index;
+        this.index_content = await fs.readFile(index, "utf8");
+        this.index_noconfig = index_noconfig;
     }
     add_config() {
         return [
@@ -204,16 +207,16 @@ class Jsonjsdb_config_class {
                 apply: "serve",
                 transformIndexHtml: {
                     order: "post",
-                    handler: (html) => html + "\n\n" + this.jsonjsdb_config,
+                    handler: (html) => html + "\n\n" + this.config,
                 },
             },
             {
                 name: "jsonjsdb_write_bundle",
                 apply: "build",
                 writeBundle: async () => {
-                    const out_index_content = await fs.readFile(this.out_index, "utf8");
-                    await fs.copyFile(this.out_index, this.out_index + ".without_config");
-                    await fs.writeFile(this.out_index, [out_index_content, this.jsonjsdb_config].join("\n"));
+                    const index_with_config = [this.index_content, this.config].join("\n");
+                    await fs.copyFile(this.index, this.index_noconfig);
+                    await fs.writeFile(this.index, index_with_config);
                 },
             },
         ];
