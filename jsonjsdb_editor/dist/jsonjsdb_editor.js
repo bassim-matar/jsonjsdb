@@ -184,18 +184,18 @@ class Jsonjsdb_watcher_class {
 }
 export const Jsonjsdb_watcher = new Jsonjsdb_watcher_class();
 class Jsonjsdb_config_class {
-    config;
+    config_content;
     index;
     index_content;
     index_noconfig;
     constructor() {
-        this.config = "";
+        this.config_content = "";
         this.index = "";
         this.index_content = "";
         this.index_noconfig = "";
     }
-    async init({ config_file, index, index_noconfig, }) {
-        this.config = await fs.readFile(config_file, "utf8");
+    async init({ config, index, index_noconfig, }) {
+        this.config_content = await fs.readFile(config, "utf8");
         this.index = index;
         this.index_content = await fs.readFile(index, "utf8");
         this.index_noconfig = index_noconfig;
@@ -207,16 +207,15 @@ class Jsonjsdb_config_class {
                 apply: "serve",
                 transformIndexHtml: {
                     order: "post",
-                    handler: (html) => html + "\n\n" + this.config,
+                    handler: (html) => html + "\n\n" + this.config_content,
                 },
             },
             {
                 name: "jsonjsdb_write_bundle",
                 apply: "build",
                 writeBundle: async () => {
-                    const index_with_config = [this.index_content, this.config].join("\n");
                     await fs.copyFile(this.index, this.index_noconfig);
-                    await fs.writeFile(this.index, index_with_config);
+                    await fs.writeFile(this.index, [this.index_content, this.config_content].join("\n"));
                 },
             },
         ];

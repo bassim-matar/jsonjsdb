@@ -28,12 +28,12 @@ declare class Jsonjsdb_watcher_class {
 }
 export declare const Jsonjsdb_watcher: Jsonjsdb_watcher_class;
 declare class Jsonjsdb_config_class {
-    private config;
+    private config_content;
     private index;
     private index_content;
     private index_noconfig;
     constructor();
-    init({ config_file, index, index_noconfig, }: Record<string, Path>): Promise<void>;
+    init({ config, index, index_noconfig, }: Record<string, Path>): Promise<void>;
     add_config(): {}[];
 }
 export declare const Jsonjsdb_config: Jsonjsdb_config_class;

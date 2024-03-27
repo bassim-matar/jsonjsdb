@@ -221,22 +221,22 @@ class Jsonjsdb_watcher_class {
 export const Jsonjsdb_watcher = new Jsonjsdb_watcher_class()
 
 class Jsonjsdb_config_class {
-  private config: string
+  private config_content: string
   private index: Path
   private index_content: string
   private index_noconfig: Path
   constructor() {
-    this.config = ""
+    this.config_content = ""
     this.index = ""
     this.index_content = ""
     this.index_noconfig = ""
   }
   async init({
-    config_file,
+    config,
     index,
     index_noconfig,
   }: Record<string, Path>): Promise<void> {
-    this.config = await fs.readFile(config_file, "utf8")
+    this.config_content = await fs.readFile(config, "utf8")
     this.index = index
     this.index_content = await fs.readFile(index, "utf8")
     this.index_noconfig = index_noconfig
@@ -248,16 +248,18 @@ class Jsonjsdb_config_class {
         apply: "serve",
         transformIndexHtml: {
           order: "post",
-          handler: (html: String) => html + "\n\n" + this.config,
+          handler: (html: String) => html + "\n\n" + this.config_content,
         },
       },
       {
         name: "jsonjsdb_write_bundle",
         apply: "build",
         writeBundle: async () => {
-          const index_with_config = [this.index_content, this.config].join("\n")
           await fs.copyFile(this.index, this.index_noconfig)
-          await fs.writeFile(this.index, index_with_config)
+          await fs.writeFile(
+            this.index,
+            [this.index_content, this.config_content].join("\n")
+          )
         },
       },
     ]
