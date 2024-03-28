@@ -6,6 +6,11 @@ No server needed.
 
 With Jsonjsdb_editor, excel files can be used as the main db and converted to json.js files.
 
+For more details, see the two packages:
+
+- [https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb](jsonjsdb)
+- [https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb_editor](jsonjsdb_editor)
+
 ## Contributing
 Contributions to Jsonjsdb are always welcome. 
 Whether it's a bug report, new feature, or improvement to existing features,
