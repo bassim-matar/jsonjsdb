@@ -27,14 +27,5 @@ declare class Jsonjsdb_watcher_class {
     reload(): any;
 }
 export declare const Jsonjsdb_watcher: Jsonjsdb_watcher_class;
-declare class Jsonjsdb_config_class {
-    private config_content;
-    private index;
-    private index_content;
-    private index_noconfig;
-    constructor();
-    init({ config, index, index_noconfig, }: Record<string, Path>): Promise<void>;
-    add_config(): {}[];
-}
-export declare const Jsonjsdb_config: Jsonjsdb_config_class;
+export declare function jsonjsdb_add_config(config: Path): {};
 export {};

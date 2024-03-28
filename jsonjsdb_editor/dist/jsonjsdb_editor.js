@@ -183,42 +183,14 @@ class Jsonjsdb_watcher_class {
     }
 }
 export const Jsonjsdb_watcher = new Jsonjsdb_watcher_class();
-class Jsonjsdb_config_class {
-    config_content;
-    index;
-    index_content;
-    index_noconfig;
-    constructor() {
-        this.config_content = "";
-        this.index = "";
-        this.index_content = "";
-        this.index_noconfig = "";
-    }
-    async init({ config, index, index_noconfig, }) {
-        this.config_content = await fs.readFile(config, "utf8");
-        this.index = index;
-        this.index_content = await fs.readFile(index, "utf8");
-        this.index_noconfig = index_noconfig;
-    }
-    add_config() {
-        return [
-            {
-                name: "jsonjsdb_serve_html_transform",
-                apply: "serve",
-                transformIndexHtml: {
-                    order: "post",
-                    handler: (html) => html + "\n\n" + this.config_content,
-                },
+export function jsonjsdb_add_config(config) {
+    return {
+        name: "jsonjsdb_add_config",
+        transformIndexHtml: {
+            order: "post",
+            handler: async (html) => {
+                return html + "\n\n" + (await fs.readFile(config, "utf8"));
             },
-            {
-                name: "jsonjsdb_write_bundle",
-                apply: "build",
-                writeBundle: async () => {
-                    await fs.copyFile(this.index, this.index_noconfig);
-                    await fs.writeFile(this.index, [this.index_content, this.config_content].join("\n"));
-                },
-            },
-        ];
-    }
+        },
+    };
 }
-export const Jsonjsdb_config = new Jsonjsdb_config_class();
