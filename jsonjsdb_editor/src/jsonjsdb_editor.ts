@@ -2,7 +2,6 @@ import path from "path"
 import { promises as fs, existsSync } from "fs"
 import readExcel from "read-excel-file/node"
 import chokidar from "chokidar"
-import FullReload from "vite-plugin-full-reload"
 
 type MetadataObj = Record<string, number>
 type TableRow = Record<string, any>
@@ -18,60 +17,86 @@ export default class Jsonjsdb_editor {
   private input_db: Path
   private output_db: Path
   private readable: boolean
+  private extension: Extension
   private metadata_filename: string = "__meta__.json.js"
+  private metadata_file: Path
 
-  constructor(
-    input_db: Path,
-    output_db: Path,
-    option: { readable?: boolean } = {}
-  ) {
-    this.input_db = path.resolve(input_db)
-    this.output_db = path.resolve(output_db)
+  constructor(option: { readable?: boolean } = {}) {
+    this.input_db = ""
+    this.output_db = ""
+    this.metadata_file = ""
     this.readable = option.readable ?? false
+    this.extension = "xlsx"
   }
 
-  public async update_db(): Promise<void> {
+  public async update_db(input_db: Path): Promise<void> {
+    this.set_input_db(input_db)
     if (!existsSync(this.input_db)) {
       console.error(`Jsonjsdb: input db folder doesn't exist: ${this.input_db}`)
       return
     }
 
-    this.output_db = await this.ensure_output_db(this.output_db)
-    const metadata_file = `${this.output_db}/${this.metadata_filename}`
-
     const [input_metadata, output_metadata] = await Promise.all([
-      this.get_input_metadata(this.input_db, "xlsx"),
-      this.get_output_metadata(metadata_file),
+      this.get_input_metadata(this.input_db),
+      this.get_output_metadata(),
     ])
 
     await Promise.all([
       this.delete_old_files(input_metadata),
       this.update_tables(input_metadata, output_metadata),
-      this.save_metadata(input_metadata, output_metadata, metadata_file),
+      this.save_metadata(input_metadata, output_metadata),
     ])
   }
 
-  public watch_db(): void {
+  public watch_db(input_db: Path): void {
+    this.set_input_db(input_db)
     chokidar
       .watch(this.input_db, {
         ignored: /(^|[\/\\])\~\$/,
         persistent: true,
         ignoreInitial: true,
       })
-      .on("all", (event, path) => this.update_db())
+      .on("all", (event, path) => this.update_db(input_db))
 
     console.log("Jsonjsdb watching changes in", this.input_db)
   }
 
-  private async get_input_metadata(
-    folder_path: Path,
-    extension: Extension
-  ): Promise<MetadataItem[]> {
+  public async update_preview(
+    subfolder: string,
+    source_preview: Path
+  ): Promise<void> {
+    const source_path = path.resolve(source_preview)
+    const output_path = path.join(this.output_db, subfolder)
+    if (!existsSync(output_path)) await fs.mkdir(output_path)
+    const files = await fs.readdir(source_path)
+    for (const file_name of files) {
+      if (!file_name.endsWith(`.${this.extension}`)) continue
+      if (file_name.startsWith("~$")) continue
+      const file_path = path.join(source_path, file_name)
+      const table_data = await readExcel(file_path)
+      const name = file_name.split(".")[0]
+      this.write_table(table_data, output_path, name)
+    }
+  }
+
+  public async set_output_db(output_db: Path): Promise<void> {
+    this.output_db = await this.ensure_output_db(path.resolve(output_db))
+    this.metadata_file = path.join(this.output_db, this.metadata_filename)
+  }
+
+  public get_metadata_file(): Path {
+    return this.metadata_file
+  }
+
+  private set_input_db(input_db: Path): void {
+    this.input_db = path.resolve(input_db)
+  }
+  private async get_input_metadata(folder_path: Path): Promise<MetadataItem[]> {
     try {
       const files = await fs.readdir(folder_path)
       const file_modif_times = []
       for (const file_name of files) {
-        if (!file_name.endsWith(`.${extension}`)) continue
+        if (!file_name.endsWith(`.${this.extension}`)) continue
         if (file_name.startsWith("~$")) continue
         const file_path = path.join(folder_path, file_name)
         const stats = await fs.stat(file_path)
@@ -86,18 +111,16 @@ export default class Jsonjsdb_editor {
     }
   }
 
-  private async get_output_metadata(
-    metadata_file: Path
-  ): Promise<MetadataItem[]> {
+  private async get_output_metadata(): Promise<MetadataItem[]> {
     let tables_metadata = []
-    if (existsSync(metadata_file)) {
-      const file_content = await fs.readFile(metadata_file, "utf-8")
+    if (existsSync(this.metadata_file)) {
+      const file_content = await fs.readFile(this.metadata_file, "utf-8")
       try {
         const lines = file_content.split("\n")
         lines.shift()
         tables_metadata = JSON.parse(lines.join("\n"))
       } catch (e) {
-        console.error(`Jsonjsdb: error reading ${metadata_file}: ${e}`)
+        console.error(`Jsonjsdb: error reading ${this.metadata_file}: ${e}`)
       }
     }
     return tables_metadata
@@ -145,14 +168,13 @@ export default class Jsonjsdb_editor {
 
   private async save_metadata(
     input_metadata: MetadataItem[],
-    output_metadata: MetadataItem[],
-    metadata_file: Path
+    output_metadata: MetadataItem[]
   ): Promise<void> {
     if (JSON.stringify(input_metadata) === JSON.stringify(output_metadata))
       return
     let content = `jsonjs.data['__meta__'] = \n`
     content += JSON.stringify(input_metadata, null, 2)
-    await fs.writeFile(metadata_file, content, "utf-8")
+    await fs.writeFile(this.metadata_file, content, "utf-8")
   }
 
   private async update_tables(
@@ -171,17 +193,25 @@ export default class Jsonjsdb_editor {
 
   private async update_table(table: string): Promise<void> {
     const input_file = path.join(this.input_db, `${table}.xlsx`)
-    const output_file = path.join(this.output_db, `${table}.json.js`)
-    let content = `jsonjs.data['${table}'] = \n`
     let table_data = await readExcel(input_file)
+    await this.write_table(table_data, this.output_db, table)
+    console.log(`Jsonjsdb updating ${table}`)
+  }
+
+  private async write_table(
+    table_data: [][],
+    output_path: Path,
+    name: string
+  ): Promise<void> {
+    let content = `jsonjs.data['${name}'] = \n`
     if (this.readable) {
       const table_data_obj = this.convert_to_list_of_objects(table_data)
       content += JSON.stringify(table_data_obj, null, 2)
     } else {
       content += JSON.stringify(table_data)
     }
+    const output_file = path.join(output_path, `${name}.json.js`)
     await fs.writeFile(output_file, content, "utf-8")
-    console.log(`Jsonjsdb updating ${table}`)
   }
 
   private convert_to_list_of_objects(data: [][]): TableRow[] {
@@ -200,22 +230,26 @@ export default class Jsonjsdb_editor {
 
 class Jsonjsdb_watcher_class {
   private output_db: Path
+  private jdb_editor: Jsonjsdb_editor
   constructor() {
     this.output_db = ""
+    this.jdb_editor = new Jsonjsdb_editor()
   }
   is_dev() {
     return process.env.NODE_ENV === "development"
   }
-  async watch(input_db: Path, output_db: Path) {
-    this.output_db = output_db
-    const jdb_editor = new Jsonjsdb_editor(input_db, output_db)
-    await jdb_editor.update_db()
-    if (this.is_dev()) jdb_editor.watch_db()
+  async set_db(output_db: Path) {
+    await this.jdb_editor.set_output_db(output_db)
   }
-  reload() {
-    if (this.is_dev()) {
-      return FullReload(path.join(this.output_db, "/*/__meta__.json.js"))
-    }
+  async watch(input_db: Path) {
+    await this.jdb_editor.update_db(input_db)
+    if (this.is_dev()) this.jdb_editor.watch_db(input_db)
+  }
+  async update_preview(subfolder: string, source_preview: Path) {
+    await this.jdb_editor.update_preview(subfolder, source_preview)
+  }
+  get_db_meta_file_path() {
+    return this.jdb_editor.get_metadata_file()
   }
 }
 export const Jsonjsdb_watcher = new Jsonjsdb_watcher_class()
@@ -225,7 +259,7 @@ export function jsonjsdb_add_config(config: Path): {} {
     name: "jsonjsdb_add_config",
     transformIndexHtml: {
       order: "post",
-      handler: async (html: String) => {
+      handler: async (html: string) => {
         return html + "\n\n" + (await fs.readFile(config, "utf8"))
       },
     },

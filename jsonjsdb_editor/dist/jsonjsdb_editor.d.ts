@@ -3,12 +3,18 @@ export default class Jsonjsdb_editor {
     private input_db;
     private output_db;
     private readable;
+    private extension;
     private metadata_filename;
-    constructor(input_db: Path, output_db: Path, option?: {
+    private metadata_file;
+    constructor(option?: {
         readable?: boolean;
     });
-    update_db(): Promise<void>;
-    watch_db(): void;
+    update_db(input_db: Path): Promise<void>;
+    watch_db(input_db: Path): void;
+    update_preview(subfolder: string, source_preview: Path): Promise<void>;
+    set_output_db(output_db: Path): Promise<void>;
+    get_metadata_file(): Path;
+    private set_input_db;
     private get_input_metadata;
     private get_output_metadata;
     private metadata_list_to_object;
@@ -17,14 +23,18 @@ export default class Jsonjsdb_editor {
     private save_metadata;
     private update_tables;
     private update_table;
+    private write_table;
     private convert_to_list_of_objects;
 }
 declare class Jsonjsdb_watcher_class {
     private output_db;
+    private jdb_editor;
     constructor();
     is_dev(): boolean;
-    watch(input_db: Path, output_db: Path): Promise<void>;
-    reload(): any;
+    set_db(output_db: Path): Promise<void>;
+    watch(input_db: Path): Promise<void>;
+    update_preview(subfolder: string, source_preview: Path): Promise<void>;
+    get_db_meta_file_path(): string;
 }
 export declare const Jsonjsdb_watcher: Jsonjsdb_watcher_class;
 export declare function jsonjsdb_add_config(config: Path): {};
