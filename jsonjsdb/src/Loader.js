@@ -406,6 +406,10 @@ export default class Loader {
             break
           }
         }
+        if (typeof value === "boolean") {
+          type = "boolean"
+          break
+        }
       }
       let nb_missing = 0
       const distincts = new Set()
