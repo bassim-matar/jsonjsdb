@@ -19,8 +19,9 @@ Second argument is the path to the jsonjsdb folder.
 ```js
 import Jsonjsdb_editor from "../../../dist/jsonjsdb_editor.js"
 
-const editor = new Jsonjsdb_editor("db", "app_db")
-editor.update_db()
+const editor = new Jsonjsdb_editor()
+await editor.set_output_db("app_db")
+await editor.update_db("db")
 ```
 
 ### inside a vite config file
@@ -31,14 +32,19 @@ Any time a source db file is updated, the jsonjsdb will be updated and the vite 
 The jsonjsdb_add_config will add the jsonjsdb_config file to the index.html at serve and build time.
 
 ```js
+import { defineConfig } from "vite"
+import FullReload from "vite-plugin-full-reload"
 import { Jsonjsdb_watcher, jsonjsdb_add_config } from "jsonjsdb_editor"
 
-await Jsonjsdb_watcher.watch("db", "public/data/db")
+await Jsonjsdb_watcher.set_db("app_db")
+await Jsonjsdb_watcher.watch("db")
+await Jsonjsdb_watcher.update_preview("preview", "data")
 
 export default defineConfig({
   plugins: [
-    Jsonjsdb_watcher.reload(),
-    jsonjsdb_add_config("public/data/jsonjsdb_config.html"),
+    jsonjsdb_add_config("data/jsonjsdb_config.html"),
+    process.env.NODE_ENV &&
+      FullReload(Jsonjsdb_watcher.get_db_meta_file_path()),
   ],
 })
 ```

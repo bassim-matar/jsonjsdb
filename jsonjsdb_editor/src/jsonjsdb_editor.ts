@@ -260,7 +260,7 @@ export function jsonjsdb_add_config(config: Path): {} {
     transformIndexHtml: {
       order: "post",
       handler: async (html: string) => {
-        return html + "\n\n" + (await fs.readFile(config, "utf8"))
+        return html + "\n" + (await fs.readFile(config, "utf8"))
       },
     },
   }
