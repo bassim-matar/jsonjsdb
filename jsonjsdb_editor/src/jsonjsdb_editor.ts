@@ -7,6 +7,7 @@ type MetadataObj = Record<string, number>
 type TableRow = Record<string, any>
 type Path = string
 type Extension = "xlsx"
+type Row = any[]
 
 interface MetadataItem {
   name: string
@@ -199,7 +200,7 @@ export default class Jsonjsdb_editor {
   }
 
   private async write_table(
-    table_data: [][],
+    table_data: Row[],
     output_path: Path,
     name: string
   ): Promise<void> {
@@ -214,7 +215,7 @@ export default class Jsonjsdb_editor {
     await fs.writeFile(output_file, content, "utf-8")
   }
 
-  private convert_to_list_of_objects(data: [][]): TableRow[] {
+  private convert_to_list_of_objects(data: Row[]): TableRow[] {
     const headers: string[] = data[0]
     const objects: TableRow[] = []
     for (const row of data.slice(1)) {

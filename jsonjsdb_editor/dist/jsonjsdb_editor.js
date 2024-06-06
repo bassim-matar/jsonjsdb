@@ -226,7 +226,7 @@ export function jsonjsdb_add_config(config) {
         transformIndexHtml: {
             order: "post",
             handler: async (html) => {
-                return html + "\n\n" + (await fs.readFile(config, "utf8"));
+                return html + "\n" + (await fs.readFile(config, "utf8"));
             },
         },
     };
