@@ -32,7 +32,7 @@ declare class Jsonjsdb_watcher_class {
     constructor();
     is_dev(): boolean;
     set_db(output_db: Path): Promise<void>;
-    watch(input_db: Path): Promise<void>;
+    watch(input_db: Path, even_prod?: boolean): Promise<void>;
     update_preview(subfolder: string, source_preview: Path): Promise<void>;
     get_db_meta_file_path(): string;
 }

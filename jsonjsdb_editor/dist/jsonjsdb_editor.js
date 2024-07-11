@@ -207,9 +207,9 @@ class Jsonjsdb_watcher_class {
     async set_db(output_db) {
         await this.jdb_editor.set_output_db(output_db);
     }
-    async watch(input_db) {
+    async watch(input_db, even_prod = false) {
         await this.jdb_editor.update_db(input_db);
-        if (this.is_dev())
+        if (this.is_dev() || even_prod)
             this.jdb_editor.watch_db(input_db);
     }
     async update_preview(subfolder, source_preview) {
