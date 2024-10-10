@@ -8,6 +8,7 @@ export default class Loader {
   }
   async load(path, use_cache = false, option = {}) {
     await this.load_tables(path, use_cache)
+    this._normalize_schema()
     if (option.filter?.values?.length > 0) {
       this._filter(option.filter)
     }
@@ -119,6 +120,31 @@ export default class Loader {
     const tables_data = await Promise.all(promises)
     for (const [i, table_data] of tables_data.entries()) {
       this.db[tables[i].name] = table_data
+    }
+  }
+  _normalize_schema() {
+    for (const table of this.db.__meta__) {
+      if (this.db[table.name].length === 0) continue
+      for (const variable in this.db[table.name][0]) {
+        if (!variable.endsWith("_ids")) continue
+        const entity_dest = variable.slice(0, -4)
+        if (!(entity_dest in this.db)) continue
+        const relation_table = table.name + "_" + entity_dest
+        if (!(relation_table in this.db)) {
+          this.db.__meta__.push({ name: relation_table })
+          this.db[relation_table] = []
+        }
+        for (const row of this.db[table.name]) {
+          if (!row[variable]) continue
+          const ids = row[variable].split(",")
+          for (const id of ids) {
+            this.db[relation_table].push({
+              [table.name + "_id"]: row.id,
+              [entity_dest + "_id"]: id.trim(),
+            })
+          }
+        }
+      }
     }
   }
   _filter(filter) {

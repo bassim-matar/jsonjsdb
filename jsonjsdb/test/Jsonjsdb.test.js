@@ -70,6 +70,12 @@ describe("jsonjsdb", () => {
         const result = db.get_all("email", { user })
         expect(result[0]).to.have.property("name")
       })
+      it("should get user 1 docs", () => {
+        const user = db.get("user", 1)
+        const docs = db.get_all("doc", { user: user.id })
+        console.log("docs", docs)
+        expect(docs).to.be.an("array").that.is.not.empty
+      })
     })
 
     describe("foreach()", () => {

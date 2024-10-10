@@ -2,7 +2,8 @@ jsonjs.data['user'] =
 [
   {
     "id": 1,
-    "name": "user 1"
+    "name": "user 1",
+    "doc_ids": "3, 4, 5"
   },
   {
     "id": 2,

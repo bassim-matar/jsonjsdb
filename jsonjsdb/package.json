@@ -1,6 +1,6 @@
 {
   "name": "jsonjsdb",
-  "version": "0.2.30",
+  "version": "0.3.0",
   "description": "Jsonjsdb database",
   "type": "module",
   "license": "MIT",
@@ -34,10 +34,10 @@
     "open-browser": "(sleep 1; open test/index.html) &"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^26.0.1",
-    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-commonjs": "^28.0.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-terser": "^0.4.4",
-    "rollup": "^4.18.0"
+    "rollup": "^4.24.0"
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
