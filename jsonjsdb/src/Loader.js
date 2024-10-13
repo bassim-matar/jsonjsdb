@@ -334,6 +334,12 @@ export default class Loader {
     const metaDataset = {}
     const metaFolder = {}
 
+    const virtual_meta_tables = []
+    const db = this.db
+    for (const table of Object.values(db.__meta__)) {
+      if (!table.last_modif) virtual_meta_tables.push(table.name)
+    }
+
     if ("__metaFolder__" in this.db) {
       for (const folder of this.db.__metaFolder__) {
         metaFolder[folder.id] = folder
@@ -386,10 +392,12 @@ export default class Loader {
       metaFolder_user_data.nb_dataset += 1
       metaFolder_user_data.nb_variable += variables.length
     }
+    
     for (const table of this.db.__meta__) {
       if (table.name.includes("__meta__")) continue
       if (this._meta_tables.includes(table.name)) continue
       if (this.db[table.name].length === 0) continue
+      if (virtual_meta_tables.includes(table.name)) continue
       const variables = Object.keys(this.db[table.name][0])
       this.db.metaDataset.push({
         id: table.name,
