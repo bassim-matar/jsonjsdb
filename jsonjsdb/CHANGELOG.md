@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.3.4 (2024-10-14)
+
+- fixed : again Loader._normalize_schema() with no ids found
+
 ## 0.3.3 (2024-10-13)
 
 - fixed : Loader._normalize_schema() with no ids found

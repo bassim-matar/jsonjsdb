@@ -136,8 +136,9 @@ export default class Loader {
         }
         for (const row of this.db[table.name]) {
           if (!row[variable]) continue
-          const ids = row[variable]?.split(",")
-          if (!ids) continue
+          const ids =
+            typeof row[variable] === "string" ? row[variable].split(",") : []
+          if (ids.length === 0) continue
           for (const id of ids) {
             this.db[relation_table].push({
               [table.name + "_id"]: row.id,
