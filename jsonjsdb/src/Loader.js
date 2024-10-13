@@ -406,6 +406,7 @@ export default class Loader {
         nb_variable: variables.length,
         nb_row: this.db[table.name].length,
         description: metaDataset[table.name]?.description,
+        last_update_timestamp: table.last_modif,
       })
       this._add_meta_variables(table.name, this.db[table.name], variables)
       metaFolder_data.nb_dataset += 1
