@@ -1,5 +1,10 @@
 export default class Loader {
-  _meta_tables = ["__metaFolder__", "__metaDataset__", "__metaVariable__"]
+  _meta_tables = [
+    "__metaFolder__",
+    "__metaDataset__",
+    "__metaVariable__",
+    "__meta_schema__",
+  ]
   _cache_prefix = "db_cache/"
 
   constructor(browser) {
@@ -335,6 +340,7 @@ export default class Loader {
     this.db.__user_data__ = user_data
     const metaDataset = {}
     const metaFolder = {}
+    this.metaVariable = {}
 
     const virtual_meta_tables = []
     const db = this.db
@@ -352,11 +358,27 @@ export default class Loader {
         metaDataset[dataset.id] = dataset
       }
     }
-    this.metaVariable = {}
     if ("__metaVariable__" in this.db) {
       for (const variable of this.db.__metaVariable__) {
         this.metaVariable[variable.dataset + "---" + variable.variable] =
           variable
+      }
+    }
+    if ("__meta_schema__" in this.db) {
+      for (const row of this.db.__meta_schema__) {
+        if (!row.folder) continue
+        if (!row.dataset) {
+          row.id = row.folder
+          metaFolder[row.id] = row
+          continue
+        }
+        if (!row.variable) {
+          row.id = row.dataset
+          metaDataset[row.id] = row
+          continue
+        }
+        row.id = row.dataset + "---" + row.variable
+        this.metaVariable[row.id] = row
       }
     }
 
@@ -394,7 +416,7 @@ export default class Loader {
       metaFolder_user_data.nb_dataset += 1
       metaFolder_user_data.nb_variable += variables.length
     }
-    
+
     for (const table of this.db.__meta__) {
       if (table.name.includes("__meta__")) continue
       if (this._meta_tables.includes(table.name)) continue

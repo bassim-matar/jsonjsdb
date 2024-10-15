@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.3.5 (2024-10-15)
+
+- added : one __meta_schema__.json.js file to replace other meta schema files
+
 ## 0.3.4 (2024-10-14)
 
 - fixed : again Loader._normalize_schema() with no ids found
