@@ -27,5 +27,9 @@ jsonjs.data['__meta__'] =
   {
     "name": "__meta_schema__",
     "last_modif": 1670156896
+  },
+  {
+    "name": "__meta__",
+    "last_modif": 1670156899
   }
 ]

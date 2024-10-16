@@ -92,7 +92,8 @@ export default class Loader {
     }
   }
   async load_tables(path, use_cache) {
-    const meta = await this.load_jsonjs(path, "__meta__")
+    let meta = await this.load_jsonjs(path, "__meta__")
+    meta = this._extract_last_modif(meta)
     if (use_cache) {
       this.meta_cache = await this.browser.get(this._cache_prefix + "__meta__")
       const new_meta_cache = meta.reduce((acc, item) => {
@@ -126,6 +127,16 @@ export default class Loader {
     for (const [i, table_data] of tables_data.entries()) {
       this.db[tables[i].name] = table_data
     }
+  }
+  get_last_modif_timestamp() {
+    return this.last_modif_timestamp
+  }
+  _extract_last_modif(meta) {
+    const meta_row = meta.filter(item => item.name === "__meta__")
+    if (meta_row.length > 0 && meta_row[0].last_modif) {
+      this.last_modif_timestamp = meta_row[0].last_modif
+    }
+    return meta.filter(item => item.name !== "__meta__")
   }
   _normalize_schema() {
     for (const table of this.db.__meta__) {

@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.3.6 (2024-10-16)
+
+- added : timestamp last modification from __meta__ file
+
 ## 0.3.5 (2024-10-15)
 
 - added : one __meta_schema__.json.js file to replace other meta schema files

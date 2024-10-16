@@ -192,6 +192,9 @@ export default class Jsonjsdb {
   add_meta(user_data) {
     this.loader.add_meta(user_data)
   }
+  get_last_modif_timestamp() {
+    return this.loader.get_last_modif_timestamp()
+  }
   async check_integrity() {
     await this.loader.load_tables(this.config.path, false)
     this.db = this.loader.db
