@@ -1,6 +1,10 @@
 jsonjs.data['__meta__'] = 
 [
   {
+    "name": "config",
+    "last_modif": 1670156892
+  },
+  {
     "name":"user",
     "last_modif":1670156892
   },

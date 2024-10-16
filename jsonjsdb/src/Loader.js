@@ -213,8 +213,20 @@ export default class Loader {
     return this.db.__index__[table_name].id[id]
   }
   _create_alias() {
-    if (!("alias" in this.db)) return false
-    const aliases = this.db.alias
+    let aliases = []
+    if ("config" in this.db) {
+      for (const row of this.db.config) {
+        if (row.id?.startsWith("alias_")) {
+          aliases.push({
+            table: row.value?.split(":")[0]?.trim(),
+            alias: row.value?.split(":")[1]?.trim(),
+          })
+        }
+      }
+    }
+    if ("alias" in this.db) {
+      aliases = aliases.concat(this.db.alias)
+    }
     for (const alias of aliases) {
       const alias_data = []
       if (!(alias.table in this.db)) {

@@ -1,5 +1,8 @@
 # jsonjsdb
 
+## 0.3.8 (2024-10-16)
+- added : get alias from config file
+
 ## 0.3.7 (2024-10-16)
 - added : get_last_modif_timestamp() type
 
