@@ -149,6 +149,7 @@ export default class Jsonjsdb_editor {
         if (JSON.stringify(input_metadata) === JSON.stringify(output_metadata))
             return;
         let content = `jsonjs.data['__meta__'] = \n`;
+        input_metadata.push({ name: "__meta__", last_modif: Date.now() / 1000 });
         content += JSON.stringify(input_metadata, null, 2);
         await fs.writeFile(this.metadata_file, content, "utf-8");
     }
