@@ -1,5 +1,8 @@
 # jsonjsdb
 
+## 0.3.7 (2024-10-16)
+- added : get_last_modif_timestamp() type
+
 ## 0.3.6 (2024-10-16)
 
 - added : timestamp last modification from __meta__ file

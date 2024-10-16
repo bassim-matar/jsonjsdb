@@ -58,4 +58,5 @@ export default class Jsonjsdb {
   get_config(id: ID): string | number
   add_meta(user_data: {}): void
   check_integrity(): Promise<{}>
+  get_last_modif_timestamp(): number
 }
