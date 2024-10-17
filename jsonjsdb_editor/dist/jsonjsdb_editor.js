@@ -26,11 +26,11 @@ export default class Jsonjsdb_editor {
             this.get_input_metadata(this.input_db),
             this.get_output_metadata(),
         ]);
-        await Promise.all([
-            this.delete_old_files(input_metadata),
-            this.update_tables(input_metadata, output_metadata),
-            this.save_metadata(input_metadata, output_metadata),
-        ]);
+        const is_table_deleted = await this.delete_old_files(input_metadata);
+        const is_table_updated = await this.update_tables(input_metadata, output_metadata);
+        if (!is_table_updated && !is_table_deleted)
+            return;
+        await this.save_metadata(input_metadata, output_metadata);
     }
     watch_db(input_db) {
         this.set_input_db(input_db);
@@ -144,6 +144,7 @@ export default class Jsonjsdb_editor {
             delete_promises.push(fs.unlink(file_path));
         }
         await Promise.all(delete_promises);
+        return delete_promises.length > 0;
     }
     async save_metadata(input_metadata, output_metadata) {
         if (JSON.stringify(input_metadata) === JSON.stringify(output_metadata))
@@ -163,6 +164,7 @@ export default class Jsonjsdb_editor {
             update_promises.push(this.update_table(name));
         }
         await Promise.all(update_promises);
+        return update_promises.length > 0;
     }
     async update_table(table) {
         const input_file = path.join(this.input_db, `${table}.xlsx`);

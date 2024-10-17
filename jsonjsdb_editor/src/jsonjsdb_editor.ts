@@ -42,11 +42,10 @@ export default class Jsonjsdb_editor {
       this.get_output_metadata(),
     ])
 
-    await Promise.all([
-      this.delete_old_files(input_metadata),
-      this.update_tables(input_metadata, output_metadata),
-      this.save_metadata(input_metadata, output_metadata),
-    ])
+    const is_table_deleted = await this.delete_old_files(input_metadata)
+    const is_table_updated = await this.update_tables(input_metadata, output_metadata)
+    if (!is_table_updated && !is_table_deleted) return
+    await this.save_metadata(input_metadata, output_metadata)
   }
 
   public watch_db(input_db: Path): void {
@@ -151,7 +150,7 @@ export default class Jsonjsdb_editor {
 
   private async delete_old_files(
     input_metadata: MetadataItem[]
-  ): Promise<void> {
+  ): Promise<boolean> {
     const delete_promises = []
     const input_metadata_obj = this.metadata_list_to_object(input_metadata)
     const output_files = await fs.readdir(this.output_db)
@@ -165,6 +164,7 @@ export default class Jsonjsdb_editor {
       delete_promises.push(fs.unlink(file_path))
     }
     await Promise.all(delete_promises)
+    return delete_promises.length > 0
   }
 
   private async save_metadata(
@@ -182,7 +182,7 @@ export default class Jsonjsdb_editor {
   private async update_tables(
     input_metadata: MetadataItem[],
     output_metadata: MetadataItem[]
-  ) {
+  ) : Promise<boolean> {
     const output_metadata_obj = this.metadata_list_to_object(output_metadata)
     const update_promises = []
     for (const { name, last_modif } of input_metadata) {
@@ -191,6 +191,7 @@ export default class Jsonjsdb_editor {
       update_promises.push(this.update_table(name))
     }
     await Promise.all(update_promises)
+    return update_promises.length > 0
   }
 
   private async update_table(table: string): Promise<void> {
