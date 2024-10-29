@@ -93,6 +93,7 @@ export default class Loader {
   }
   async load_tables(path, use_cache) {
     let meta = await this.load_jsonjs(path, "__meta__")
+    meta = this._check_conformity(meta)
     meta = this._extract_last_modif(meta)
     if (use_cache) {
       this.meta_cache = await this.browser.get(this._cache_prefix + "__meta__")
@@ -137,6 +138,23 @@ export default class Loader {
       this.last_modif_timestamp = meta_row[0].last_modif
     }
     return meta.filter(item => item.name !== "__meta__")
+  }
+  _check_conformity(meta) {
+    const meta_table = []
+    const all_names = []
+    for (const table of meta) {
+      if (!("name" in table)) {
+        console.error("table name not found in meta", table)
+        continue
+      }
+      if (all_names.includes(table.name)) {
+        console.error("table name already exists in meta", table)
+        continue
+      }
+      all_names.push(table.name)
+      meta_table.push(table)
+    }
+    return meta_table
   }
   _normalize_schema() {
     for (const table of this.db.__meta__) {

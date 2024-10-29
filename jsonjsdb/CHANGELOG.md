@@ -1,5 +1,8 @@
 # jsonjsdb
 
+## 0.3.9 (2024-10-29)
+- added : show error and filter for duplicate table name in meta
+
 ## 0.3.8 (2024-10-16)
 - added : get alias from config file
 
