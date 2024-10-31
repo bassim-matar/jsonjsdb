@@ -254,6 +254,20 @@ class Jsonjsdb_watcher_class {
   get_db_meta_file_path() {
     return this.jdb_editor.get_metadata_file()
   }
+  async update_md_files(md_dir: string, source_dir: Path) {
+    const db_meta_file_path = this.get_db_meta_file_path().split("/__meta__.json.js")[0]
+    if (!existsSync(source_dir)) return
+    const files = await fs.readdir(source_dir)
+    for (const file of files) {
+      if (!file.endsWith(".md")) continue
+      const file_content = await fs.readFile(`${source_dir}/${file}`, "utf8")
+      const out_file_name = file.split(".md")[0]
+      const out_file_path = `${db_meta_file_path}/${md_dir}/${out_file_name}.json.js`
+      const json = JSON.stringify([{ content: file_content }])
+      const jsonjs = `jsonjs.data["${out_file_name}"] = \n` + json
+      await fs.writeFile(out_file_path, jsonjs, "utf8")
+    }
+  }
 }
 export const Jsonjsdb_watcher = new Jsonjsdb_watcher_class()
 

@@ -35,6 +35,7 @@ declare class Jsonjsdb_watcher_class {
     watch(input_db: Path, even_prod?: boolean): Promise<void>;
     update_preview(subfolder: string, source_preview: Path): Promise<void>;
     get_db_meta_file_path(): string;
+    update_md_files(md_dir: string, source_dir: Path): Promise<void>;
 }
 export declare const Jsonjsdb_watcher: Jsonjsdb_watcher_class;
 export declare function jsonjsdb_add_config(config: Path): {};

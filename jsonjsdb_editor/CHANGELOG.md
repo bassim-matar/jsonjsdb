@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.1.17 (2024-10-31)
+
+- added : update_md_files method to update md files into the db
+
 ## 0.1.16 (2024-10-17)
 
 - changed : update main last modification timestamp only if change has been made
