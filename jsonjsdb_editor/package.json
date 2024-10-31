@@ -1,6 +1,6 @@
 {
   "name": "jsonjsdb_editor",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Jsonjsdb database editor",
   "type": "module",
   "license": "MIT",

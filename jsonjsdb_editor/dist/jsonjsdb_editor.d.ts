@@ -13,6 +13,7 @@ export default class Jsonjsdb_editor {
     watch_db(input_db: Path): void;
     update_preview(subfolder: string, source_preview: Path): Promise<void>;
     set_output_db(output_db: Path): Promise<void>;
+    get_output_db(): Path;
     get_metadata_file(): Path;
     private set_input_db;
     private get_input_metadata;

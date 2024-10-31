@@ -84,6 +84,10 @@ export default class Jsonjsdb_editor {
     this.metadata_file = path.join(this.output_db, this.metadata_filename)
   }
 
+  public get_output_db(): Path {
+    return this.output_db
+  }
+
   public get_metadata_file(): Path {
     return this.metadata_file
   }
@@ -243,6 +247,7 @@ class Jsonjsdb_watcher_class {
   }
   async set_db(output_db: Path) {
     await this.jdb_editor.set_output_db(output_db)
+    this.output_db = this.jdb_editor.get_output_db()
   }
   async watch(input_db: Path, even_prod: boolean = false) {
     await this.jdb_editor.update_db(input_db)
@@ -255,14 +260,13 @@ class Jsonjsdb_watcher_class {
     return this.jdb_editor.get_metadata_file()
   }
   async update_md_files(md_dir: string, source_dir: Path) {
-    const db_meta_file_path = this.get_db_meta_file_path().split("/__meta__.json.js")[0]
     if (!existsSync(source_dir)) return
     const files = await fs.readdir(source_dir)
     for (const file of files) {
       if (!file.endsWith(".md")) continue
       const file_content = await fs.readFile(`${source_dir}/${file}`, "utf8")
       const out_file_name = file.split(".md")[0]
-      const out_file_path = `${db_meta_file_path}/${md_dir}/${out_file_name}.json.js`
+      const out_file_path = `${this.output_db}/${md_dir}/${out_file_name}.json.js`
       const json = JSON.stringify([{ content: file_content }])
       const jsonjs = `jsonjs.data["${out_file_name}"] = \n` + json
       await fs.writeFile(out_file_path, jsonjs, "utf8")
