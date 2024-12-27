@@ -1,4 +1,8 @@
-# jsonjsdb
+# jsonjsdb_editor
+
+## 0.2.0 (2024-12-27)
+
+- added : compare_datasets method to add history of changes
 
 ## 0.1.18 (2024-11-31)
 

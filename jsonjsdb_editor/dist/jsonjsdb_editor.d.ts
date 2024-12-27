@@ -1,4 +1,15 @@
+type TableRow = Record<string, any>;
 type Path = string;
+export interface HistoryEntry {
+    timestamp: number;
+    type: "add" | "delete" | "update";
+    entity: string;
+    entity_id: string | number;
+    variable: string | null;
+    old_value: any | null;
+    new_value: any | null;
+}
+export declare function compare_datasets(dataset_old: TableRow[], dataset_new: TableRow[], timestamp: number, entity: string): HistoryEntry[];
 export default class Jsonjsdb_editor {
     private input_db;
     private output_db;
@@ -6,6 +17,8 @@ export default class Jsonjsdb_editor {
     private extension;
     private metadata_filename;
     private metadata_file;
+    private update_db_timestamp;
+    private new_history_entries;
     constructor(option?: {
         readable?: boolean;
     });
@@ -23,9 +36,12 @@ export default class Jsonjsdb_editor {
     private delete_old_files;
     private save_metadata;
     private update_tables;
+    private save_history;
     private update_table;
     private write_table;
     private convert_to_list_of_objects;
+    private convert_to_list_of_lists;
+    private read_jsonjs;
 }
 declare class Jsonjsdb_watcher_class {
     private output_db;

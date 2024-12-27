@@ -2,6 +2,83 @@ import path from "path";
 import { promises as fs, existsSync } from "fs";
 import readExcel from "read-excel-file/node";
 import chokidar from "chokidar";
+function add_id_if_missing(dataset) {
+    if (dataset.length === 0)
+        return;
+    if ("id" in dataset[0])
+        return;
+    const keys = Object.keys(dataset[0]);
+    if (keys.length < 2) {
+        throw new Error("Not enough columns to generate id");
+    }
+    const [key1, key2] = keys;
+    for (const item of dataset) {
+        item.id = `${item[key1]}---${item[key2]}`;
+    }
+}
+export function compare_datasets(dataset_old, dataset_new, timestamp, entity) {
+    add_id_if_missing(dataset_old);
+    add_id_if_missing(dataset_new);
+    const map_old = new Map(dataset_old.map(item => [item.id, item]));
+    const map_new = new Map(dataset_new.map(item => [item.id, item]));
+    const ids_old = new Set(map_old.keys());
+    const ids_new = new Set(map_new.keys());
+    const ids_added = [...ids_new].filter(id => !ids_old.has(id));
+    const ids_removed = [...ids_old].filter(id => !ids_new.has(id));
+    const common_ids = [...ids_old].filter(id => ids_new.has(id));
+    const modifications = [];
+    for (const id of common_ids) {
+        const obj_old = map_old.get(id);
+        const obj_new = map_new.get(id);
+        for (const key of Object.keys(obj_old)) {
+            if (key === "id")
+                continue;
+            if (obj_old[key] !== obj_new[key]) {
+                modifications.push({
+                    entity_id: id,
+                    variable: key,
+                    old_value: obj_old[key],
+                    new_value: obj_new[key],
+                });
+            }
+        }
+    }
+    const new_history_entries = [];
+    for (const id of ids_added) {
+        new_history_entries.push({
+            timestamp,
+            type: "add",
+            entity,
+            entity_id: id,
+            variable: null,
+            old_value: null,
+            new_value: null,
+        });
+    }
+    for (const id of ids_removed) {
+        new_history_entries.push({
+            timestamp,
+            type: "delete",
+            entity,
+            entity_id: id,
+            variable: null,
+            old_value: null,
+            new_value: null,
+        });
+    }
+    for (const mod of modifications) {
+        new_history_entries.push({
+            timestamp,
+            type: "update",
+            entity,
+            entity_id: mod.entity_id,
+            variable: mod.variable,
+            old_value: mod.old_value,
+            new_value: mod.new_value,
+        });
+    }
+    return new_history_entries;
+}
 export default class Jsonjsdb_editor {
     input_db;
     output_db;
@@ -9,12 +86,16 @@ export default class Jsonjsdb_editor {
     extension;
     metadata_filename = "__meta__.json.js";
     metadata_file;
+    update_db_timestamp;
+    new_history_entries;
     constructor(option = {}) {
         this.input_db = "";
         this.output_db = "";
         this.metadata_file = "";
         this.readable = option.readable ?? false;
         this.extension = "xlsx";
+        this.update_db_timestamp = 0;
+        this.new_history_entries = [];
     }
     async update_db(input_db) {
         this.set_input_db(input_db);
@@ -22,6 +103,7 @@ export default class Jsonjsdb_editor {
             console.error(`Jsonjsdb: input db folder doesn't exist: ${this.input_db}`);
             return;
         }
+        this.update_db_timestamp = Math.round(Date.now() / 1000);
         const [input_metadata, output_metadata] = await Promise.all([
             this.get_input_metadata(this.input_db),
             this.get_output_metadata(),
@@ -142,6 +224,8 @@ export default class Jsonjsdb_editor {
                 continue;
             if (table in input_metadata_obj)
                 continue;
+            if (table === "history")
+                continue;
             const file_path = path.join(this.output_db, file_name);
             console.log(`Jsonjsdb: deleting ${table}`);
             delete_promises.push(fs.unlink(file_path));
@@ -153,7 +237,10 @@ export default class Jsonjsdb_editor {
         if (JSON.stringify(input_metadata) === JSON.stringify(output_metadata))
             return;
         let content = `jsonjs.data['__meta__'] = \n`;
-        input_metadata.push({ name: "__meta__", last_modif: Date.now() / 1000 });
+        input_metadata.push({
+            name: "__meta__",
+            last_modif: Math.round(Date.now() / 1000),
+        });
         content += JSON.stringify(input_metadata, null, 2);
         await fs.writeFile(this.metadata_file, content, "utf-8");
     }
@@ -166,12 +253,41 @@ export default class Jsonjsdb_editor {
                 continue;
             update_promises.push(this.update_table(name));
         }
+        this.new_history_entries = [];
         await Promise.all(update_promises);
+        await this.save_history(input_metadata);
         return update_promises.length > 0;
+    }
+    async save_history(input_metadata) {
+        if (this.new_history_entries.length === 0)
+            return;
+        const history_file = path.join(this.output_db, `history.json.js`);
+        let history = [];
+        if (existsSync(history_file)) {
+            history = await this.read_jsonjs(history_file);
+        }
+        history.push(...this.new_history_entries);
+        const history_list = this.convert_to_list_of_lists(history);
+        this.write_table(history_list, this.output_db, "history");
+        let history_found = false;
+        for (const input_metadata_row of input_metadata) {
+            if (input_metadata_row.name === "history") {
+                input_metadata_row.last_modif = this.update_db_timestamp;
+            }
+        }
+        if (!history_found) {
+            input_metadata.push({
+                name: "history",
+                last_modif: this.update_db_timestamp,
+            });
+        }
     }
     async update_table(table) {
         const input_file = path.join(this.input_db, `${table}.xlsx`);
-        let table_data = await readExcel(input_file);
+        const table_data = await readExcel(input_file);
+        const old_table_data = await this.read_jsonjs(path.join(this.output_db, `${table}.json.js`));
+        const new_history_entries = compare_datasets(old_table_data, this.convert_to_list_of_objects(table_data), this.update_db_timestamp, table);
+        this.new_history_entries.push(...new_history_entries);
         await this.write_table(table_data, this.output_db, table);
         console.log(`Jsonjsdb updating ${table}`);
     }
@@ -198,6 +314,28 @@ export default class Jsonjsdb_editor {
             objects.push(obj);
         }
         return objects;
+    }
+    convert_to_list_of_lists(objects) {
+        if (objects.length === 0)
+            return [];
+        const headers = Object.keys(objects[0]);
+        const rows = [headers];
+        for (const obj of objects) {
+            const row = headers.map(header => obj[header]);
+            rows.push(row);
+        }
+        return rows;
+    }
+    async read_jsonjs(path) {
+        if (!existsSync(path))
+            return [];
+        const js_data = await fs.readFile(path, "utf8");
+        const json_string = js_data.slice(js_data.indexOf("\n") + 1);
+        const data = JSON.parse(json_string);
+        if (data.length > 0 && Array.isArray(data[0])) {
+            return this.convert_to_list_of_objects(data);
+        }
+        return data;
     }
 }
 class Jsonjsdb_watcher_class {
