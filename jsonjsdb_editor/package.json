@@ -1,6 +1,6 @@
 {
   "name": "jsonjsdb_editor",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Jsonjsdb database editor",
   "type": "module",
   "license": "MIT",
@@ -9,7 +9,6 @@
     "database",
     "jsondb",
     "jsonjsdb",
-    "jsonjsdb_editor",
     "local",
     "file protocol"
   ],
@@ -18,25 +17,27 @@
     "url": "git+https://github.com/bassim-matar/jsonjsdb.git"
   },
   "homepage": "https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb_editor#readme",
-  "main": "dist/jsonjsdb_editor.js",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/jsonjsdb_editor.js"
+    "import": "./dist/index.js",
+    "require": "./dist/index.js"
   },
   "files": [
     "dist"
   ],
-  "types": "dist/jsonjsdb_editor.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "vite build",
     "test_basic": "cd test/excel_version/basic && node convert_xlsxdb_to_jsonjsdb.js",
     "test_real_1": "cd test/excel_version/real_1 && node convert_xlsxdb_to_jsonjsdb.js"
   },
   "devDependencies": {
-    "@types/node": "^20.14.2",
-    "typescript": "^5.4.5"
+    "vite": "^6.0.6",
+    "vite-plugin-dts": "^4.4.0"
   },
   "dependencies": {
-    "chokidar": "^3.6.0",
-    "read-excel-file": "^5.8.1"
+    "chokidar": "^4.0.3",
+    "read-excel-file": "^5.8.6"
   }
 }

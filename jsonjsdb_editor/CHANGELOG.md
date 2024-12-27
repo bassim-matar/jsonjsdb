@@ -1,5 +1,10 @@
 # jsonjsdb_editor
 
+## 0.2.1 (2024-12-28)
+
+- fixed : compare_datasets method skip entity starting with "__"
+- refactored : use vite to bundle the lib and move compare_datasets in a separate file
+
 ## 0.2.0 (2024-12-27)
 
 - added : compare_datasets method to add history of changes

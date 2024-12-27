@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ESNext",                       // Set ECMAScript target version
-    "module": "nodenext",                     // Set module system
-    "outDir": "./dist",                       // Set output directory for compiled files
-    "strict": true,                           // Enable all strict type-checking options
-    "esModuleInterop": true,                  // Enables compatibility with default imports from CommonJS modules
-    "skipLibCheck": true,                     // Skip type checking of all declaration files (*.d.ts)
-    "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file
-    "declaration": true,                      // Generates corresponding .d.ts file
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
