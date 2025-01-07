@@ -8,6 +8,8 @@ export interface HistoryEntry {
   variable: string | null
   old_value: any | null
   new_value: any | null
+  name: string | null
+  parent_ids: { [key: string]: string | number }[] | null
 }
 
 function add_id_if_missing(dataset: TableRow[]) {
@@ -82,10 +84,19 @@ export function compare_datasets(
       variable: null,
       old_value: null,
       new_value: null,
+      name: null,
+      parent_ids: null,
     })
   }
 
   for (const id of ids_removed) {
+    const obj_old = map_old.get(id)!
+    const parent_ids = []
+    for (const key of Object.keys(obj_old)) {
+      if (key.endsWith("_id")) {
+        parent_ids.push({[key]: obj_old[key]})
+      }
+    }
     new_history_entries.push({
       timestamp,
       type: "delete",
@@ -94,6 +105,8 @@ export function compare_datasets(
       variable: null,
       old_value: null,
       new_value: null,
+      name: obj_old.name || null,
+      parent_ids,
     })
   }
 
@@ -106,6 +119,8 @@ export function compare_datasets(
       variable: mod.variable,
       old_value: mod.old_value,
       new_value: mod.new_value,
+      name: null,
+      parent_ids: null,
     })
   }
 

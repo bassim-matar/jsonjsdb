@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.2.2 (2025-01-07)
+
+- added : name and parent_ids to history entries of type delete
+
 ## 0.2.1 (2024-12-28)
 
 - fixed : compare_datasets method skip entity starting with "__"
