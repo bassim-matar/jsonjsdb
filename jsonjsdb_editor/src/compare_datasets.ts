@@ -5,11 +5,11 @@ export interface HistoryEntry {
   type: "add" | "delete" | "update"
   entity: string
   entity_id: string | number
+  parent_entity_id: string | number | null
   variable: string | null
   old_value: any | null
   new_value: any | null
   name: string | null
-  parent_ids: { [key: string]: string | number }[] | null
 }
 
 function add_id_if_missing(dataset: TableRow[]) {
@@ -23,6 +23,13 @@ function add_id_if_missing(dataset: TableRow[]) {
   for (const item of dataset) {
     item.id = `${item[key1]}---${item[key2]}`
   }
+}
+
+function get_first_parent_id(obj: TableRow): string | number | null {
+  for (const key of Object.keys(obj)) {
+    if (key.endsWith("_id")) return obj[key]
+  }
+  return null
 }
 
 export function compare_datasets(
@@ -81,32 +88,26 @@ export function compare_datasets(
       type: "add",
       entity,
       entity_id: id,
+      parent_entity_id: null,
       variable: null,
       old_value: null,
       new_value: null,
       name: null,
-      parent_ids: null,
     })
   }
 
   for (const id of ids_removed) {
     const obj_old = map_old.get(id)!
-    const parent_ids = []
-    for (const key of Object.keys(obj_old)) {
-      if (key.endsWith("_id")) {
-        parent_ids.push({[key]: obj_old[key]})
-      }
-    }
     new_history_entries.push({
       timestamp,
       type: "delete",
       entity,
       entity_id: id,
+      parent_entity_id: get_first_parent_id(obj_old),
       variable: null,
       old_value: null,
       new_value: null,
       name: obj_old.name || null,
-      parent_ids,
     })
   }
 
@@ -116,11 +117,11 @@ export function compare_datasets(
       type: "update",
       entity,
       entity_id: mod.entity_id,
+      parent_entity_id: null,
       variable: mod.variable,
       old_value: mod.old_value,
       new_value: mod.new_value,
       name: null,
-      parent_ids: null,
     })
   }
 

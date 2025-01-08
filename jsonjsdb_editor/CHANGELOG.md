@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.2.3 (2025-01-08)
+
+- changed : replace column parent_ids by parent_entity_id by getting only the first column with suffix "_id"
+
 ## 0.2.2 (2025-01-07)
 
 - added : name and parent_ids to history entries of type delete
