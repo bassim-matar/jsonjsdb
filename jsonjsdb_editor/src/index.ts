@@ -49,12 +49,9 @@ export class Jsonjsdb_editor {
       this.get_output_metadata(),
     ])
 
-    const is_table_deleted = await this.delete_old_files(input_metadata)
-    const is_table_updated = await this.update_tables(
-      input_metadata,
-      output_metadata
-    )
-    if (!is_table_updated && !is_table_deleted) return
+    await this.delete_old_files(input_metadata)
+    await this.update_tables(input_metadata, output_metadata)
+    await this.save_history(input_metadata)
     await this.save_metadata(input_metadata, output_metadata)
   }
 
@@ -210,31 +207,35 @@ export class Jsonjsdb_editor {
     }
     this.new_history_entries = []
     await Promise.all(update_promises)
-    await this.save_history(input_metadata)
     return update_promises.length > 0
   }
 
   private async save_history(input_metadata: MetadataItem[]): Promise<void> {
-    if (this.new_history_entries.length === 0) return
     const history_file = path.join(this.output_db, `history.json.js`)
-    let history: TableRow[] = []
-    if (existsSync(history_file)) {
-      history = await this.read_jsonjs(history_file)
-    }
-    history.push(...this.new_history_entries)
-    const history_list = this.convert_to_list_of_lists(history)
-    this.write_table(history_list, this.output_db, "history")
-    let history_found = false
-    for (const input_metadata_row of input_metadata) {
-      if (input_metadata_row.name === "history") {
-        input_metadata_row.last_modif = this.update_db_timestamp
+    if (this.new_history_entries.length > 0) {
+      let history: TableRow[] = []
+      if (existsSync(history_file)) {
+        history = await this.read_jsonjs(history_file)
       }
+      history.push(...this.new_history_entries)
+      const history_list = this.convert_to_list_of_lists(history)
+      this.write_table(history_list, this.output_db, "history")
     }
-    if (!history_found) {
-      input_metadata.push({
-        name: "history",
-        last_modif: this.update_db_timestamp,
-      })
+
+    if (existsSync(history_file)) {
+      let history_found = false
+      for (const input_metadata_row of input_metadata) {
+        if (input_metadata_row.name === "history") {
+          history_found = true
+          input_metadata_row.last_modif = this.update_db_timestamp
+        }
+      }
+      if (!history_found) {
+        input_metadata.push({
+          name: "history",
+          last_modif: this.update_db_timestamp,
+        })
+      }
     }
   }
 

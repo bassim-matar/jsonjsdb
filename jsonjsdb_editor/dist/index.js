@@ -99,11 +99,8 @@ class N {
     const [e, s] = await Promise.all([
       this.get_input_metadata(this.input_db),
       this.get_output_metadata()
-    ]), i = await this.delete_old_files(e);
-    !await this.update_tables(
-      e,
-      s
-    ) && !i || await this.save_metadata(e, s);
+    ]);
+    await this.delete_old_files(e), await this.update_tables(e, s), await this.save_history(e), await this.save_metadata(e, s);
   }
   watch_db(t) {
     this.set_input_db(t), k.watch(this.input_db, {
@@ -199,21 +196,25 @@ class N {
     const s = this.metadata_list_to_object(e), i = [];
     for (const { name: n, last_modif: a } of t)
       n in s && s[n] >= a || i.push(this.update_table(n));
-    return this.new_history_entries = [], await Promise.all(i), await this.save_history(t), i.length > 0;
+    return this.new_history_entries = [], await Promise.all(i), i.length > 0;
   }
   async save_history(t) {
-    if (this.new_history_entries.length === 0) return;
     const e = l.join(this.output_db, "history.json.js");
-    let s = [];
-    h(e) && (s = await this.read_jsonjs(e)), s.push(...this.new_history_entries);
-    const i = this.convert_to_list_of_lists(s);
-    this.write_table(i, this.output_db, "history");
-    for (const n of t)
-      n.name === "history" && (n.last_modif = this.update_db_timestamp);
-    t.push({
-      name: "history",
-      last_modif: this.update_db_timestamp
-    });
+    if (this.new_history_entries.length > 0) {
+      let s = [];
+      h(e) && (s = await this.read_jsonjs(e)), s.push(...this.new_history_entries);
+      const i = this.convert_to_list_of_lists(s);
+      this.write_table(i, this.output_db, "history");
+    }
+    if (h(e)) {
+      let s = !1;
+      for (const i of t)
+        i.name === "history" && (s = !0, i.last_modif = this.update_db_timestamp);
+      s || t.push({
+        name: "history",
+        last_modif: this.update_db_timestamp
+      });
+    }
   }
   async update_table(t) {
     const e = l.join(this.input_db, `${t}.xlsx`), s = await w(e);
