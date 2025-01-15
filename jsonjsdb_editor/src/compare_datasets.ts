@@ -41,6 +41,8 @@ export function compare_datasets(
   const new_history_entries: HistoryEntry[] = []
 
   if (entity.startsWith("__")) return new_history_entries
+  if (dataset_old.length === 0 && dataset_new.length === 0)
+    return new_history_entries
 
   add_id_if_missing(dataset_old)
   add_id_if_missing(dataset_new)
@@ -52,6 +54,14 @@ export function compare_datasets(
     dataset_new.map(item => [item.id, item])
   )
 
+  let variables: string[] = []
+  if (dataset_old.length === 0) variables = Object.keys(dataset_new[0])
+  else if (dataset_new.length === 0) variables = Object.keys(dataset_old[0])
+  else
+    variables = Array.from(
+      new Set([...Object.keys(dataset_old[0]), ...Object.keys(dataset_new[0])])
+    )
+
   const ids_old = new Set<string | number>(map_old.keys())
   const ids_new = new Set<string | number>(map_new.keys())
 
@@ -62,32 +72,33 @@ export function compare_datasets(
   const modifications: {
     entity_id: string | number
     variable: string
-    old_value: any
-    new_value: any
+    old_value: any | null
+    new_value: any | null
   }[] = []
 
-  for (const id of common_ids) {
-    const obj_old = map_old.get(id)!
-    const obj_new = map_new.get(id)!
-    for (const key of Object.keys(obj_old)) {
-      if (key === "id") continue
-      if (obj_old[key] !== obj_new[key]) {
-        modifications.push({
-          entity_id: id,
-          variable: key,
-          old_value: obj_old[key],
-          new_value: obj_new[key],
-        })
-      }
+  for (const entity_id of common_ids) {
+    const obj_old = map_old.get(entity_id)!
+    const obj_new = map_new.get(entity_id)!
+    for (const variable of variables) {
+      if (variable === "id") continue
+      const old_value = variable in obj_old ? obj_old[variable] : null
+      const new_value = variable in obj_new ? obj_new[variable] : null
+      if (old_value === new_value) continue
+      if (
+        [null, undefined, ""].includes(old_value) &&
+        [null, undefined, ""].includes(new_value)
+      )
+        continue
+      modifications.push({ entity_id, variable, old_value, new_value })
     }
   }
 
-  for (const id of ids_added) {
+  for (const entity_id of ids_added) {
     new_history_entries.push({
       timestamp,
       type: "add",
       entity,
-      entity_id: id,
+      entity_id,
       parent_entity_id: null,
       variable: null,
       old_value: null,
@@ -96,13 +107,13 @@ export function compare_datasets(
     })
   }
 
-  for (const id of ids_removed) {
-    const obj_old = map_old.get(id)!
+  for (const entity_id of ids_removed) {
+    const obj_old = map_old.get(entity_id)!
     new_history_entries.push({
       timestamp,
       type: "delete",
       entity,
-      entity_id: id,
+      entity_id,
       parent_entity_id: get_first_parent_id(obj_old),
       variable: null,
       old_value: null,

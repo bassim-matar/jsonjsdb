@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.2.5 (2025-01-15)
+
+- fixed : prevent adding entry when old and new value are both null or empty
+
 ## 0.2.4 (2025-01-12)
 
 - fixed : history file was not included if no change
