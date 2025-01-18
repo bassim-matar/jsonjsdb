@@ -1,6 +1,7 @@
 import path from "path"
 import { promises as fs, existsSync } from "fs"
 import readExcel from "read-excel-file/node"
+import writeXlsxFile from "write-excel-file/node"
 import chokidar from "chokidar"
 import { compare_datasets, EvolutionEntry } from "./compare_datasets"
 
@@ -14,6 +15,54 @@ interface MetadataItem {
   name: string
   last_modif: number
 }
+
+const schema = [
+  {
+    column: "timestamp",
+    type: Number,
+    value: (row: any) => row.timestamp,
+  },
+  {
+    column: "type",
+    type: String,
+    value: (row: any) => row.type,
+  },
+  {
+    column: "entity",
+    type: String,
+    value: (row: any) => String(row.entity),
+  },
+  {
+    column: "entity_id",
+    type: String,
+    value: (row: any) => String(row.entity_id),
+  },
+  {
+    column: "parent_entity_id",
+    type: String,
+    value: (row: any) => String(row.parent_entity_id),
+  },
+  {
+    column: "variable",
+    type: String,
+    value: (row: any) => String(row.variable),
+  },
+  {
+    column: "old_value",
+    type: String,
+    value: (row: any) => String(row.old_value),
+  },
+  {
+    column: "new_value",
+    type: String,
+    value: (row: any) => String(row.new_value),
+  },
+  {
+    column: "name",
+    type: String,
+    value: (row: any) => String(row.name),
+  },
+]
 
 export class Jsonjsdb_editor {
   private input_db: Path
@@ -63,7 +112,10 @@ export class Jsonjsdb_editor {
         persistent: true,
         ignoreInitial: true,
       })
-      .on("all", (event, path) => this.update_db(input_db))
+      .on("all", (event, path) => {
+        if (path.includes("evolution.xlsx")) return false
+        this.update_db(input_db)
+      })
 
     console.log("Jsonjsdb watching changes in", this.input_db)
   }
@@ -203,6 +255,7 @@ export class Jsonjsdb_editor {
     for (const { name, last_modif } of input_metadata) {
       const is_in_output = name in output_metadata_obj
       if (is_in_output && output_metadata_obj[name] >= last_modif) continue
+      if (name === "evolution") continue
       update_promises.push(this.update_table(name))
     }
     this.new_evo_entries = []
@@ -211,18 +264,21 @@ export class Jsonjsdb_editor {
   }
 
   private async save_evolution(input_metadata: MetadataItem[]): Promise<void> {
-    const evolution_file = path.join(this.output_db, `evolution.json.js`)
+    const evolution_file_jsonjs = path.join(this.output_db, `evolution.json.js`)
+    const evolution_file = path.join(this.input_db, `evolution.xlsx`)
     if (this.new_evo_entries.length > 0) {
       let evolution: TableRow[] = []
       if (existsSync(evolution_file)) {
-        evolution = await this.read_jsonjs(evolution_file)
+        const evolution_raw = await readExcel(evolution_file)
+        evolution = this.convert_to_list_of_objects(evolution_raw as Row[])
       }
       evolution.push(...this.new_evo_entries)
       const evolution_list = this.convert_to_list_of_lists(evolution)
       this.write_table(evolution_list, this.output_db, "evolution")
+      await writeXlsxFile(evolution, { schema, filePath: evolution_file })
     }
 
-    if (existsSync(evolution_file)) {
+    if (existsSync(evolution_file_jsonjs)) {
       let evo_found = false
       for (const input_metadata_row of input_metadata) {
         if (input_metadata_row.name === "evolution") {

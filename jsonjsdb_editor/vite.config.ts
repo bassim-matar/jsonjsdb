@@ -11,7 +11,12 @@ export default defineConfig({
       formats: ["es"],
     },
     rollupOptions: {
-      external: [...builtinModules, "chokidar", "read-excel-file/node"],
+      external: [
+        ...builtinModules,
+        "chokidar",
+        "read-excel-file/node",
+        "write-excel-file/node",
+      ],
     },
   },
   plugins: [dts()],

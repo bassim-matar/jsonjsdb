@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.2.7 (2025-01-18)
+
+- changed : make jsonjsdb_editor use xlsx state for history so we can edit it manually
+
 ## 0.2.6 (2025-01-18)
 
 - changed : rename history to evolution

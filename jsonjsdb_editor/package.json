@@ -1,6 +1,6 @@
 {
   "name": "jsonjsdb_editor",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Jsonjsdb database editor",
   "type": "module",
   "license": "MIT",
@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "chokidar": "^4.0.3",
-    "read-excel-file": "^5.8.6"
+    "read-excel-file": "^5.8.6",
+    "write-excel-file": "^2.0.11"
   }
 }
