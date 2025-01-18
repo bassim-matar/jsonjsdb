@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.2.6 (2025-01-18)
+
+- changed : rename history to evolution
+
 ## 0.2.5 (2025-01-15)
 
 - fixed : prevent adding entry when old and new value are both null or empty

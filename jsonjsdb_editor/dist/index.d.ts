@@ -7,7 +7,7 @@ export declare class Jsonjsdb_editor {
     private metadata_filename;
     private metadata_file;
     private update_db_timestamp;
-    private new_history_entries;
+    private new_evo_entries;
     constructor(option?: {
         readable?: boolean;
     });
@@ -25,9 +25,9 @@ export declare class Jsonjsdb_editor {
     private delete_old_files;
     private save_metadata;
     private update_tables;
-    private save_history;
+    private save_evolution;
     private update_table;
-    private add_new_history_entries;
+    private add_new_evo_entries;
     private write_table;
     private convert_to_list_of_objects;
     private convert_to_list_of_lists;

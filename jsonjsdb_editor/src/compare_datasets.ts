@@ -1,6 +1,6 @@
 type TableRow = Record<string, any>
 
-export interface HistoryEntry {
+export interface EvolutionEntry {
   timestamp: number
   type: "add" | "delete" | "update"
   entity: string
@@ -37,12 +37,12 @@ export function compare_datasets(
   dataset_new: TableRow[],
   timestamp: number,
   entity: string
-): HistoryEntry[] {
-  const new_history_entries: HistoryEntry[] = []
+): EvolutionEntry[] {
+  const new_evo_entries: EvolutionEntry[] = []
 
-  if (entity.startsWith("__")) return new_history_entries
+  if (entity.startsWith("__")) return new_evo_entries
   if (dataset_old.length === 0 && dataset_new.length === 0)
-    return new_history_entries
+    return new_evo_entries
 
   add_id_if_missing(dataset_old)
   add_id_if_missing(dataset_new)
@@ -94,7 +94,7 @@ export function compare_datasets(
   }
 
   for (const entity_id of ids_added) {
-    new_history_entries.push({
+    new_evo_entries.push({
       timestamp,
       type: "add",
       entity,
@@ -109,7 +109,7 @@ export function compare_datasets(
 
   for (const entity_id of ids_removed) {
     const obj_old = map_old.get(entity_id)!
-    new_history_entries.push({
+    new_evo_entries.push({
       timestamp,
       type: "delete",
       entity,
@@ -123,7 +123,7 @@ export function compare_datasets(
   }
 
   for (const mod of modifications) {
-    new_history_entries.push({
+    new_evo_entries.push({
       timestamp,
       type: "update",
       entity,
@@ -136,5 +136,5 @@ export function compare_datasets(
     })
   }
 
-  return new_history_entries
+  return new_evo_entries
 }

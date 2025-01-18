@@ -1,5 +1,5 @@
 type TableRow = Record<string, any>;
-export interface HistoryEntry {
+export interface EvolutionEntry {
     timestamp: number;
     type: "add" | "delete" | "update";
     entity: string;
@@ -10,5 +10,5 @@ export interface HistoryEntry {
     new_value: any | null;
     name: string | null;
 }
-export declare function compare_datasets(dataset_old: TableRow[], dataset_new: TableRow[], timestamp: number, entity: string): HistoryEntry[];
+export declare function compare_datasets(dataset_old: TableRow[], dataset_new: TableRow[], timestamp: number, entity: string): EvolutionEntry[];
 export {};

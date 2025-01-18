@@ -2,7 +2,7 @@ import path from "path"
 import { promises as fs, existsSync } from "fs"
 import readExcel from "read-excel-file/node"
 import chokidar from "chokidar"
-import { compare_datasets, HistoryEntry } from "./compare_datasets"
+import { compare_datasets, EvolutionEntry } from "./compare_datasets"
 
 type MetadataObj = Record<string, number>
 type TableRow = Record<string, any>
@@ -23,7 +23,7 @@ export class Jsonjsdb_editor {
   private metadata_filename: string = "__meta__.json.js"
   private metadata_file: Path
   private update_db_timestamp: number
-  private new_history_entries: HistoryEntry[]
+  private new_evo_entries: EvolutionEntry[]
 
   constructor(option: { readable?: boolean } = {}) {
     this.input_db = ""
@@ -32,7 +32,7 @@ export class Jsonjsdb_editor {
     this.readable = option.readable ?? false
     this.extension = "xlsx"
     this.update_db_timestamp = 0
-    this.new_history_entries = []
+    this.new_evo_entries = []
   }
 
   public async update_db(input_db: Path): Promise<void> {
@@ -51,7 +51,7 @@ export class Jsonjsdb_editor {
 
     await this.delete_old_files(input_metadata)
     await this.update_tables(input_metadata, output_metadata)
-    await this.save_history(input_metadata)
+    await this.save_evolution(input_metadata)
     await this.save_metadata(input_metadata, output_metadata)
   }
 
@@ -170,7 +170,7 @@ export class Jsonjsdb_editor {
       if (!file_name.endsWith(`.json.js`)) continue
       if (file_name === "__meta__.json.js") continue
       if (table in input_metadata_obj) continue
-      if (table === "history") continue
+      if (table === "evolution") continue
       const file_path = path.join(this.output_db, file_name)
       console.log(`Jsonjsdb: deleting ${table}`)
       delete_promises.push(fs.unlink(file_path))
@@ -205,34 +205,34 @@ export class Jsonjsdb_editor {
       if (is_in_output && output_metadata_obj[name] >= last_modif) continue
       update_promises.push(this.update_table(name))
     }
-    this.new_history_entries = []
+    this.new_evo_entries = []
     await Promise.all(update_promises)
     return update_promises.length > 0
   }
 
-  private async save_history(input_metadata: MetadataItem[]): Promise<void> {
-    const history_file = path.join(this.output_db, `history.json.js`)
-    if (this.new_history_entries.length > 0) {
-      let history: TableRow[] = []
-      if (existsSync(history_file)) {
-        history = await this.read_jsonjs(history_file)
+  private async save_evolution(input_metadata: MetadataItem[]): Promise<void> {
+    const evolution_file = path.join(this.output_db, `evolution.json.js`)
+    if (this.new_evo_entries.length > 0) {
+      let evolution: TableRow[] = []
+      if (existsSync(evolution_file)) {
+        evolution = await this.read_jsonjs(evolution_file)
       }
-      history.push(...this.new_history_entries)
-      const history_list = this.convert_to_list_of_lists(history)
-      this.write_table(history_list, this.output_db, "history")
+      evolution.push(...this.new_evo_entries)
+      const evolution_list = this.convert_to_list_of_lists(evolution)
+      this.write_table(evolution_list, this.output_db, "evolution")
     }
 
-    if (existsSync(history_file)) {
-      let history_found = false
+    if (existsSync(evolution_file)) {
+      let evo_found = false
       for (const input_metadata_row of input_metadata) {
-        if (input_metadata_row.name === "history") {
-          history_found = true
+        if (input_metadata_row.name === "evolution") {
+          evo_found = true
           input_metadata_row.last_modif = this.update_db_timestamp
         }
       }
-      if (!history_found) {
+      if (!evo_found) {
         input_metadata.push({
-          name: "history",
+          name: "evolution",
           last_modif: this.update_db_timestamp,
         })
       }
@@ -242,25 +242,25 @@ export class Jsonjsdb_editor {
   private async update_table(table: string): Promise<void> {
     const input_file = path.join(this.input_db, `${table}.xlsx`)
     const table_data = await readExcel(input_file)
-    await this.add_new_history_entries(table, table_data)
+    await this.add_new_evo_entries(table, table_data)
     await this.write_table(table_data, this.output_db, table)
     console.log(`Jsonjsdb updating ${table}`)
   }
 
-  private async add_new_history_entries(
+  private async add_new_evo_entries(
     table: string,
     table_data: Row[]
   ): Promise<void> {
     const old_table_data = await this.read_jsonjs(
       path.join(this.output_db, `${table}.json.js`)
     )
-    const new_history_entries = compare_datasets(
+    const new_evo_entries = compare_datasets(
       old_table_data,
       this.convert_to_list_of_objects(table_data),
       this.update_db_timestamp,
       table
     )
-    this.new_history_entries.push(...new_history_entries)
+    this.new_evo_entries.push(...new_evo_entries)
   }
 
   private async write_table(
