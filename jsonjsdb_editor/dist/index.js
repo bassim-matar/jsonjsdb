@@ -268,7 +268,7 @@ class D {
     if (f(e)) {
       let n = !1;
       for (const o of t)
-        o.name === "evolution" && (n = !0, o.last_modif = this.update_db_timestamp);
+        o.name === "evolution" && (n = !0, this.new_evo_entries.length > 0 && (o.last_modif = this.update_db_timestamp));
       n || t.push({
         name: "evolution",
         last_modif: this.update_db_timestamp

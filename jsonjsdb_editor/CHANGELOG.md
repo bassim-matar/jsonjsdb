@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.2.8 (2025-01-21)
+
+- fixed : jsonjsdb_editor : dont update evolution timestamp if no change
+
 ## 0.2.7 (2025-01-18)
 
 - changed : make jsonjsdb_editor use xlsx state for history so we can edit it manually

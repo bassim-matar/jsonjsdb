@@ -283,7 +283,9 @@ export class Jsonjsdb_editor {
       for (const input_metadata_row of input_metadata) {
         if (input_metadata_row.name === "evolution") {
           evo_found = true
-          input_metadata_row.last_modif = this.update_db_timestamp
+          if (this.new_evo_entries.length > 0) {
+            input_metadata_row.last_modif = this.update_db_timestamp
+          }
         }
       }
       if (!evo_found) {
