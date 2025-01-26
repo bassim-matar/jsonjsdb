@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.2.9 (2025-01-26)
+
+- fixed : jsonjsdb_editor : again dont update evolution timestamp if no change
+
 ## 0.2.8 (2025-01-21)
 
 - fixed : jsonjsdb_editor : dont update evolution timestamp if no change

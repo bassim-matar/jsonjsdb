@@ -235,6 +235,7 @@ export class Jsonjsdb_editor {
     input_metadata: MetadataItem[],
     output_metadata: MetadataItem[]
   ): Promise<void> {
+    output_metadata = output_metadata.filter(row => row.name !== "__meta__")
     if (JSON.stringify(input_metadata) === JSON.stringify(output_metadata))
       return
     let content = `jsonjs.data['__meta__'] = \n`

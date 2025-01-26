@@ -11,19 +11,19 @@ function g(s) {
   const t = Object.keys(s[0]);
   if (t.length < 2)
     throw new Error("Not enough columns to generate id");
-  const [e, i] = t;
-  for (const n of s)
-    n.id = `${n[e]}---${n[i]}`;
+  const [e, n] = t;
+  for (const i of s)
+    i.id = `${i[e]}---${i[n]}`;
 }
 function F(s) {
   for (const t of Object.keys(s))
     if (t.endsWith("_id")) return s[t];
   return null;
 }
-function W(s, t, e, i) {
-  const n = [];
-  if (i.startsWith("__") || s.length === 0 && t.length === 0)
-    return n;
+function W(s, t, e, n) {
+  const i = [];
+  if (n.startsWith("__") || s.length === 0 && t.length === 0)
+    return i;
   g(s), g(t);
   const o = new Map(
     s.map((_) => [_.id, _])
@@ -44,10 +44,10 @@ function W(s, t, e, i) {
     }
   }
   for (const _ of S)
-    n.push({
+    i.push({
       timestamp: e,
       type: "add",
-      entity: i,
+      entity: n,
       entity_id: _,
       parent_entity_id: null,
       variable: null,
@@ -57,10 +57,10 @@ function W(s, t, e, i) {
     });
   for (const _ of $) {
     const m = o.get(_);
-    n.push({
+    i.push({
       timestamp: e,
       type: "delete",
-      entity: i,
+      entity: n,
       entity_id: _,
       parent_entity_id: F(m),
       variable: null,
@@ -70,10 +70,10 @@ function W(s, t, e, i) {
     });
   }
   for (const _ of w)
-    n.push({
+    i.push({
       timestamp: e,
       type: "update",
-      entity: i,
+      entity: n,
       entity_id: _.entity_id,
       parent_entity_id: null,
       variable: _.variable,
@@ -81,7 +81,7 @@ function W(s, t, e, i) {
       new_value: _.new_value,
       name: null
     });
-  return n;
+  return i;
 }
 const M = [
   {
@@ -148,30 +148,30 @@ class D {
       return;
     }
     this.update_db_timestamp = Math.round(Date.now() / 1e3);
-    const [e, i] = await Promise.all([
+    const [e, n] = await Promise.all([
       this.get_input_metadata(this.input_db),
       this.get_output_metadata()
     ]);
-    await this.delete_old_files(e), await this.update_tables(e, i), await this.save_evolution(e), await this.save_metadata(e, i);
+    await this.delete_old_files(e), await this.update_tables(e, n), await this.save_evolution(e), await this.save_metadata(e, n);
   }
   watch_db(t) {
     this.set_input_db(t), N.watch(this.input_db, {
       ignored: /(^|[\/\\])\~\$/,
       persistent: !0,
       ignoreInitial: !0
-    }).on("all", (e, i) => {
-      if (i.includes("evolution.xlsx")) return !1;
+    }).on("all", (e, n) => {
+      if (n.includes("evolution.xlsx")) return !1;
       this.update_db(t);
     }), console.log("Jsonjsdb watching changes in", this.input_db);
   }
   async update_preview(t, e) {
-    const i = u.resolve(e), n = u.join(this.output_db, t);
-    f(n) || await r.mkdir(n);
-    const o = await r.readdir(i);
+    const n = u.resolve(e), i = u.join(this.output_db, t);
+    f(i) || await r.mkdir(i);
+    const o = await r.readdir(n);
     for (const a of o) {
       if (!a.endsWith(`.${this.extension}`) || a.startsWith("~$")) continue;
-      const l = u.join(i, a), c = await v(l), h = a.split(".")[0];
-      this.write_table(c, n, h);
+      const l = u.join(n, a), c = await v(l), h = a.split(".")[0];
+      this.write_table(c, i, h);
     }
   }
   async set_output_db(t) {
@@ -188,13 +188,13 @@ class D {
   }
   async get_input_metadata(t) {
     try {
-      const e = await r.readdir(t), i = [];
-      for (const n of e) {
-        if (!n.endsWith(`.${this.extension}`) || n.startsWith("~$")) continue;
-        const o = u.join(t, n), a = await r.stat(o), l = n.split(".")[0], c = Math.round(a.mtimeMs / 1e3);
-        i.push({ name: l, last_modif: c });
+      const e = await r.readdir(t), n = [];
+      for (const i of e) {
+        if (!i.endsWith(`.${this.extension}`) || i.startsWith("~$")) continue;
+        const o = u.join(t, i), a = await r.stat(o), l = i.split(".")[0], c = Math.round(a.mtimeMs / 1e3);
+        n.push({ name: l, last_modif: c });
       }
-      return i;
+      return n;
     } catch (e) {
       return console.error("Jsonjsdb: get_files_last_modif error:", e), [];
     }
@@ -204,18 +204,18 @@ class D {
     if (f(this.metadata_file)) {
       const e = await r.readFile(this.metadata_file, "utf-8");
       try {
-        const i = e.split(`
+        const n = e.split(`
 `);
-        i.shift(), t = JSON.parse(i.join(`
+        n.shift(), t = JSON.parse(n.join(`
 `));
-      } catch (i) {
-        console.error(`Jsonjsdb: error reading ${this.metadata_file}: ${i}`);
+      } catch (n) {
+        console.error(`Jsonjsdb: error reading ${this.metadata_file}: ${n}`);
       }
     }
     return t;
   }
   metadata_list_to_object(t) {
-    return t.reduce((e, i) => (e[i.name] = i.last_modif, e), {});
+    return t.reduce((e, n) => (e[n.name] = n.last_modif, e), {});
   }
   async ensure_output_db(t) {
     if (!f(t))
@@ -224,107 +224,107 @@ class D {
     if (e.filter(
       (o) => o.isFile() && o.name.endsWith(".json.js")
     ).length > 0) return t;
-    const n = e.filter((o) => o.isDirectory());
-    return n.length !== 1 ? t : t = u.join(t, n[0].name);
+    const i = e.filter((o) => o.isDirectory());
+    return i.length !== 1 ? t : t = u.join(t, i[0].name);
   }
   async delete_old_files(t) {
-    const e = [], i = this.metadata_list_to_object(t), n = await r.readdir(this.output_db);
-    for (const o of n) {
+    const e = [], n = this.metadata_list_to_object(t), i = await r.readdir(this.output_db);
+    for (const o of i) {
       const a = o.split(".")[0];
-      if (!o.endsWith(".json.js") || o === "__meta__.json.js" || a in i || a === "evolution") continue;
+      if (!o.endsWith(".json.js") || o === "__meta__.json.js" || a in n || a === "evolution") continue;
       const l = u.join(this.output_db, o);
       console.log(`Jsonjsdb: deleting ${a}`), e.push(r.unlink(l));
     }
     return await Promise.all(e), e.length > 0;
   }
   async save_metadata(t, e) {
-    if (JSON.stringify(t) === JSON.stringify(e))
+    if (e = e.filter((i) => i.name !== "__meta__"), JSON.stringify(t) === JSON.stringify(e))
       return;
-    let i = `jsonjs.data['__meta__'] = 
+    let n = `jsonjs.data['__meta__'] = 
 `;
     t.push({
       name: "__meta__",
       last_modif: Math.round(Date.now() / 1e3)
-    }), i += JSON.stringify(t, null, 2), await r.writeFile(this.metadata_file, i, "utf-8");
+    }), n += JSON.stringify(t, null, 2), await r.writeFile(this.metadata_file, n, "utf-8");
   }
   async update_tables(t, e) {
-    const i = this.metadata_list_to_object(e), n = [];
+    const n = this.metadata_list_to_object(e), i = [];
     for (const { name: o, last_modif: a } of t)
-      o in i && i[o] >= a || o !== "evolution" && n.push(this.update_table(o));
-    return this.new_evo_entries = [], await Promise.all(n), n.length > 0;
+      o in n && n[o] >= a || o !== "evolution" && i.push(this.update_table(o));
+    return this.new_evo_entries = [], await Promise.all(i), i.length > 0;
   }
   async save_evolution(t) {
-    const e = u.join(this.output_db, "evolution.json.js"), i = u.join(this.input_db, "evolution.xlsx");
+    const e = u.join(this.output_db, "evolution.json.js"), n = u.join(this.input_db, "evolution.xlsx");
     if (this.new_evo_entries.length > 0) {
-      let n = [];
-      if (f(i)) {
-        const a = await v(i);
-        n = this.convert_to_list_of_objects(a);
+      let i = [];
+      if (f(n)) {
+        const a = await v(n);
+        i = this.convert_to_list_of_objects(a);
       }
-      n.push(...this.new_evo_entries);
-      const o = this.convert_to_list_of_lists(n);
-      this.write_table(o, this.output_db, "evolution"), await O(n, { schema: M, filePath: i });
+      i.push(...this.new_evo_entries);
+      const o = this.convert_to_list_of_lists(i);
+      this.write_table(o, this.output_db, "evolution"), await O(i, { schema: M, filePath: n });
     }
     if (f(e)) {
-      let n = !1;
+      let i = !1;
       for (const o of t)
-        o.name === "evolution" && (n = !0, this.new_evo_entries.length > 0 && (o.last_modif = this.update_db_timestamp));
-      n || t.push({
+        o.name === "evolution" && (i = !0, this.new_evo_entries.length > 0 && (o.last_modif = this.update_db_timestamp));
+      i || t.push({
         name: "evolution",
         last_modif: this.update_db_timestamp
       });
     }
   }
   async update_table(t) {
-    const e = u.join(this.input_db, `${t}.xlsx`), i = await v(e);
-    await this.add_new_evo_entries(t, i), await this.write_table(i, this.output_db, t), console.log(`Jsonjsdb updating ${t}`);
+    const e = u.join(this.input_db, `${t}.xlsx`), n = await v(e);
+    await this.add_new_evo_entries(t, n), await this.write_table(n, this.output_db, t), console.log(`Jsonjsdb updating ${t}`);
   }
   async add_new_evo_entries(t, e) {
-    const i = await this.read_jsonjs(
+    const n = await this.read_jsonjs(
       u.join(this.output_db, `${t}.json.js`)
-    ), n = W(
-      i,
+    ), i = W(
+      n,
       this.convert_to_list_of_objects(e),
       this.update_db_timestamp,
       t
     );
-    this.new_evo_entries.push(...n);
+    this.new_evo_entries.push(...i);
   }
-  async write_table(t, e, i) {
-    let n = `jsonjs.data['${i}'] = 
+  async write_table(t, e, n) {
+    let i = `jsonjs.data['${n}'] = 
 `;
     if (this.readable) {
       const a = this.convert_to_list_of_objects(t);
-      n += JSON.stringify(a, null, 2);
+      i += JSON.stringify(a, null, 2);
     } else
-      n += JSON.stringify(t);
-    const o = u.join(e, `${i}.json.js`);
-    await r.writeFile(o, n, "utf-8");
+      i += JSON.stringify(t);
+    const o = u.join(e, `${n}.json.js`);
+    await r.writeFile(o, i, "utf-8");
   }
   convert_to_list_of_objects(t) {
-    const e = t[0], i = [];
-    for (const n of t.slice(1)) {
+    const e = t[0], n = [];
+    for (const i of t.slice(1)) {
       const o = {};
       for (const [a, l] of e.entries())
-        o[l] = n[a];
-      i.push(o);
+        o[l] = i[a];
+      n.push(o);
     }
-    return i;
+    return n;
   }
   convert_to_list_of_lists(t) {
     if (t.length === 0) return [];
-    const e = Object.keys(t[0]), i = [e];
-    for (const n of t) {
-      const o = e.map((a) => n[a]);
-      i.push(o);
+    const e = Object.keys(t[0]), n = [e];
+    for (const i of t) {
+      const o = e.map((a) => i[a]);
+      n.push(o);
     }
-    return i;
+    return n;
   }
   async read_jsonjs(t) {
     if (!f(t)) return [];
-    const e = await r.readFile(t, "utf8"), i = e.slice(e.indexOf(`
-`) + 1), n = JSON.parse(i);
-    return n.length > 0 && Array.isArray(n[0]) ? this.convert_to_list_of_objects(n) : n;
+    const e = await r.readFile(t, "utf8"), n = e.slice(e.indexOf(`
+`) + 1), i = JSON.parse(n);
+    return i.length > 0 && Array.isArray(i[0]) ? this.convert_to_list_of_objects(i) : i;
   }
 }
 class E {
@@ -350,10 +350,10 @@ class E {
   }
   async update_md_files(t, e) {
     if (!f(e)) return;
-    const i = await r.readdir(e);
-    for (const n of i) {
-      if (!n.endsWith(".md")) continue;
-      const o = await r.readFile(`${e}/${n}`, "utf8"), a = n.split(".md")[0], l = `${this.output_db}/${t}/${a}.json.js`, c = JSON.stringify([{ content: o }]), h = `jsonjs.data["${a}"] = 
+    const n = await r.readdir(e);
+    for (const i of n) {
+      if (!i.endsWith(".md")) continue;
+      const o = await r.readFile(`${e}/${i}`, "utf8"), a = i.split(".md")[0], l = `${this.output_db}/${t}/${a}.json.js`, c = JSON.stringify([{ content: o }]), h = `jsonjs.data["${a}"] = 
 ` + c;
       await r.writeFile(l, h, "utf8");
     }
