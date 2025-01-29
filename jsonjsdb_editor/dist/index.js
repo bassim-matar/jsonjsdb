@@ -102,32 +102,32 @@ const M = [
   {
     column: "entity_id",
     type: String,
-    value: (s) => String(s.entity_id)
+    value: (s) => String(s.entity_id || "")
   },
   {
     column: "parent_entity_id",
     type: String,
-    value: (s) => String(s.parent_entity_id)
+    value: (s) => String(s.parent_entity_id || "")
   },
   {
     column: "variable",
     type: String,
-    value: (s) => String(s.variable)
+    value: (s) => String(s.variable || "")
   },
   {
     column: "old_value",
     type: String,
-    value: (s) => String(s.old_value)
+    value: (s) => String(s.old_value || "")
   },
   {
     column: "new_value",
     type: String,
-    value: (s) => String(s.new_value)
+    value: (s) => String(s.new_value || "")
   },
   {
     column: "name",
     type: String,
-    value: (s) => String(s.name)
+    value: (s) => String(s.name || "")
   }
 ];
 class D {

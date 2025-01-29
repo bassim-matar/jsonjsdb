@@ -35,32 +35,32 @@ const schema = [
   {
     column: "entity_id",
     type: String,
-    value: (row: any) => String(row.entity_id),
+    value: (row: any) => String(row.entity_id || ""),
   },
   {
     column: "parent_entity_id",
     type: String,
-    value: (row: any) => String(row.parent_entity_id),
+    value: (row: any) => String(row.parent_entity_id || ""),
   },
   {
     column: "variable",
     type: String,
-    value: (row: any) => String(row.variable),
+    value: (row: any) => String(row.variable || ""),
   },
   {
     column: "old_value",
     type: String,
-    value: (row: any) => String(row.old_value),
+    value: (row: any) => String(row.old_value || ""),
   },
   {
     column: "new_value",
     type: String,
-    value: (row: any) => String(row.new_value),
+    value: (row: any) => String(row.new_value || ""),
   },
   {
     column: "name",
     type: String,
-    value: (row: any) => String(row.name),
+    value: (row: any) => String(row.name || ""),
   },
 ]
 
