@@ -33,8 +33,8 @@
     "test_real_1": "cd test/excel_version/real_1 && node convert_xlsxdb_to_jsonjsdb.js"
   },
   "devDependencies": {
-    "vite": "^6.0.6",
-    "vite-plugin-dts": "^4.4.0"
+    "vite": "^6.0.11",
+    "vite-plugin-dts": "^4.5.0"
   },
   "dependencies": {
     "chokidar": "^4.0.3",
