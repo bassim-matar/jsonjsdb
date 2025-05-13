@@ -427,15 +427,15 @@ export default class Loader {
       id: "data",
       name: "data",
       description: metaFolder.data?.description,
-      nb_dataset: 0,
-      nb_variable: 0,
+      is_in_meta: metaFolder.data ? true : false,
+      is_in_data: true,
     }
     const metaFolder_user_data = {
       id: "user_data",
       name: "user_data",
       description: metaFolder.user_data?.description,
-      nb_dataset: 0,
-      nb_variable: 0,
+      is_in_meta: metaFolder.user_data ? true : false,
+      is_in_data: true,
     }
     this.db.metaFolder = [metaFolder_data, metaFolder_user_data]
     this.db.metaDataset = []
@@ -449,13 +449,12 @@ export default class Loader {
         id: table_name,
         metaFolder_id: "user_data",
         name: table_name,
-        nb_variable: variables.length,
         nb_row: table_data.length,
         description: metaDataset[table_name]?.description,
+        is_in_meta: metaDataset[table_name] ? true : false,
+        is_in_data: true,
       })
       this._add_meta_variables(table_name, table_data, variables)
-      metaFolder_user_data.nb_dataset += 1
-      metaFolder_user_data.nb_variable += variables.length
     }
 
     for (const table of this.db.__meta__) {
@@ -468,15 +467,40 @@ export default class Loader {
         id: table.name,
         metaFolder_id: "data",
         name: table.name,
-        nb_variable: variables.length,
         nb_row: this.db[table.name].length,
         description: metaDataset[table.name]?.description,
         last_update_timestamp: table.last_modif,
+        is_in_meta: metaDataset[table.name] ? true : false,
+        is_in_data: true,
       })
       this._add_meta_variables(table.name, this.db[table.name], variables)
-      metaFolder_data.nb_dataset += 1
-      metaFolder_data.nb_variable += variables.length
+      if (table.name in metaDataset) delete metaDataset[table.name]
     }
+
+    for (const [variable_id, variable] of Object.entries(this.metaVariable)) {
+      const dataset_id = variable.dataset
+      this.db.metaVariable.push({
+        id: variable_id,
+        metaDataset_id: dataset_id,
+        name: variable.variable,
+        description: variable.description,
+        is_in_meta: true,
+        is_in_data: false,
+      })
+    }
+
+    for (const [dataset_id, dataset] of Object.entries(metaDataset)) {
+      this.db.metaDataset.push({
+        id: dataset_id,
+        metaFolder_id: dataset.folder,
+        name: dataset.dataset,
+        nb_row: 0,
+        description: dataset?.description,
+        is_in_meta: true,
+        is_in_data: false,
+      })
+    }
+
     this.db.__index__.metaFolder = {}
     this.db.__index__.metaDataset = {}
     this.db.__index__.metaVariable = {}
@@ -541,7 +565,11 @@ export default class Loader {
         nb_duplicate: dataset_data.length - distincts.size - nb_missing,
         values,
         values_preview: values ? values.slice(0, 10) : false,
+        is_in_meta: this.metaVariable[dataset_variable_id] ? true : false,
+        is_in_data: true,
       })
+      if (dataset_variable_id in this.metaVariable)
+        delete this.metaVariable[dataset_variable_id]
     }
   }
 }

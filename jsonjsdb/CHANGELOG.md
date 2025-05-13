@@ -1,5 +1,11 @@
 # jsonjsdb
 
+## 0.3.11 (2025-05-14)
+- fixed : metaDataset duplicate entry in schema
+
+## 0.3.10 (2025-05-14)
+- added : metadata only in schema but not in data
+
 ## 0.3.9 (2024-10-29)
 - added : show error and filter for duplicate table name in meta
 
