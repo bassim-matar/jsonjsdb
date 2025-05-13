@@ -455,7 +455,7 @@ export default class Loader {
         is_in_data: true,
       })
       this._add_meta_variables(table_name, table_data, variables)
-      if (table.name in metaDataset) delete metaDataset[table.name]
+      if (table_name in metaDataset) delete metaDataset[table_name]
     }
 
     for (const table of this.db.__meta__) {

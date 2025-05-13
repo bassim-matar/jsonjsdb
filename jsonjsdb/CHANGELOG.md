@@ -1,5 +1,8 @@
 # jsonjsdb
 
+## 0.3.13 (2025-05-14)
+- fixed : typo in add_meta()
+
 ## 0.3.12 (2025-05-14)
 - fixed : remove from schema only metaDataset from user_data 
 
