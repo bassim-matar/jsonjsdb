@@ -1,5 +1,8 @@
 # jsonjsdb
 
+## 0.3.12 (2025-05-14)
+- fixed : remove from schema only metaDataset from user_data 
+
 ## 0.3.11 (2025-05-14)
 - fixed : metaDataset duplicate entry in schema
 
