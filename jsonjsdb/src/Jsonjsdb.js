@@ -189,8 +189,8 @@ export default class Jsonjsdb {
     console.error("get_parents()", from, id, "iteration_max reached")
     return []
   }
-  add_meta(user_data) {
-    this.loader.add_meta(user_data)
+  add_meta(user_data, db_schema = false) {
+    this.loader.add_meta(user_data, db_schema)
   }
   get_last_modif_timestamp() {
     return this.loader.get_last_modif_timestamp()

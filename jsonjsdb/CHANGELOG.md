@@ -1,5 +1,8 @@
 # jsonjsdb
 
+## 0.3.14 (2025-05-15)
+- added : param to set db_schema in add_meta() 
+
 ## 0.3.13 (2025-05-14)
 - fixed : typo in add_meta()
 

@@ -377,11 +377,19 @@ export default class Loader {
       this.db.__schema__.one_to_many.push([variable.slice(0, -3), table.name])
     }
   }
-  add_meta(user_data = {}) {
+  add_db_schema(db_schema) {
+    if (db_schema.length > 0 && Array.isArray(db_schema[0])) {
+      db_schema = this._array_to_object(db_schema)
+    }
+    this.db.__meta_schema__ = db_schema
+  }
+  add_meta(user_data = {}, db_schema = false) {
     this.db.__user_data__ = user_data
     const metaDataset = {}
     const metaFolder = {}
     this.metaVariable = {}
+
+    if (db_schema) this.add_db_schema(db_schema)
 
     const virtual_meta_tables = []
     const db = this.db
