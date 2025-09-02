@@ -1,5 +1,8 @@
 # jsonjsdb_editor
 
+## 0.3.1 (2025-09-02)
+- remove : badge for bundle size from readme
+
 ## 0.3.0 (2025-09-02)
 - change : rename `__meta__` to `__table__`
 - change : improve documentation
