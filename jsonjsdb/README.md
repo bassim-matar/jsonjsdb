@@ -2,46 +2,82 @@
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/jsonjsdb)
 [![NPM License](https://img.shields.io/npm/l/jsonjsdb)](../LICENSE)
 
-# Jsonjsdb
+# Jsonjsdb - Core Library
 
-A client side relational database for static Single Page Application (SPA).
-Jsonjsdb allows to load and query data when running on the local file system (file://). 
-No server needed.
+> 📖 For project overview, use cases, and limitations, see the [main documentation](../README.md)
 
-## Usage and limitation
+A client-side relational database solution for static Single Page Applications. This library enables offline data storage and querying when running applications on the local file system without server infrastructure.
 
-### When (not) to use
-Jsonjsdb doesn't work for live or interactive data.
-It is like on a static website, users can't interact with each other or update the database.
-With this important limitation, Jsonjsdb works for static SPA,
-where the database is updated in batch periodically.
-Another limitation is the database size that can't be too big
-because it's entirely loaded in memory when initialized. 
-In some tests with a modern computer and browser, 
-the database maximum size that can be handled is around 100mb to 200mb.
+## Table of Contents
 
-### Why it can be useful
-- It's portable. The exact same app can run on a server, 
-on a shared drive or a personal computer,
-and can be installed just by drag and drop the app folder anywhere.
-- It's easy to setup, to run and to maintain. 
-Focus on the client side code without having to deal with complexe server backend and database.
-- It's cheap to deploy, especialy in a corporate setting 
-where security concerns make integrating a new app a heavy process.
+- [Installation](#installation)
+- [Basic Example](#basic-example)
+- [Database Structure and Management](#database-structure-and-management)
+  - [Configuration](#configuration)
+  - [The jsonjs File](#the-jsonjs-file)
+    - [List of objects](#list-of-objects)
+    - [List of lists](#list-of-lists)
+  - [Table and Column Naming](#table-and-column-naming)
+- [API Reference](#api-reference)
+  - [Constructor](#constructor)
+    - [`new Jsonjsdb()`](#new-jsonjsdbconfig)
+  - [Data Loading](#data-loading)
+    - [`init()`](#initoption)
+    - [`load()`](#loadfile_path-name)
+  - [Data Retrieval](#data-retrieval)
+    - [`get()`](#gettable-id)
+    - [`get_all()`](#get_alltable-foreign_table_obj-option)
+    - [`get_all_childs()`](#get_all_childstable-item_id)
+  - [Utility Methods](#utility-methods)
+    - [`foreach()`](#foreachtable-callback)
+    - [`table_has_id()`](#table_has_idtable-id)
+    - [`has_nb()`](#has_nbtable-id-nb_what)
+    - [`get_parents()`](#get_parentsfrom-id)
+    - [`get_config()`](#get_configid)
 
-## Basic example
+## Installation
 
-Include the lib in the html head :
+Install via npm:
+
+```bash
+npm install jsonjsdb
+```
+
+Or include directly in your HTML:
+
 ```html
 <script src="/dist/Jsonjsdb.min.js"></script>
 ```
 
-or as an esm/es6 module :
+## Basic Example
+
+### ES6/Module Usage (Recommended)
+
 ```js
 import Jsonjsdb from "jsonjsdb"
+
+const db = new Jsonjsdb()
+await db.init()
+
+// Get all users
+const users = db.get_all("user")
+console.log(users)
+
+// Get specific user
+const user = db.get("user", 123)
+console.log(user)
 ```
 
-Use it in your js script :
+### Script Tag Usage
+
+Include the library in your HTML:
+
+```html
+<script src="/dist/Jsonjsdb.min.js"></script>
+```
+
+Then use it in your JavaScript:
+
 ```js
 const db = new Jsonjsdb()
 db.init().then(() => {
@@ -51,18 +87,42 @@ db.init().then(() => {
 ```
 
 ## Database structure and management
-The relational database has some requirements in his structure :
-- The database is contained in a folder, named by default *db*. 
-This folder is in the same folder than the html file (entry point). 
-There is a parameter to use a different folder name or to put it in a subfolder if needed.
-- The db folder contains some tables, represented by files with the extension *.json.js*. 
-Each jsonjs file is a table.
-- The db folder contains a file named *\_\_meta__.json.js*. It list all the table names.
+The relational database has specific structural requirements:
+- By default, the database is contained in a folder named *db*. 
+This folder should be located in the same directory as the HTML file (entry point). 
+- The database folder can be customized using the configuration parameters (see Configuration section below).
+- The db folder contains tables represented by files with the *.json.js* extension. 
+Each jsonjs file represents a table.
+- The db folder contains a file named *\_\_table__.json.js* that lists all table names.
+
+### Configuration
+
+By default, the application uses a configuration automatically embedded in your HTML file:
+
+```html
+<div id="jsonjsdb_config" style="display:none;"
+  data-app_name="dtnr"
+  data-path="data/db"
+  data-db_key="R63CYikswPqAu3uCBnsV"
+  >
+</div>
+```
+
+**Parameters:**
+- **data-app_name**: Application identifier (keep as `"dtnr"`)
+- **data-path**: Path to your database folder (usually `"data/db"`)
+- **data-db_key**: Unique key for your data instance (generate new one if needed)
+
+You can customize this configuration by passing the ID of the HTML div containing the configuration:
+
+```js
+const db = new Jsonjsdb("#jsonjsdb_config")
+```
 
 ### The jsonjs file
 
-The jsonjs file starts with the javascript instansiation of the json data, 
-generaly on the first line.
+The jsonjs file begins with the JavaScript instantiation of the JSON data, 
+typically on the first line.
 
 ```js
 jsonjs.data.my_table_name = 
@@ -72,12 +132,12 @@ or
 jsonjs.data['my_table_name'] = 
 ```
 
-After that, generaly on the second line, is the the json data, 
-always representing a simple table with columns and rows. 
-The data can be minified or not and currently work with two possible structures:
+Following this, typically on the second line, is the JSON data, 
+which always represents a simple table structure with columns and rows. 
+The data can be minified or formatted and currently supports two possible structures:
 
 #### List of objects
-The more readable one.
+The more readable format:
 ```json
 [
   {
@@ -94,7 +154,7 @@ The more readable one.
 ```
 
 #### List of lists
-The more compact one
+The more compact format:
 ```json
 [
   ["column_1", "column_2", "column_3"],
@@ -104,25 +164,194 @@ The more compact one
 ```
 
 ### Table and column naming
-To make the database relational, some special naming is required:
-- Table name and file name are identical
-- Table name use camelCase
-- Underscore in table name are reserved for junction table, 
+To implement relational database functionality, specific naming conventions are required:
+- Table names and file names must be identical
+- Table names should use camelCase convention
+- Underscores in table names are reserved for junction tables, 
 for example: *myTable_yourTable*
-- The primary key is a column named *id*.
-- Foreign keys are columns named by the foreign table with suffix *_id*, 
-for example yourTable_id
+- The primary key must be a column named *id*
+- Foreign keys are columns named after the foreign table with the suffix *_id*, 
+for example: *yourTable_id*
 
-## API Overview
+## API Reference
 
-| Method | Description | Parameters | Returns |
-| --- | --- | --- | --- |
-| `constructor()` | Creates a new `Jsonjsdb` instance. | `config` (optional): Configuration options for the database. | An instance of `Jsonjsdb`. |
-| `init()` | Initializes the database with the specified options. | `option` (optional): Options for initializing the database. | A promise that resolves with the initialized database, or false if initialization failed. |
-| `get()` | Gets the data associated with the specified ID in the specified table. | `table`: The name of the table to get data from.<br>`id`: The ID of the data to get. | The data associated with the ID, or null if no such data exists. |
-| `get_all()` | Gets a list of all rows associated with the specified table. | `table`: The name of the table to get data from.<br>`foreign_table_obj` (optional): object with foreign table as key and foreign id (or foreign object with id) as value. <br>`option` (optional): option object where you can set max row limit. | A list of rows from a table |
-| `get_all_childs()` | Gets all childs recursively from a row. | `table`: The name of the tabl.<br>`item_id`: id of the parent row. | A list of rows from a table |
-| `foreach()` | Apply a transformation to each row of the table | `table`: The name of the table. <br>`callback`: a function to run on each row | Nothing |
-| `table_has_id()` | Checks if the specified table contains the specified ID. | `table`: The name of the table to check.<br>`id`: The ID to look for. | True if the table contains the ID, false otherwise. |
-| `has_nb()` | Counts the specified items from the specified table. | `table`: The table to count from.<br>`id`: The ID of the item to count.<br>`nb_what`: What to count. | The count of the specified items. |
-| `get_parents()` | Gets the parents of the specified item in the specified table. | `from`: The table to get from.<br>`id`: The ID of the item to get parents for. | An array of the parents of the specified item. |
+### Constructor
+
+#### `new Jsonjsdb(config?)`
+Creates a new Jsonjsdb instance.
+
+```js
+// Default configuration
+const db = new Jsonjsdb()
+
+// Custom configuration object
+const db = new Jsonjsdb({ path: "data/db", app_name: "myapp" })
+
+// HTML configuration selector
+const db = new Jsonjsdb("#my_config")
+```
+
+**Parameters:**
+- `config` (optional): Configuration object or string selector for HTML configuration element
+
+**Returns:** Jsonjsdb instance
+
+---
+
+### Data Loading
+
+#### `init(option?)`
+Initializes the database by loading all tables.
+
+```js
+const db = new Jsonjsdb()
+const result = await db.init()
+console.log("Database initialized:", result === db) // true
+```
+
+**Parameters:**
+- `option` (optional): Configuration options for initialization
+
+**Returns:** Promise<Jsonjsdb> - Returns the database instance
+
+#### `load(file_path, name)`
+Loads a specific jsonjs file.
+
+```js
+const data = await db.load("custom_table.json.js", "custom_table")
+```
+
+**Parameters:**
+- `file_path`: Path to the jsonjs file (relative to db path)
+- `name`: Name for the loaded data
+
+**Returns:** Promise<any>
+
+---
+
+### Data Retrieval
+
+#### `get(table, id)`
+Gets a single row by ID from the specified table.
+
+```js
+const user = db.get("user", 123)
+console.log(user) // { id: 123, name: "John", email: "john@example.com" }
+```
+
+**Parameters:**
+- `table`: Name of the table
+- `id`: ID of the row to retrieve
+
+**Returns:** Object | undefined
+
+#### `get_all(table, foreign_table_obj?, option?)`
+Gets all rows from a table, optionally filtered by foreign key relationships.
+
+```js
+// Get all users
+const users = db.get_all("user")
+
+// Get users with specific company_id
+const companyUsers = db.get_all("user", { company: 5 })
+
+// Limit results
+const limitedUsers = db.get_all("user", null, { limit: 10 })
+```
+
+**Parameters:**
+- `table`: Name of the table
+- `foreign_table_obj` (optional): Filter by foreign key { table_name: id_or_object }
+- `option` (optional): Options object with limit property
+
+**Returns:** Array of objects
+
+#### `get_all_childs(table, item_id)`
+Gets all child records recursively from a row (uses parent_id relationship).
+
+```js
+// Get all children of category 1
+const children = db.get_all_childs("category", 1)
+```
+
+**Parameters:**
+- `table`: Name of the table
+- `item_id`: ID of the parent row
+
+**Returns:** Array of objects
+
+---
+
+### Utility Methods
+
+#### `foreach(table, callback)`
+Applies a function to each row of the table.
+
+```js
+db.foreach("user", (user) => {
+  user.full_name = `${user.first_name} ${user.last_name}`
+})
+```
+
+**Parameters:**
+- `table`: Name of the table
+- `callback`: Function to apply to each row
+
+**Returns:** void
+
+#### `table_has_id(table, id)`
+Checks if a table contains a specific ID.
+
+```js
+if (db.table_has_id("user", 123)) {
+  console.log("User exists")
+}
+```
+
+**Parameters:**
+- `table`: Name of the table to check
+- `id`: ID to look for
+
+**Returns:** boolean
+
+#### `has_nb(table, id, nb_what)`
+Counts how many records reference a specific ID in another table.
+
+```js
+// Count how many posts reference user 123
+const postCount = db.has_nb("user", 123, "post")
+console.log(`User has ${postCount} posts`)
+```
+
+**Parameters:**
+- `table`: The table name to use for foreign key (table + "_id")
+- `id`: ID of the referenced item
+- `nb_what`: Table name where to count references
+
+**Returns:** number
+
+#### `get_parents(from, id)`
+Gets all parent records recursively using parent_id relationship.
+
+```js
+const parents = db.get_parents("category", 5)
+console.log(parents) // Array of parent categories (from immediate parent to root)
+```
+
+**Parameters:**
+- `from`: Table to get parents from
+- `id`: ID of the item to get parents for
+
+**Returns:** Array of objects (in reverse order, from immediate parent to root)
+
+#### `get_config(id)`
+Gets a configuration value from the config table.
+
+```js
+const setting = db.get_config("max_items")
+```
+
+**Parameters:**
+- `id`: Configuration key
+
+**Returns:** any | undefined

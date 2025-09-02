@@ -5,6 +5,8 @@ import writeXlsxFile from "write-excel-file/node"
 import chokidar from "chokidar"
 import { compare_datasets, EvolutionEntry } from "./compare_datasets"
 
+const TABLE_INDEX = "__table__"
+
 type MetadataObj = Record<string, number>
 type TableRow = Record<string, any>
 type Path = string
@@ -69,15 +71,15 @@ export class Jsonjsdb_editor {
   private output_db: Path
   private readable: boolean
   private extension: Extension
-  private metadata_filename: string = "__meta__.json.js"
-  private metadata_file: Path
+  private table_index_filename: string = `${TABLE_INDEX}.json.js`
+  private table_index_file: Path
   private update_db_timestamp: number
   private new_evo_entries: EvolutionEntry[]
 
   constructor(option: { readable?: boolean } = {}) {
     this.input_db = ""
     this.output_db = ""
-    this.metadata_file = ""
+    this.table_index_file = ""
     this.readable = option.readable ?? false
     this.extension = "xlsx"
     this.update_db_timestamp = 0
@@ -140,15 +142,15 @@ export class Jsonjsdb_editor {
 
   public async set_output_db(output_db: Path): Promise<void> {
     this.output_db = await this.ensure_output_db(path.resolve(output_db))
-    this.metadata_file = path.join(this.output_db, this.metadata_filename)
+    this.table_index_file = path.join(this.output_db, this.table_index_filename)
   }
 
   public get_output_db(): Path {
     return this.output_db
   }
 
-  public get_metadata_file(): Path {
-    return this.metadata_file
+  public get_table_index_file(): Path {
+    return this.table_index_file
   }
 
   private set_input_db(input_db: Path): void {
@@ -176,14 +178,14 @@ export class Jsonjsdb_editor {
 
   private async get_output_metadata(): Promise<MetadataItem[]> {
     let tables_metadata = []
-    if (existsSync(this.metadata_file)) {
-      const file_content = await fs.readFile(this.metadata_file, "utf-8")
+    if (existsSync(this.table_index_file)) {
+      const file_content = await fs.readFile(this.table_index_file, "utf-8")
       try {
         const lines = file_content.split("\n")
         lines.shift()
         tables_metadata = JSON.parse(lines.join("\n"))
       } catch (e) {
-        console.error(`Jsonjsdb: error reading ${this.metadata_file}: ${e}`)
+        console.error(`Jsonjsdb: error reading ${this.table_index_file}: ${e}`)
       }
     }
     return tables_metadata
@@ -220,7 +222,7 @@ export class Jsonjsdb_editor {
     for (const file_name of output_files) {
       const table = file_name.split(".")[0]
       if (!file_name.endsWith(`.json.js`)) continue
-      if (file_name === "__meta__.json.js") continue
+      if (file_name === `${TABLE_INDEX}.json.js`) continue
       if (table in input_metadata_obj) continue
       if (table === "evolution") continue
       const file_path = path.join(this.output_db, file_name)
@@ -235,16 +237,16 @@ export class Jsonjsdb_editor {
     input_metadata: MetadataItem[],
     output_metadata: MetadataItem[]
   ): Promise<void> {
-    output_metadata = output_metadata.filter(row => row.name !== "__meta__")
+    output_metadata = output_metadata.filter(row => row.name !== TABLE_INDEX)
     if (JSON.stringify(input_metadata) === JSON.stringify(output_metadata))
       return
-    let content = `jsonjs.data['__meta__'] = \n`
+    let content = `jsonjs.data['${TABLE_INDEX}'] = \n`
     input_metadata.push({
-      name: "__meta__",
+      name: TABLE_INDEX,
       last_modif: Math.round(Date.now() / 1000),
     })
     content += JSON.stringify(input_metadata, null, 2)
-    await fs.writeFile(this.metadata_file, content, "utf-8")
+    await fs.writeFile(this.table_index_file, content, "utf-8")
   }
 
   private async update_tables(
@@ -395,8 +397,8 @@ class Jsonjsdb_watcher_class {
   async update_preview(subfolder: string, source_preview: Path) {
     await this.jdb_editor.update_preview(subfolder, source_preview)
   }
-  get_db_meta_file_path() {
-    return this.jdb_editor.get_metadata_file()
+  get_table_index_file_path() {
+    return this.jdb_editor.get_table_index_file()
   }
   async update_md_files(md_dir: string, source_dir: Path) {
     if (!existsSync(source_dir)) return

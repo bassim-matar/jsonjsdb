@@ -1,4 +1,6 @@
 export default class Integrity_checker {
+  _table_index = "__table__"
+  
   constructor() {
     this.tables = []
     this.tables_ids = {}
@@ -11,7 +13,7 @@ export default class Integrity_checker {
     }
   }
   check(db) {
-    for (const table of db.__meta__) {
+    for (const table of db[this._table_index]) {
       this.tables.push(table.name)
       this.tables_ids[table.name] = db[table.name].map(row => row.id)
     }

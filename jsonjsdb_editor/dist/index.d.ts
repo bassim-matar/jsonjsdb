@@ -4,8 +4,8 @@ export declare class Jsonjsdb_editor {
     private output_db;
     private readable;
     private extension;
-    private metadata_filename;
-    private metadata_file;
+    private table_index_filename;
+    private table_index_file;
     private update_db_timestamp;
     private new_evo_entries;
     constructor(option?: {
@@ -16,7 +16,7 @@ export declare class Jsonjsdb_editor {
     update_preview(subfolder: string, source_preview: Path): Promise<void>;
     set_output_db(output_db: Path): Promise<void>;
     get_output_db(): Path;
-    get_metadata_file(): Path;
+    get_table_index_file(): Path;
     private set_input_db;
     private get_input_metadata;
     private get_output_metadata;
@@ -41,7 +41,7 @@ declare class Jsonjsdb_watcher_class {
     set_db(output_db: Path): Promise<void>;
     watch(input_db: Path, even_prod?: boolean): Promise<void>;
     update_preview(subfolder: string, source_preview: Path): Promise<void>;
-    get_db_meta_file_path(): string;
+    get_table_index_file_path(): string;
     update_md_files(md_dir: string, source_dir: Path): Promise<void>;
 }
 export declare const Jsonjsdb_watcher: Jsonjsdb_watcher_class;

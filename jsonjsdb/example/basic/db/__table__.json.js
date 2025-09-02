@@ -1,4 +1,4 @@
-jsonjs.data['__meta__'] = 
+jsonjs.data['__table__'] = 
 [
   {
     "name":"user",

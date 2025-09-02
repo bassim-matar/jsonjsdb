@@ -1,4 +1,5 @@
 export default class Loader {
+  _table_index = "__table__"
   _meta_tables = [
     "__metaFolder__",
     "__metaDataset__",
@@ -76,9 +77,9 @@ export default class Loader {
     return data
   }
   _is_in_cache(table_name, version) {
-    if (!this.meta_cache) return false
-    if (!(table_name in this.meta_cache)) return false
-    if (this.meta_cache[table_name] !== version) return false
+    if (!this.table_index_cache) return false
+    if (!(table_name in this.table_index_cache)) return false
+    if (this.table_index_cache[table_name] !== version) return false
     return true
   }
   async load_jsonjs(path, table_name, option = {}) {
@@ -92,15 +93,15 @@ export default class Loader {
     }
   }
   async load_tables(path, use_cache) {
-    let meta = await this.load_jsonjs(path, "__meta__")
-    meta = this._check_conformity(meta)
-    meta = this._extract_last_modif(meta)
+    let tables_info = await this.load_jsonjs(path, this._table_index)
+    tables_info = this._check_conformity(tables_info)
+    tables_info = this._extract_last_modif(tables_info)
     if (use_cache) {
-      this.meta_cache = await this.browser.get(this._cache_prefix + "__meta__")
-      const new_meta_cache = meta.reduce((acc, item) => {
+      this.table_index_cache = await this.browser.get(this._cache_prefix + this._table_index)
+      const new_table_index_cache = tables_info.reduce((acc, item) => {
         return { ...acc, [item.name]: item.last_modif }
       }, {})
-      this._save_to_cache(new_meta_cache, "__meta__")
+      this._save_to_cache(new_table_index_cache, this._table_index)
     }
     const schema = {
       aliases: [],
@@ -109,13 +110,13 @@ export default class Loader {
       many_to_many: [],
     }
     this.db = {
-      __meta__: meta,
+      [this._table_index]: tables_info,
       __schema__: schema,
       __user_data__: {},
     }
     const promises = []
     const tables = []
-    for (const table of meta) {
+    for (const table of tables_info) {
       tables.push({ name: table.name })
       promises.push(
         this.load_jsonjs(path, table.name, {
@@ -132,17 +133,17 @@ export default class Loader {
   get_last_modif_timestamp() {
     return this.last_modif_timestamp
   }
-  _extract_last_modif(meta) {
-    const meta_row = meta.filter(item => item.name === "__meta__")
-    if (meta_row.length > 0 && meta_row[0].last_modif) {
-      this.last_modif_timestamp = meta_row[0].last_modif
+  _extract_last_modif(tables_info) {
+    const table_index_row = tables_info.filter(item => item.name === this._table_index)
+    if (table_index_row.length > 0 && table_index_row[0].last_modif) {
+      this.last_modif_timestamp = table_index_row[0].last_modif
     }
-    return meta.filter(item => item.name !== "__meta__")
+    return tables_info.filter(item => item.name !== this._table_index)
   }
-  _check_conformity(meta) {
-    const meta_table = []
+  _check_conformity(tables_info) {
+    const validated_tables = []
     const all_names = []
-    for (const table of meta) {
+    for (const table of tables_info) {
       if (!("name" in table)) {
         console.error("table name not found in meta", table)
         continue
@@ -152,12 +153,12 @@ export default class Loader {
         continue
       }
       all_names.push(table.name)
-      meta_table.push(table)
+      validated_tables.push(table)
     }
-    return meta_table
+    return validated_tables
   }
   _normalize_schema() {
-    for (const table of this.db.__meta__) {
+    for (const table of this.db[this._table_index]) {
       if (this.db[table.name].length === 0) continue
       for (const variable in this.db[table.name][0]) {
         if (!variable.endsWith("_ids")) continue
@@ -165,7 +166,7 @@ export default class Loader {
         if (!(entity_dest in this.db)) continue
         const relation_table = table.name + "_" + entity_dest
         if (!(relation_table in this.db)) {
-          this.db.__meta__.push({ name: relation_table })
+          this.db[this._table_index].push({ name: relation_table })
           this.db[relation_table] = []
         }
         for (const row of this.db[table.name]) {
@@ -196,7 +197,7 @@ export default class Loader {
     this.db[filter.entity] = this.db[filter.entity].filter(
       item => !id_to_delete.includes(item.id)
     )
-    for (const table of this.db.__meta__) {
+    for (const table of this.db[this._table_index]) {
       if (this.db[table.name].length === 0) continue
       if (!this.db[table.name][0].hasOwnProperty(filter.entity + "_id"))
         continue
@@ -209,7 +210,7 @@ export default class Loader {
       this.db[table.name] = this.db[table.name].filter(
         item => !id_to_delete.includes(item[filter.entity + "_id"])
       )
-      for (const table_level_2 of this.db.__meta__) {
+      for (const table_level_2 of this.db[this._table_index]) {
         if (this.db[table_level_2.name].length === 0) continue
         if (!this.db[table_level_2.name][0].hasOwnProperty(table.name + "_id"))
           continue
@@ -257,22 +258,22 @@ export default class Loader {
         alias_data.push(alias_data_row)
       }
       this.db[alias.alias] = alias_data
-      this.db.__meta__.push({ name: alias.alias, alias: true })
+      this.db[this._table_index].push({ name: alias.alias, alias: true })
       this.db.__schema__.aliases.push(alias.alias)
     }
   }
   _create_index() {
     this.db.__index__ = {}
-    for (const table of this.db.__meta__) {
+    for (const table of this.db[this._table_index]) {
       if (!table.name.includes("_")) this.db.__index__[table.name] = {}
     }
-    for (const table of this.db.__meta__) {
+    for (const table of this.db[this._table_index]) {
       if (!table.name.includes("_") && this.db[table.name][0]) {
         this._add_primary_key(table)
         this._process_one_to_many(table)
       }
     }
-    for (const table of this.db.__meta__) {
+    for (const table of this.db[this._table_index]) {
       if (this._meta_tables.includes(table.name)) continue
       if (table.name.includes("_") && this.db[table.name][0]) {
         this._process_many_to_many(table, "left")
@@ -393,7 +394,7 @@ export default class Loader {
 
     const virtual_meta_tables = []
     const db = this.db
-    for (const table of Object.values(db.__meta__)) {
+    for (const table of Object.values(db[this._table_index])) {
       if (!table.last_modif) virtual_meta_tables.push(table.name)
     }
 
@@ -466,8 +467,8 @@ export default class Loader {
       if (table_name in metaDataset) delete metaDataset[table_name]
     }
 
-    for (const table of this.db.__meta__) {
-      if (table.name.includes("__meta__")) continue
+    for (const table of this.db[this._table_index]) {
+      if (table.name.includes(this._table_index)) continue
       if (this._meta_tables.includes(table.name)) continue
       if (this.db[table.name].length === 0) continue
       if (virtual_meta_tables.includes(table.name)) continue

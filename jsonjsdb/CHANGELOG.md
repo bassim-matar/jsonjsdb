@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.4.0 (2025-09-02)
+- change : rename `__meta__` to `__table__`
+- change : improve documentation
+
 ## 0.3.14 (2025-05-15)
 - added : param to set db_schema in add_meta() 
 

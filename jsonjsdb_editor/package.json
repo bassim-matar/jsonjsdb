@@ -1,6 +1,6 @@
 {
   "name": "jsonjsdb_editor",
-  "version": "0.2.10",
+  "version": "0.3.0",
   "description": "Jsonjsdb database editor",
   "type": "module",
   "license": "MIT",
@@ -33,12 +33,13 @@
     "test_real_1": "cd test/excel_version/real_1 && node convert_xlsxdb_to_jsonjsdb.js"
   },
   "devDependencies": {
-    "vite": "^6.0.11",
-    "vite-plugin-dts": "^4.5.0"
+    "@types/node": "^24.3.0",
+    "vite": "^7.1.4",
+    "vite-plugin-dts": "^4.5.4"
   },
   "dependencies": {
     "chokidar": "^4.0.3",
-    "read-excel-file": "^5.8.6",
-    "write-excel-file": "^2.0.11"
+    "read-excel-file": "^5.8.8",
+    "write-excel-file": "^2.3.4"
   }
 }

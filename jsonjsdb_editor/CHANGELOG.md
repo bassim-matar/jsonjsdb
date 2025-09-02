@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.3.0 (2025-09-02)
+- change : rename `__meta__` to `__table__`
+- change : improve documentation
+
 ## 0.2.10 (2025-01-29)
 
 - fixed : jsonjsdb_editor : dont stringify null values in history

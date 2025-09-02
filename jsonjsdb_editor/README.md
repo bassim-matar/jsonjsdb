@@ -2,40 +2,55 @@
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/jsonjsdb_editor)
 [![NPM License](https://img.shields.io/npm/l/jsonjsdb_editor)](../LICENSE)
 
-# Jsonjsdb_editor
+# Jsonjsdb Editor
 
-Jsonjsdb_editor is a tool to transform relationnal tables into a jsonjs database
-(see [https://github.com/bassim-matar/jsonjsdb](https://github.com/bassim-matar/jsonjsdb)).
+A development tool for converting relational database tables into jsonjs format compatible with [jsonjsdb](../jsonjsdb).
 
-For now it works only with xlsx files as a source, where each file contains one table.
+Currently supports Excel (.xlsx) files as source, where each file represents one database table.
 
-## basic examples
+## Installation
 
-### simple update
-
-First argument is the path to the source db folder containing the xlsx files.
-Second argument is the path to the jsonjsdb folder.
-
-```js
-import Jsonjsdb_editor from "../../../dist/jsonjsdb_editor.js"
-
-const editor = new Jsonjsdb_editor()
-await editor.set_output_db("app_db")
-await editor.update_db("db")
+```bash
+npm install jsonjsdb_editor
 ```
 
-### inside a vite config file
+## Table of Contents
 
-The Jsonjsdb_watcher is used to watch and update the jsonjsdb.
-Any time a source db file is updated, the jsonjsdb will be updated and the vite app will reload.
+- [Basic Usage](#basic-usage)
+- [Vite Integration](#vite-integration)
+- [API Reference](#api-reference)
+- [File Structure](#file-structure)
 
-The jsonjsdb_add_config will add the jsonjsdb_config file to the index.html at serve and build time.
+## Basic Usage
+
+### Simple Database Update
+
+Convert Excel files to jsonjs format:
+
+```js
+import Jsonjsdb_editor from "jsonjsdb_editor"
+
+const editor = new Jsonjsdb_editor()
+await editor.set_output_db("app_db")      // Output directory
+await editor.update_db("db")              // Source Excel files directory
+```
+
+**Parameters:**
+- `app_db`: Target directory for generated jsonjs files
+- `db`: Source directory containing .xlsx files
+
+## Vite Integration
+
+### Development Workflow
+
+Integrate with Vite for automatic database updates during development:
 
 ```js
 import { defineConfig } from "vite"
 import FullReload from "vite-plugin-full-reload"
 import { Jsonjsdb_watcher, jsonjsdb_add_config } from "jsonjsdb_editor"
 
+// Setup database watcher
 await Jsonjsdb_watcher.set_db("app_db")
 await Jsonjsdb_watcher.watch("db")
 await Jsonjsdb_watcher.update_preview("preview", "data")
@@ -44,7 +59,12 @@ export default defineConfig({
   plugins: [
     jsonjsdb_add_config("data/jsonjsdb_config.html"),
     process.env.NODE_ENV &&
-      FullReload(Jsonjsdb_watcher.get_db_meta_file_path()),
+      FullReload(Jsonjsdb_watcher.get_table_index_file_path()),
   ],
 })
 ```
+
+**Features:**
+- **Auto-reload**: Automatically updates jsonjs files when Excel sources change
+- **Config injection**: Adds jsonjsdb configuration to your HTML
+- **Hot reload**: Triggers browser refresh on database changes

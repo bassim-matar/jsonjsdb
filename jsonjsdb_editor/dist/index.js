@@ -1,11 +1,8 @@
-var k = Object.defineProperty;
-var J = (s, t, e) => t in s ? k(s, t, { enumerable: !0, configurable: !0, writable: !0, value: e }) : s[t] = e;
-var d = (s, t, e) => J(s, typeof t != "symbol" ? t + "" : t, e);
 import u from "path";
-import { existsSync as f, promises as r } from "fs";
+import { existsSync as c, promises as r } from "fs";
 import v from "read-excel-file/node";
-import O from "write-excel-file/node";
-import N from "chokidar";
+import k from "write-excel-file/node";
+import J from "chokidar";
 function g(s) {
   if (s.length === 0 || "id" in s[0]) return;
   const t = Object.keys(s[0]);
@@ -15,12 +12,12 @@ function g(s) {
   for (const i of s)
     i.id = `${i[e]}---${i[n]}`;
 }
-function F(s) {
+function O(s) {
   for (const t of Object.keys(s))
     if (t.endsWith("_id")) return s[t];
   return null;
 }
-function W(s, t, e, n) {
+function N(s, t, e, n) {
   const i = [];
   if (n.startsWith("__") || s.length === 0 && t.length === 0)
     return i;
@@ -34,16 +31,16 @@ function W(s, t, e, n) {
   s.length === 0 ? l = Object.keys(t[0]) : t.length === 0 ? l = Object.keys(s[0]) : l = Array.from(
     /* @__PURE__ */ new Set([...Object.keys(s[0]), ...Object.keys(t[0])])
   );
-  const c = new Set(o.keys()), h = new Set(a.keys()), S = [...h].filter((_) => !c.has(_)), $ = [...c].filter((_) => !h.has(_)), x = [...c].filter((_) => h.has(_)), w = [];
-  for (const _ of x) {
-    const m = o.get(_), y = a.get(_);
-    for (const p of l) {
-      if (p === "id") continue;
-      const b = p in m ? m[p] : null, j = p in y ? y[p] : null;
-      b !== j && ([null, void 0, ""].includes(b) && [null, void 0, ""].includes(j) || w.push({ entity_id: _, variable: p, old_value: b, new_value: j }));
+  const d = new Set(o.keys()), f = new Set(a.keys()), x = [...f].filter((_) => !d.has(_)), S = [...d].filter((_) => !f.has(_)), $ = [...d].filter((_) => f.has(_)), w = [];
+  for (const _ of $) {
+    const p = o.get(_), y = a.get(_);
+    for (const h of l) {
+      if (h === "id") continue;
+      const m = h in p ? p[h] : null, j = h in y ? y[h] : null;
+      m !== j && ([null, void 0, ""].includes(m) && [null, void 0, ""].includes(j) || w.push({ entity_id: _, variable: h, old_value: m, new_value: j }));
     }
   }
-  for (const _ of S)
+  for (const _ of x)
     i.push({
       timestamp: e,
       type: "add",
@@ -55,18 +52,18 @@ function W(s, t, e, n) {
       new_value: null,
       name: null
     });
-  for (const _ of $) {
-    const m = o.get(_);
+  for (const _ of S) {
+    const p = o.get(_);
     i.push({
       timestamp: e,
       type: "delete",
       entity: n,
       entity_id: _,
-      parent_entity_id: F(m),
+      parent_entity_id: O(p),
       variable: null,
       old_value: null,
       new_value: null,
-      name: m.name || null
+      name: p.name || null
     });
   }
   for (const _ of w)
@@ -83,7 +80,7 @@ function W(s, t, e, n) {
     });
   return i;
 }
-const M = [
+const b = "__table__", F = [
   {
     column: "timestamp",
     type: Number,
@@ -130,20 +127,20 @@ const M = [
     value: (s) => String(s.name || "")
   }
 ];
-class D {
+class W {
+  input_db;
+  output_db;
+  readable;
+  extension;
+  table_index_filename = `${b}.json.js`;
+  table_index_file;
+  update_db_timestamp;
+  new_evo_entries;
   constructor(t = {}) {
-    d(this, "input_db");
-    d(this, "output_db");
-    d(this, "readable");
-    d(this, "extension");
-    d(this, "metadata_filename", "__meta__.json.js");
-    d(this, "metadata_file");
-    d(this, "update_db_timestamp");
-    d(this, "new_evo_entries");
-    this.input_db = "", this.output_db = "", this.metadata_file = "", this.readable = t.readable ?? !1, this.extension = "xlsx", this.update_db_timestamp = 0, this.new_evo_entries = [];
+    this.input_db = "", this.output_db = "", this.table_index_file = "", this.readable = t.readable ?? !1, this.extension = "xlsx", this.update_db_timestamp = 0, this.new_evo_entries = [];
   }
   async update_db(t) {
-    if (this.set_input_db(t), !f(this.input_db)) {
+    if (this.set_input_db(t), !c(this.input_db)) {
       console.error(`Jsonjsdb: input db folder doesn't exist: ${this.input_db}`);
       return;
     }
@@ -155,7 +152,7 @@ class D {
     await this.delete_old_files(e), await this.update_tables(e, n), await this.save_evolution(e), await this.save_metadata(e, n);
   }
   watch_db(t) {
-    this.set_input_db(t), N.watch(this.input_db, {
+    this.set_input_db(t), J.watch(this.input_db, {
       ignored: /(^|[\/\\])\~\$/,
       persistent: !0,
       ignoreInitial: !0
@@ -166,22 +163,22 @@ class D {
   }
   async update_preview(t, e) {
     const n = u.resolve(e), i = u.join(this.output_db, t);
-    f(i) || await r.mkdir(i);
+    c(i) || await r.mkdir(i);
     const o = await r.readdir(n);
     for (const a of o) {
       if (!a.endsWith(`.${this.extension}`) || a.startsWith("~$")) continue;
-      const l = u.join(n, a), c = await v(l), h = a.split(".")[0];
-      this.write_table(c, i, h);
+      const l = u.join(n, a), d = await v(l), f = a.split(".")[0];
+      this.write_table(d, i, f);
     }
   }
   async set_output_db(t) {
-    this.output_db = await this.ensure_output_db(u.resolve(t)), this.metadata_file = u.join(this.output_db, this.metadata_filename);
+    this.output_db = await this.ensure_output_db(u.resolve(t)), this.table_index_file = u.join(this.output_db, this.table_index_filename);
   }
   get_output_db() {
     return this.output_db;
   }
-  get_metadata_file() {
-    return this.metadata_file;
+  get_table_index_file() {
+    return this.table_index_file;
   }
   set_input_db(t) {
     this.input_db = u.resolve(t);
@@ -191,8 +188,8 @@ class D {
       const e = await r.readdir(t), n = [];
       for (const i of e) {
         if (!i.endsWith(`.${this.extension}`) || i.startsWith("~$")) continue;
-        const o = u.join(t, i), a = await r.stat(o), l = i.split(".")[0], c = Math.round(a.mtimeMs / 1e3);
-        n.push({ name: l, last_modif: c });
+        const o = u.join(t, i), a = await r.stat(o), l = i.split(".")[0], d = Math.round(a.mtimeMs / 1e3);
+        n.push({ name: l, last_modif: d });
       }
       return n;
     } catch (e) {
@@ -201,15 +198,15 @@ class D {
   }
   async get_output_metadata() {
     let t = [];
-    if (f(this.metadata_file)) {
-      const e = await r.readFile(this.metadata_file, "utf-8");
+    if (c(this.table_index_file)) {
+      const e = await r.readFile(this.table_index_file, "utf-8");
       try {
         const n = e.split(`
 `);
         n.shift(), t = JSON.parse(n.join(`
 `));
       } catch (n) {
-        console.error(`Jsonjsdb: error reading ${this.metadata_file}: ${n}`);
+        console.error(`Jsonjsdb: error reading ${this.table_index_file}: ${n}`);
       }
     }
     return t;
@@ -218,7 +215,7 @@ class D {
     return t.reduce((e, n) => (e[n.name] = n.last_modif, e), {});
   }
   async ensure_output_db(t) {
-    if (!f(t))
+    if (!c(t))
       return await r.mkdir(t), t;
     const e = await r.readdir(t, { withFileTypes: !0 });
     if (e.filter(
@@ -231,21 +228,21 @@ class D {
     const e = [], n = this.metadata_list_to_object(t), i = await r.readdir(this.output_db);
     for (const o of i) {
       const a = o.split(".")[0];
-      if (!o.endsWith(".json.js") || o === "__meta__.json.js" || a in n || a === "evolution") continue;
+      if (!o.endsWith(".json.js") || o === `${b}.json.js` || a in n || a === "evolution") continue;
       const l = u.join(this.output_db, o);
       console.log(`Jsonjsdb: deleting ${a}`), e.push(r.unlink(l));
     }
     return await Promise.all(e), e.length > 0;
   }
   async save_metadata(t, e) {
-    if (e = e.filter((i) => i.name !== "__meta__"), JSON.stringify(t) === JSON.stringify(e))
+    if (e = e.filter((i) => i.name !== b), JSON.stringify(t) === JSON.stringify(e))
       return;
-    let n = `jsonjs.data['__meta__'] = 
+    let n = `jsonjs.data['${b}'] = 
 `;
     t.push({
-      name: "__meta__",
+      name: b,
       last_modif: Math.round(Date.now() / 1e3)
-    }), n += JSON.stringify(t, null, 2), await r.writeFile(this.metadata_file, n, "utf-8");
+    }), n += JSON.stringify(t, null, 2), await r.writeFile(this.table_index_file, n, "utf-8");
   }
   async update_tables(t, e) {
     const n = this.metadata_list_to_object(e), i = [];
@@ -257,15 +254,15 @@ class D {
     const e = u.join(this.output_db, "evolution.json.js"), n = u.join(this.input_db, "evolution.xlsx");
     if (this.new_evo_entries.length > 0) {
       let i = [];
-      if (f(n)) {
+      if (c(n)) {
         const a = await v(n);
         i = this.convert_to_list_of_objects(a);
       }
       i.push(...this.new_evo_entries);
       const o = this.convert_to_list_of_lists(i);
-      this.write_table(o, this.output_db, "evolution"), await O(i, { schema: M, filePath: n });
+      this.write_table(o, this.output_db, "evolution"), await k(i, { schema: F, filePath: n });
     }
-    if (f(e)) {
+    if (c(e)) {
       let i = !1;
       for (const o of t)
         o.name === "evolution" && (i = !0, this.new_evo_entries.length > 0 && (o.last_modif = this.update_db_timestamp));
@@ -282,7 +279,7 @@ class D {
   async add_new_evo_entries(t, e) {
     const n = await this.read_jsonjs(
       u.join(this.output_db, `${t}.json.js`)
-    ), i = W(
+    ), i = N(
       n,
       this.convert_to_list_of_objects(e),
       this.update_db_timestamp,
@@ -321,17 +318,17 @@ class D {
     return n;
   }
   async read_jsonjs(t) {
-    if (!f(t)) return [];
+    if (!c(t)) return [];
     const e = await r.readFile(t, "utf8"), n = e.slice(e.indexOf(`
 `) + 1), i = JSON.parse(n);
     return i.length > 0 && Array.isArray(i[0]) ? this.convert_to_list_of_objects(i) : i;
   }
 }
 class E {
+  output_db;
+  jdb_editor;
   constructor() {
-    d(this, "output_db");
-    d(this, "jdb_editor");
-    this.output_db = "", this.jdb_editor = new D();
+    this.output_db = "", this.jdb_editor = new W();
   }
   is_dev() {
     return process.env.NODE_ENV === "development";
@@ -345,22 +342,22 @@ class E {
   async update_preview(t, e) {
     await this.jdb_editor.update_preview(t, e);
   }
-  get_db_meta_file_path() {
-    return this.jdb_editor.get_metadata_file();
+  get_table_index_file_path() {
+    return this.jdb_editor.get_table_index_file();
   }
   async update_md_files(t, e) {
-    if (!f(e)) return;
+    if (!c(e)) return;
     const n = await r.readdir(e);
     for (const i of n) {
       if (!i.endsWith(".md")) continue;
-      const o = await r.readFile(`${e}/${i}`, "utf8"), a = i.split(".md")[0], l = `${this.output_db}/${t}/${a}.json.js`, c = JSON.stringify([{ content: o }]), h = `jsonjs.data["${a}"] = 
-` + c;
-      await r.writeFile(l, h, "utf8");
+      const o = await r.readFile(`${e}/${i}`, "utf8"), a = i.split(".md")[0], l = `${this.output_db}/${t}/${a}.json.js`, d = JSON.stringify([{ content: o }]), f = `jsonjs.data["${a}"] = 
+` + d;
+      await r.writeFile(l, f, "utf8");
     }
   }
 }
-const X = new E();
-function q(s) {
+const T = new E();
+function X(s) {
   return {
     name: "jsonjsdb_add_config",
     transformIndexHtml: {
@@ -371,7 +368,7 @@ function q(s) {
   };
 }
 export {
-  D as Jsonjsdb_editor,
-  X as Jsonjsdb_watcher,
-  q as jsonjsdb_add_config
+  W as Jsonjsdb_editor,
+  T as Jsonjsdb_watcher,
+  X as jsonjsdb_add_config
 };
