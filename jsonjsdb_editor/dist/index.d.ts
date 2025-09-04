@@ -2,14 +2,14 @@ type Path = string;
 export declare class Jsonjsdb_editor {
     private input_db;
     private output_db;
-    private readable;
+    private compact;
     private extension;
     private table_index_filename;
     private table_index_file;
     private update_db_timestamp;
     private new_evo_entries;
     constructor(option?: {
-        readable?: boolean;
+        compact?: boolean;
     });
     update_db(input_db: Path): Promise<void>;
     watch_db(input_db: Path): void;

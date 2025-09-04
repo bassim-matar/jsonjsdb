@@ -1,5 +1,8 @@
 # jsonjsdb_editor
 
+## 0.3.2 (2025-09-04)
+- change : default to non compact mode
+
 ## 0.3.1 (2025-09-02)
 - remove : badge for bundle size from readme
 

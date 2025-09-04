@@ -69,18 +69,18 @@ const schema = [
 export class Jsonjsdb_editor {
   private input_db: Path
   private output_db: Path
-  private readable: boolean
+  private compact: boolean
   private extension: Extension
   private table_index_filename: string = `${TABLE_INDEX}.json.js`
   private table_index_file: Path
   private update_db_timestamp: number
   private new_evo_entries: EvolutionEntry[]
 
-  constructor(option: { readable?: boolean } = {}) {
+  constructor(option: { compact?: boolean } = {}) {
     this.input_db = ""
     this.output_db = ""
     this.table_index_file = ""
-    this.readable = option.readable ?? false
+    this.compact = option.compact ?? false
     this.extension = "xlsx"
     this.update_db_timestamp = 0
     this.new_evo_entries = []
@@ -330,11 +330,11 @@ export class Jsonjsdb_editor {
     name: string
   ): Promise<void> {
     let content = `jsonjs.data['${name}'] = \n`
-    if (this.readable) {
+    if (this.compact) {
+      content += JSON.stringify(table_data)
+    } else {
       const table_data_obj = this.convert_to_list_of_objects(table_data)
       content += JSON.stringify(table_data_obj, null, 2)
-    } else {
-      content += JSON.stringify(table_data)
     }
     const output_file = path.join(output_path, `${name}.json.js`)
     await fs.writeFile(output_file, content, "utf-8")

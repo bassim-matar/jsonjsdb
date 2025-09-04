@@ -130,14 +130,14 @@ const b = "__table__", F = [
 class W {
   input_db;
   output_db;
-  readable;
+  compact;
   extension;
   table_index_filename = `${b}.json.js`;
   table_index_file;
   update_db_timestamp;
   new_evo_entries;
   constructor(t = {}) {
-    this.input_db = "", this.output_db = "", this.table_index_file = "", this.readable = t.readable ?? !1, this.extension = "xlsx", this.update_db_timestamp = 0, this.new_evo_entries = [];
+    this.input_db = "", this.output_db = "", this.table_index_file = "", this.compact = t.compact ?? !1, this.extension = "xlsx", this.update_db_timestamp = 0, this.new_evo_entries = [];
   }
   async update_db(t) {
     if (this.set_input_db(t), !c(this.input_db)) {
@@ -290,11 +290,12 @@ class W {
   async write_table(t, e, n) {
     let i = `jsonjs.data['${n}'] = 
 `;
-    if (this.readable) {
+    if (this.compact)
+      i += JSON.stringify(t);
+    else {
       const a = this.convert_to_list_of_objects(t);
       i += JSON.stringify(a, null, 2);
-    } else
-      i += JSON.stringify(t);
+    }
     const o = u.join(e, `${n}.json.js`);
     await r.writeFile(o, i, "utf-8");
   }
