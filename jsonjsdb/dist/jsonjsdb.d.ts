@@ -74,7 +74,7 @@ export default class Jsonjsdb {
   has_nb(table: TABLE, id: ID, nb_what: string): number
   get_parents(from: TABLE, id: ID): ROW[]
   get_config(id: ID): string | number | undefined
-  add_meta(user_data: Record<string, any>): void
+  add_meta(user_data: Record<string, any>, schema?: any): void
   check_integrity(): Promise<Record<string, any>>
   get_last_modif_timestamp(): number
 }
