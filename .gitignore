@@ -1,8 +1,3 @@
+**/.DS_Store
 **/node_modules/
-.DS_Store
-package-lock.json
-~$*
-*.map
-/jsonjsdb/test/db_bug/
-/jsonjsdb_editor/test/excel_version/real_1
-/jsonjsdb_editor/test/excel_version/basic/app_db
+**/dist/

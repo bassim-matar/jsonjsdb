@@ -1,6 +1,6 @@
 {
   "name": "jsonjsdb",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Jsonjsdb database",
   "type": "module",
   "license": "MIT",
@@ -14,35 +14,39 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb"
+    "url": "git+https://github.com/bassim-matar/jsonjsdb.git#main",
+    "directory": "jsonjsdb"
   },
   "homepage": "https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb#readme",
   "main": "dist/jsonjsdb.esm.js",
   "module": "dist/jsonjsdb.esm.js",
   "exports": {
     ".": {
-      "types": "./dist/jsonjsdb.d.ts",
+      "types": "./dist/Jsonjsdb.d.ts",
       "import": "./dist/jsonjsdb.esm.js",
       "default": "./dist/jsonjsdb.esm.js"
     }
   },
   "files": [
-    "dist",
-    "!dist/**/*.map"
+    "dist"
   ],
-  "types": "dist/jsonjsdb.d.ts",
-  "typings": "dist/jsonjsdb.d.ts",
+  "types": "dist/Jsonjsdb.d.ts",
+  "typings": "dist/Jsonjsdb.d.ts",
   "scripts": {
-    "dev": "npm run open-browser && rollup -cw ",
-    "build": "rollup -c",
-    "start": "rollup -c --watch",
-    "open-browser": "(sleep 1; open test/index.html) &"
+    "build": "vite build",
+    "dev": "vitest",
+    "test": "vitest run",
+    "test:ui": "vitest --ui"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.6",
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-terser": "^0.4.4",
-    "rollup": "^4.50.0"
+    "@vitest/browser": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "playwright": "^1.55.0",
+    "terser": "^5.44.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "crypto-js": "^4.2.0",

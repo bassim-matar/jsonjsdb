@@ -1,8 +1,0 @@
-<script src="../../dist/Jsonjsdb.min.js"></script>
-<script>
-  const db = new Jsonjsdb()
-  db.init().then(() => {
-    const users = db.get_all("user")
-    console.log(users)
-  })
-</script>

@@ -3,7 +3,15 @@ import Loader from "./Loader"
 import Integrity_checker from "./Integrity_checker"
 
 export default class Jsonjsdb {
-  constructor(config) {
+  default_config: any
+  config: any
+  browser: DBrowser
+  loader: Loader
+  integrity_checker: Integrity_checker
+  tables: any
+  db: any
+
+  constructor(config?: any) {
     this.default_config = {
       path: "db",
       db_key: false,
@@ -26,7 +34,7 @@ export default class Jsonjsdb {
     this.integrity_checker = new Integrity_checker()
   }
   _get_html_config(id = "#jsonjsdb_config") {
-    const config_element = document.querySelector(id)
+    const config_element = document.querySelector(id) as HTMLElement
     if (!config_element) return false
     const config = {}
     Object.keys(this.default_config).forEach(key => {
@@ -36,7 +44,7 @@ export default class Jsonjsdb {
     })
     return config
   }
-  _set_config(config) {
+  _set_config(config: any): void {
     this.config = this.default_config
     Object.keys(this.config).forEach(key => {
       if (config[key] !== undefined) {
@@ -52,7 +60,7 @@ export default class Jsonjsdb {
     }
   }
 
-  async init(option = {}) {
+  async init(option: any = {}): Promise<Jsonjsdb> {
     this.tables = await this.loader.load(
       this.config.path,
       this.config.use_cache,
@@ -60,12 +68,12 @@ export default class Jsonjsdb {
     )
     return this
   }
-  async load(file_path, name) {
+  async load(file_path: string, name: string): Promise<any> {
     file_path = this.config.path + "/" + file_path
     const data = await this.loader.load_jsonjs(file_path, name)
     return data
   }
-  get(table, id) {
+  get(table: string, id: any): any {
     try {
       const result = this.tables[table][this.tables.__index__[table].id[id]]
       if (!result) {
@@ -85,7 +93,7 @@ export default class Jsonjsdb {
       return
     }
   }
-  get_all(table, foreign_table_obj, option = {}) {
+  get_all(table: string, foreign_table_obj?: any, option: any = {}): any[] {
     if (!(table in this.tables)) return []
     if (!foreign_table_obj) {
       if (option.limit) {
@@ -94,12 +102,12 @@ export default class Jsonjsdb {
       return this.tables[table]
     }
     let [foreign_table, foreign_value] = Object.entries(foreign_table_obj)[0]
-    if (typeof foreign_value === "object") foreign_value = foreign_value.id
+    if (typeof foreign_value === "object") foreign_value = (foreign_value as any).id
     let foreign_key = foreign_table + "_id"
     if (foreign_table === table) foreign_key = "parent_id"
     const index_all = this.tables.__index__[table][foreign_key]
-    if (!index_all || !(foreign_value in index_all)) return []
-    const indexes = index_all[foreign_value]
+    if (!index_all || !((foreign_value as any) in index_all)) return []
+    const indexes = index_all[foreign_value as any]
     if (!Array.isArray(indexes)) {
       if (!this.tables[table][indexes]) {
         console.error("get_all() table", table, "has an index undefined")
@@ -118,7 +126,7 @@ export default class Jsonjsdb {
     }
     return variables
   }
-  get_all_childs(table, item_id) {
+  get_all_childs(table: string, item_id: any): any[] {
     if (!(table in this.tables)) return []
     let all = []
     if (!item_id) {
@@ -138,17 +146,17 @@ export default class Jsonjsdb {
     }
     return all
   }
-  foreach(table, callback) {
+  foreach(table: string, callback: (row: any) => void): void {
     const rows = this.get_all(table)
     for (const row of rows) callback(row)
   }
-  table_has_id(table, id) {
+  table_has_id(table: string, id: any): boolean {
     if (!this.tables[table]) return false
     if (!this.tables.__index__[table]) return false
     if (!this.tables.__index__[table].id) return false
     return id in this.tables.__index__[table].id
   }
-  get_config(id) {
+  get_config(id: any): string | number | undefined {
     if (!("config" in this.tables)) return
     const index = this.tables.__index__["config"].id
     if (!index) return
@@ -156,7 +164,7 @@ export default class Jsonjsdb {
     const row = this.tables["config"][index[id]]
     return row["value"]
   }
-  has_nb(table, id, nb_what) {
+  has_nb(table: string, id: any, nb_what: string): number {
     if (!(nb_what in this.tables.__index__)) return 0
     const index = this.tables.__index__[nb_what][table + "_id"]
     if (!index) return 0
@@ -164,7 +172,7 @@ export default class Jsonjsdb {
     if (!Array.isArray(index[id])) return 1
     return index[id].length
   }
-  get_parents(from, id) {
+  get_parents(from: string, id: any): any[] {
     if (!id || id === null) return []
     let parent = this.get(from, id)
     const parents = []
@@ -189,13 +197,13 @@ export default class Jsonjsdb {
     console.error("get_parents()", from, id, "iteration_max reached")
     return []
   }
-  add_meta(user_data, db_schema = false) {
+  add_meta(user_data?: any, db_schema: any = false): void {
     this.loader.add_meta(user_data, db_schema)
   }
-  get_last_modif_timestamp() {
+  get_last_modif_timestamp(): number {
     return this.loader.get_last_modif_timestamp()
   }
-  async check_integrity() {
+  async check_integrity(): Promise<Record<string, any>> {
     await this.loader.load_tables(this.config.path, false)
     this.db = this.loader.db
     return this.integrity_checker.check(this.db)
