@@ -27,14 +27,15 @@ npm install jsonjsdb_editor
 Convert Excel files to jsonjs format:
 
 ```js
-import Jsonjsdb_editor from "jsonjsdb_editor"
+import Jsonjsdb_editor from 'jsonjsdb_editor'
 
 const editor = new Jsonjsdb_editor()
-await editor.set_output_db("app_db")      // Output directory
-await editor.update_db("db")              // Source Excel files directory
+await editor.set_output_db('app_db') // Output directory
+await editor.update_db('db') // Source Excel files directory
 ```
 
 **Parameters:**
+
 - `app_db`: Target directory for generated jsonjs files
 - `db`: Source directory containing .xlsx files
 
@@ -45,18 +46,18 @@ await editor.update_db("db")              // Source Excel files directory
 Integrate with Vite for automatic database updates during development:
 
 ```js
-import { defineConfig } from "vite"
-import FullReload from "vite-plugin-full-reload"
-import { Jsonjsdb_watcher, jsonjsdb_add_config } from "jsonjsdb_editor"
+import { defineConfig } from 'vite'
+import FullReload from 'vite-plugin-full-reload'
+import { Jsonjsdb_watcher, jsonjsdbAddConfig } from 'jsonjsdb_editor'
 
 // Setup database watcher
-await Jsonjsdb_watcher.set_db("app_db")
-await Jsonjsdb_watcher.watch("db")
-await Jsonjsdb_watcher.update_preview("preview", "data")
+await Jsonjsdb_watcher.set_db('app_db')
+await Jsonjsdb_watcher.watch('db')
+await Jsonjsdb_watcher.update_preview('preview', 'data')
 
 export default defineConfig({
   plugins: [
-    jsonjsdb_add_config("data/jsonjsdb_config.html"),
+    jsonjsdbAddConfig('data/jsonjsdb_config.html'),
     process.env.NODE_ENV &&
       FullReload(Jsonjsdb_watcher.get_table_index_file_path()),
   ],
@@ -64,6 +65,7 @@ export default defineConfig({
 ```
 
 **Features:**
+
 - **Auto-reload**: Automatically updates jsonjs files when Excel sources change
 - **Config injection**: Adds jsonjsdb configuration to your HTML
 - **Hot reload**: Triggers browser refresh on database changes

@@ -18,12 +18,20 @@
     "test:real": "cd jsonjsdb_editor && npm run test_real_1",
     "dev": "cd jsonjsdb && npm run dev",
     "start": "cd jsonjsdb && npm run start",
-    "install:all": "cd jsonjsdb && npm install && cd ../jsonjsdb_editor && npm install"
+    "install:all": "cd jsonjsdb && npm install && cd ../jsonjsdb_editor && npm install",
+    "lint": "eslint .",
+    "lint:core": "eslint jsonjsdb/src",
+    "lint:editor": "eslint jsonjsdb_editor/src"
   },
   "prettier": {
-    "tabWidth": 2,
-    "useTabs": false,
     "semi": false,
-    "arrowParens": "avoid"
+    "arrowParens": "avoid",
+    "singleQuote": true
+  },
+  "devDependencies": {
+    "eslint": "^9.35.0",
+    "jiti": "^2.5.1",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.43.0"
   }
 }

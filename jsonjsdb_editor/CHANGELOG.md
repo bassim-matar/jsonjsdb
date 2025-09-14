@@ -1,5 +1,9 @@
 # jsonjsdb_editor
 
+## 0.3.4 (2025-09-14)
+
+- change: start using eslint, rename jsonjsdbAddConfig function and add correct type annotations
+
 ## 0.3.3 (2025-09-12)
 
 - fix: missing dependencies for write-excel-file

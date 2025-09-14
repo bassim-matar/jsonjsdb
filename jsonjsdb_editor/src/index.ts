@@ -1,16 +1,17 @@
-import path from "path"
-import { promises as fs, existsSync } from "fs"
-import readExcel from "read-excel-file/node"
-import writeXlsxFile from "write-excel-file/node"
-import chokidar from "chokidar"
-import { compare_datasets, EvolutionEntry } from "./compare_datasets"
+import path from 'path'
+import { promises as fs, existsSync } from 'fs'
+import readExcel from 'read-excel-file/node'
+import writeXlsxFile from 'write-excel-file/node'
+import chokidar from 'chokidar'
+import { type PluginOption } from 'vite'
+import { compare_datasets, EvolutionEntry } from './compare_datasets'
 
-const TABLE_INDEX = "__table__"
+const TABLE_INDEX = '__table__'
 
 type MetadataObj = Record<string, number>
 type TableRow = Record<string, any>
 type Path = string
-type Extension = "xlsx"
+type Extension = 'xlsx'
 type Row = any[]
 
 interface MetadataItem {
@@ -20,49 +21,49 @@ interface MetadataItem {
 
 const schema = [
   {
-    column: "timestamp",
+    column: 'timestamp',
     type: Number,
     value: (row: any) => row.timestamp,
   },
   {
-    column: "type",
+    column: 'type',
     type: String,
     value: (row: any) => row.type,
   },
   {
-    column: "entity",
+    column: 'entity',
     type: String,
     value: (row: any) => String(row.entity),
   },
   {
-    column: "entity_id",
+    column: 'entity_id',
     type: String,
-    value: (row: any) => String(row.entity_id || ""),
+    value: (row: any) => String(row.entity_id || ''),
   },
   {
-    column: "parent_entity_id",
+    column: 'parent_entity_id',
     type: String,
-    value: (row: any) => String(row.parent_entity_id || ""),
+    value: (row: any) => String(row.parent_entity_id || ''),
   },
   {
-    column: "variable",
+    column: 'variable',
     type: String,
-    value: (row: any) => String(row.variable || ""),
+    value: (row: any) => String(row.variable || ''),
   },
   {
-    column: "old_value",
+    column: 'old_value',
     type: String,
-    value: (row: any) => String(row.old_value || ""),
+    value: (row: any) => String(row.old_value || ''),
   },
   {
-    column: "new_value",
+    column: 'new_value',
     type: String,
-    value: (row: any) => String(row.new_value || ""),
+    value: (row: any) => String(row.new_value || ''),
   },
   {
-    column: "name",
+    column: 'name',
     type: String,
-    value: (row: any) => String(row.name || ""),
+    value: (row: any) => String(row.name || ''),
   },
 ]
 
@@ -77,11 +78,11 @@ export class Jsonjsdb_editor {
   private new_evo_entries: EvolutionEntry[]
 
   constructor(option: { compact?: boolean } = {}) {
-    this.input_db = ""
-    this.output_db = ""
-    this.table_index_file = ""
+    this.input_db = ''
+    this.output_db = ''
+    this.table_index_file = ''
     this.compact = option.compact ?? false
-    this.extension = "xlsx"
+    this.extension = 'xlsx'
     this.update_db_timestamp = 0
     this.new_evo_entries = []
   }
@@ -114,12 +115,12 @@ export class Jsonjsdb_editor {
         persistent: true,
         ignoreInitial: true,
       })
-      .on("all", (event, path) => {
-        if (path.includes("evolution.xlsx")) return false
+      .on('all', (event, path) => {
+        if (path.includes('evolution.xlsx')) return false
         this.update_db(input_db)
       })
 
-    console.log("Jsonjsdb watching changes in", this.input_db)
+    console.log('Jsonjsdb watching changes in', this.input_db)
   }
 
   public async update_preview(
@@ -132,10 +133,10 @@ export class Jsonjsdb_editor {
     const files = await fs.readdir(source_path)
     for (const file_name of files) {
       if (!file_name.endsWith(`.${this.extension}`)) continue
-      if (file_name.startsWith("~$")) continue
+      if (file_name.startsWith('~$')) continue
       const file_path = path.join(source_path, file_name)
       const table_data = await readExcel(file_path)
-      const name = file_name.split(".")[0]
+      const name = file_name.split('.')[0]
       this.write_table(table_data, output_path, name)
     }
   }
@@ -162,16 +163,16 @@ export class Jsonjsdb_editor {
       const file_modif_times = []
       for (const file_name of files) {
         if (!file_name.endsWith(`.${this.extension}`)) continue
-        if (file_name.startsWith("~$")) continue
+        if (file_name.startsWith('~$')) continue
         const file_path = path.join(folder_path, file_name)
         const stats = await fs.stat(file_path)
-        const name = file_name.split(".")[0]
+        const name = file_name.split('.')[0]
         const last_modif = Math.round(stats.mtimeMs / 1000)
         file_modif_times.push({ name, last_modif })
       }
       return file_modif_times
     } catch (error) {
-      console.error("Jsonjsdb: get_files_last_modif error:", error)
+      console.error('Jsonjsdb: get_files_last_modif error:', error)
       return []
     }
   }
@@ -179,11 +180,11 @@ export class Jsonjsdb_editor {
   private async get_output_metadata(): Promise<MetadataItem[]> {
     let tables_metadata = []
     if (existsSync(this.table_index_file)) {
-      const file_content = await fs.readFile(this.table_index_file, "utf-8")
+      const file_content = await fs.readFile(this.table_index_file, 'utf-8')
       try {
-        const lines = file_content.split("\n")
+        const lines = file_content.split('\n')
         lines.shift()
-        tables_metadata = JSON.parse(lines.join("\n"))
+        tables_metadata = JSON.parse(lines.join('\n'))
       } catch (e) {
         console.error(`Jsonjsdb: error reading ${this.table_index_file}: ${e}`)
       }
@@ -205,7 +206,7 @@ export class Jsonjsdb_editor {
     }
     const items = await fs.readdir(output_db, { withFileTypes: true })
     const files = items.filter(
-      item => item.isFile() && item.name.endsWith(".json.js")
+      item => item.isFile() && item.name.endsWith('.json.js')
     ).length
     if (files > 0) return output_db
     const folders = items.filter(item => item.isDirectory())
@@ -220,11 +221,11 @@ export class Jsonjsdb_editor {
     const input_metadata_obj = this.metadata_list_to_object(input_metadata)
     const output_files = await fs.readdir(this.output_db)
     for (const file_name of output_files) {
-      const table = file_name.split(".")[0]
+      const table = file_name.split('.')[0]
       if (!file_name.endsWith(`.json.js`)) continue
       if (file_name === `${TABLE_INDEX}.json.js`) continue
       if (table in input_metadata_obj) continue
-      if (table === "evolution") continue
+      if (table === 'evolution') continue
       const file_path = path.join(this.output_db, file_name)
       console.log(`Jsonjsdb: deleting ${table}`)
       delete_promises.push(fs.unlink(file_path))
@@ -246,7 +247,7 @@ export class Jsonjsdb_editor {
       last_modif: Math.round(Date.now() / 1000),
     })
     content += JSON.stringify(input_metadata, null, 2)
-    await fs.writeFile(this.table_index_file, content, "utf-8")
+    await fs.writeFile(this.table_index_file, content, 'utf-8')
   }
 
   private async update_tables(
@@ -258,7 +259,7 @@ export class Jsonjsdb_editor {
     for (const { name, last_modif } of input_metadata) {
       const is_in_output = name in output_metadata_obj
       if (is_in_output && output_metadata_obj[name] >= last_modif) continue
-      if (name === "evolution") continue
+      if (name === 'evolution') continue
       update_promises.push(this.update_table(name))
     }
     this.new_evo_entries = []
@@ -277,14 +278,14 @@ export class Jsonjsdb_editor {
       }
       evolution.push(...this.new_evo_entries)
       const evolution_list = this.convert_to_list_of_lists(evolution)
-      this.write_table(evolution_list, this.output_db, "evolution")
+      this.write_table(evolution_list, this.output_db, 'evolution')
       await writeXlsxFile(evolution, { schema, filePath: evolution_file })
     }
 
     if (existsSync(evolution_file_jsonjs)) {
       let evo_found = false
       for (const input_metadata_row of input_metadata) {
-        if (input_metadata_row.name === "evolution") {
+        if (input_metadata_row.name === 'evolution') {
           evo_found = true
           if (this.new_evo_entries.length > 0) {
             input_metadata_row.last_modif = this.update_db_timestamp
@@ -293,7 +294,7 @@ export class Jsonjsdb_editor {
       }
       if (!evo_found) {
         input_metadata.push({
-          name: "evolution",
+          name: 'evolution',
           last_modif: this.update_db_timestamp,
         })
       }
@@ -337,7 +338,7 @@ export class Jsonjsdb_editor {
       content += JSON.stringify(table_data_obj, null, 2)
     }
     const output_file = path.join(output_path, `${name}.json.js`)
-    await fs.writeFile(output_file, content, "utf-8")
+    await fs.writeFile(output_file, content, 'utf-8')
   }
 
   private convert_to_list_of_objects(data: Row[]): TableRow[] {
@@ -366,8 +367,8 @@ export class Jsonjsdb_editor {
 
   private async read_jsonjs(path: Path): Promise<TableRow[]> {
     if (!existsSync(path)) return []
-    const js_data = await fs.readFile(path, "utf8")
-    const json_string = js_data.slice(js_data.indexOf("\n") + 1)
+    const js_data = await fs.readFile(path, 'utf8')
+    const json_string = js_data.slice(js_data.indexOf('\n') + 1)
     const data = JSON.parse(json_string)
     if (data.length > 0 && Array.isArray(data[0])) {
       return this.convert_to_list_of_objects(data)
@@ -380,11 +381,11 @@ class Jsonjsdb_watcher_class {
   private output_db: Path
   private jdb_editor: Jsonjsdb_editor
   constructor() {
-    this.output_db = ""
+    this.output_db = ''
     this.jdb_editor = new Jsonjsdb_editor()
   }
   is_dev() {
-    return process.env.NODE_ENV === "development"
+    return process.env.NODE_ENV === 'development'
   }
   async set_db(output_db: Path) {
     await this.jdb_editor.set_output_db(output_db)
@@ -404,25 +405,25 @@ class Jsonjsdb_watcher_class {
     if (!existsSync(source_dir)) return
     const files = await fs.readdir(source_dir)
     for (const file of files) {
-      if (!file.endsWith(".md")) continue
-      const file_content = await fs.readFile(`${source_dir}/${file}`, "utf8")
-      const out_file_name = file.split(".md")[0]
+      if (!file.endsWith('.md')) continue
+      const file_content = await fs.readFile(`${source_dir}/${file}`, 'utf8')
+      const out_file_name = file.split('.md')[0]
       const out_file_path = `${this.output_db}/${md_dir}/${out_file_name}.json.js`
       const json = JSON.stringify([{ content: file_content }])
       const jsonjs = `jsonjs.data["${out_file_name}"] = \n` + json
-      await fs.writeFile(out_file_path, jsonjs, "utf8")
+      await fs.writeFile(out_file_path, jsonjs, 'utf8')
     }
   }
 }
 export const Jsonjsdb_watcher = new Jsonjsdb_watcher_class()
 
-export function jsonjsdb_add_config(config: Path): {} {
+export function jsonjsdbAddConfig(config: Path): PluginOption {
   return {
-    name: "jsonjsdb_add_config",
+    name: 'jsonjsdbAddConfig',
     transformIndexHtml: {
-      order: "post",
+      order: 'post',
       handler: async (html: string) => {
-        return html + "\n" + (await fs.readFile(config, "utf8"))
+        return html + '\n' + (await fs.readFile(config, 'utf8'))
       },
     },
   }
