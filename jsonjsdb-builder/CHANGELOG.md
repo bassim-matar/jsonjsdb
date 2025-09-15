@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.4.1 (2025-09-16)
+
+- fix: missing types
+
 ## 0.4.0 (2025-09-15)
 
 - change: package name, apply eslint and add test
