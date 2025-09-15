@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.4.3 (2025-09-16)
+
+- fix: `__table__` property last_modif in snake_case
+
 ## 0.4.2 (2025-09-16)
 
 - fix: jsonjsdbWatcher case in readme

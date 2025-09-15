@@ -16,7 +16,7 @@ type Row = unknown[]
 
 interface MetadataItem {
   name: string
-  lastModif: number
+  last_modif: number
 }
 
 const schema = [
@@ -165,8 +165,10 @@ export class JsonjsdbBuilder {
         const filePath = path.join(folderPath, fileName)
         const stats = await fs.stat(filePath)
         const name = fileName.split('.')[0]
-        const lastModif = Math.round(stats.mtimeMs / 1000)
-        fileModifTimes.push({ name, lastModif })
+        fileModifTimes.push({
+          name,
+          last_modif: Math.round(stats.mtimeMs / 1000),
+        })
       }
       return fileModifTimes
     } catch (error) {
@@ -192,7 +194,7 @@ export class JsonjsdbBuilder {
 
   private metadataListToObject(list: MetadataItem[]): MetadataObj {
     return list.reduce((acc: MetadataObj, row) => {
-      acc[row.name] = row.lastModif
+      acc[row.name] = row.last_modif
       return acc
     }, {})
   }
@@ -241,7 +243,7 @@ export class JsonjsdbBuilder {
     let content = `jsonjs.data['${tableIndex}'] = \n`
     inputMetadata.push({
       name: tableIndex,
-      lastModif: Math.round(Date.now() / 1000),
+      last_modif: Math.round(Date.now() / 1000),
     })
     content += JSON.stringify(inputMetadata, null, 2)
     await fs.writeFile(this.tableIndexFile, content, 'utf-8')
@@ -253,11 +255,11 @@ export class JsonjsdbBuilder {
   ): Promise<boolean> {
     const outputMetadataObj = this.metadataListToObject(outputMetadata)
     const updatePromises = []
-    for (const { name, lastModif } of inputMetadata) {
-      const isInOutput = name in outputMetadataObj
-      if (isInOutput && outputMetadataObj[name] >= lastModif) continue
-      if (name === 'evolution') continue
-      updatePromises.push(this.updateTable(name))
+    for (const row of inputMetadata) {
+      const isInOutput = row.name in outputMetadataObj
+      if (isInOutput && outputMetadataObj[row.name] >= row.last_modif) continue
+      if (row.name === 'evolution') continue
+      updatePromises.push(this.updateTable(row.name))
     }
     this.newEvoEntries = []
     await Promise.all(updatePromises)
@@ -287,14 +289,14 @@ export class JsonjsdbBuilder {
         if (inputMetadataRow.name === 'evolution') {
           evoFound = true
           if (this.newEvoEntries.length > 0) {
-            inputMetadataRow.lastModif = this.updateDbTimestamp
+            inputMetadataRow.last_modif = this.updateDbTimestamp
           }
         }
       }
       if (!evoFound) {
         inputMetadata.push({
           name: 'evolution',
-          lastModif: this.updateDbTimestamp,
+          last_modif: this.updateDbTimestamp,
         })
       }
     }
