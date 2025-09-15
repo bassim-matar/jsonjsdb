@@ -5,6 +5,9 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    ignores: ['**/*.json.js'],
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     ignores: ['eslint.config.ts'],
     rules: {
@@ -19,8 +22,16 @@ export default [
           format: ['camelCase'],
         },
         {
-          selector: 'property',
-          format: ['camelCase'],
+          selector: 'class',
+          format: ['PascalCase'],
+        },
+        {
+          selector: 'interface',
+          format: ['PascalCase'],
+        },
+        {
+          selector: 'typeAlias',
+          format: ['PascalCase'],
         },
       ],
     },

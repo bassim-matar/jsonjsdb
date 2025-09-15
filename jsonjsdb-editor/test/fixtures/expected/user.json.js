@@ -1,0 +1,51 @@
+jsonjs.data['user'] = 
+[
+  {
+    "id": 1,
+    "name": "alice 1",
+    "score": 33,
+    "tag_id": "tag_1",
+    "folder_id": null,
+    "ok2": null
+  },
+  {
+    "id": 2,
+    "name": "bob 1",
+    "score": 92,
+    "tag_id": "tag_3",
+    "folder_id": null,
+    "ok2": 2
+  },
+  {
+    "id": 3,
+    "name": "alice 2",
+    "score": 151,
+    "tag_id": "tag_1",
+    "folder_id": null,
+    "ok2": null
+  },
+  {
+    "id": 4,
+    "name": "bob 2",
+    "score": 210,
+    "tag_id": "tag_1",
+    "folder_id": 222,
+    "ok2": null
+  },
+  {
+    "id": 5,
+    "name": "alice 3",
+    "score": 269,
+    "tag_id": "tag_1",
+    "folder_id": null,
+    "ok2": null
+  },
+  {
+    "id": 6,
+    "name": "bob 32",
+    "score": 333,
+    "tag_id": "tag_3",
+    "folder_id": 444,
+    "ok2": null
+  }
+]

@@ -1,7 +1,7 @@
-[![NPM Version](https://img.shields.io/npm/v/jsonjsdb_editor)](https://www.npmjs.com/package/jsonjsdb_editor)
-[![NPM License](https://img.shields.io/npm/l/jsonjsdb_editor)](../LICENSE)
+[![NPM Version](https://img.shields.io/npm/v/jsonjsdb-builder)](https://www.npmjs.com/package/jsonjsdb-builder)
+[![NPM License](https://img.shields.io/npm/l/jsonjsdb-builder)](../LICENSE)
 
-# Jsonjsdb Editor
+# Jsonjsdb Builder
 
 A development tool for converting relational database tables into jsonjs format compatible with [jsonjsdb](../jsonjsdb).
 
@@ -10,7 +10,7 @@ Currently supports Excel (.xlsx) files as source, where each file represents one
 ## Installation
 
 ```bash
-npm install jsonjsdb_editor
+npm install jsonjsdb-builder
 ```
 
 ## Table of Contents
@@ -27,11 +27,11 @@ npm install jsonjsdb_editor
 Convert Excel files to jsonjs format:
 
 ```js
-import Jsonjsdb_editor from 'jsonjsdb_editor'
+import JsonjsdbBuilder from 'jsonjsdb-builder'
 
-const editor = new Jsonjsdb_editor()
-await editor.set_output_db('app_db') // Output directory
-await editor.update_db('db') // Source Excel files directory
+const builder = new JsonjsdbBuilder()
+await builder.setOutputDb('app_db') // Output directory
+await builder.updateDb('db') // Source Excel files directory
 ```
 
 **Parameters:**
@@ -48,18 +48,17 @@ Integrate with Vite for automatic database updates during development:
 ```js
 import { defineConfig } from 'vite'
 import FullReload from 'vite-plugin-full-reload'
-import { Jsonjsdb_watcher, jsonjsdbAddConfig } from 'jsonjsdb_editor'
+import { JsonjsdbWatcher, jsonjsdbAddConfig } from 'jsonjsdb-builder'
 
 // Setup database watcher
-await Jsonjsdb_watcher.set_db('app_db')
-await Jsonjsdb_watcher.watch('db')
-await Jsonjsdb_watcher.update_preview('preview', 'data')
+await JsonjsdbWatcher.setDb('app_db')
+await JsonjsdbWatcher.watch('db')
+await JsonjsdbWatcher.updatePreview('preview', 'data')
 
 export default defineConfig({
   plugins: [
     jsonjsdbAddConfig('data/jsonjsdb_config.html'),
-    process.env.NODE_ENV &&
-      FullReload(Jsonjsdb_watcher.get_table_index_file_path()),
+    process.env.NODE_ENV && FullReload(JsonjsdbWatcher.getTableIndexFilePath()),
   ],
 })
 ```

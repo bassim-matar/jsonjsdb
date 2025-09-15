@@ -1,4 +1,8 @@
-# jsonjsdb_editor
+# jsonjsdb-builder
+
+## 0.4.0 (2025-09-15)
+
+- change: package name, apply eslint and add test
 
 ## 0.3.4 (2025-09-14)
 

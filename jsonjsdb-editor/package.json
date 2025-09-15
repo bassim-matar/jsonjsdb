@@ -1,7 +1,7 @@
 {
-  "name": "jsonjsdb_editor",
-  "version": "0.3.4",
-  "description": "Jsonjsdb database editor",
+  "name": "jsonjsdb-builder",
+  "version": "0.4.0",
+  "description": "Jsonjsdb database builder",
   "type": "module",
   "license": "MIT",
   "keywords": [
@@ -16,7 +16,7 @@
     "type": "git",
     "url": "git+https://github.com/bassim-matar/jsonjsdb.git"
   },
-  "homepage": "https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb_editor#readme",
+  "homepage": "https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb-builder#readme",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,13 +29,13 @@
   ],
   "scripts": {
     "build": "vite build",
-    "test_basic": "cd test/excel_version/basic && node convert_xlsxdb_to_jsonjsdb.js",
-    "test_real_1": "cd test/excel_version/real_1 && node convert_xlsxdb_to_jsonjsdb.js"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^24.4.0",
     "vite": "^7.1.5",
-    "vite-plugin-dts": "^4.5.4"
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",

@@ -10,18 +10,18 @@
   },
   "homepage": "https://github.com/bassim-matar/jsonjsdb#readme",
   "scripts": {
-    "build": "cd jsonjsdb && npm run build && cd ../jsonjsdb_editor && npm run build",
+    "build": "cd jsonjsdb && npm run build && cd ../jsonjsdb-builder && npm run build",
     "build:core": "cd jsonjsdb && npm run build",
-    "build:editor": "cd jsonjsdb_editor && npm run build",
+    "build:builder": "cd jsonjsdb-builder && npm run build",
     "test": "cd jsonjsdb && npm run test",
-    "test:basic": "cd jsonjsdb_editor && npm run test_basic",
-    "test:real": "cd jsonjsdb_editor && npm run test_real_1",
+    "test:basic": "cd jsonjsdb-builder && npm run test_basic",
+    "test:real": "cd jsonjsdb-builder && npm run test_real_1",
     "dev": "cd jsonjsdb && npm run dev",
     "start": "cd jsonjsdb && npm run start",
-    "install:all": "cd jsonjsdb && npm install && cd ../jsonjsdb_editor && npm install",
+    "install:all": "cd jsonjsdb && npm install && cd ../jsonjsdb-builder && npm install",
     "lint": "eslint .",
     "lint:core": "eslint jsonjsdb/src",
-    "lint:editor": "eslint jsonjsdb_editor/src"
+    "lint:builder": "eslint jsonjsdb-builder/src"
   },
   "prettier": {
     "semi": false,
