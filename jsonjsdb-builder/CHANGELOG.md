@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.4.2 (2025-09-16)
+
+- fix: jsonjsdbWatcher case in readme
+
 ## 0.4.1 (2025-09-16)
 
 - fix: missing types

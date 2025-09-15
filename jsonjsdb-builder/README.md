@@ -48,17 +48,17 @@ Integrate with Vite for automatic database updates during development:
 ```js
 import { defineConfig } from 'vite'
 import FullReload from 'vite-plugin-full-reload'
-import { JsonjsdbWatcher, jsonjsdbAddConfig } from 'jsonjsdb-builder'
+import { jsonjsdbWatcher, jsonjsdbAddConfig } from 'jsonjsdb-builder'
 
 // Setup database watcher
-await JsonjsdbWatcher.setDb('app_db')
-await JsonjsdbWatcher.watch('db')
-await JsonjsdbWatcher.updatePreview('preview', 'data')
+await jsonjsdbWatcher.setDb('app_db')
+await jsonjsdbWatcher.watch('db')
+await jsonjsdbWatcher.updatePreview('preview', 'data')
 
 export default defineConfig({
   plugins: [
     jsonjsdbAddConfig('data/jsonjsdb_config.html'),
-    process.env.NODE_ENV && FullReload(JsonjsdbWatcher.getTableIndexFilePath()),
+    process.env.NODE_ENV && FullReload(jsonjsdbWatcher.getTableIndexFilePath()),
   ],
 })
 ```
