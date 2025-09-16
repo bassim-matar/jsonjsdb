@@ -10,7 +10,7 @@ interface LdbEntry {
 interface LocalData {
   getAll(callback: (entries: unknown) => void): void
   get(key: string, callback: (data: string) => void): void
-  set(key: string, data: string, callback?: () => void): void
+  set(key: string, data: unknown, callback?: () => void): void
   clear(): void
 }
 
@@ -85,19 +85,20 @@ export default class DBrowser {
     return new Promise(resolve => {
       this.ldb.get(this._namespaced(key), data => {
         let result: unknown = data
-        if (this.use_encryption)
+        if (this.use_encryption) {
           result = this.tryParseJson(this.tryDecrypt(data))
+        }
         resolve(result)
       })
     })
   }
 
   set(key: string, data: unknown, callback?: () => void): void {
-    let processedData: string
+    let processedData: unknown
     if (this.use_encryption) {
       processedData = this.encryption.encrypt(JSON.stringify(data))
     } else {
-      processedData = typeof data === 'string' ? data : JSON.stringify(data)
+      processedData = data
     }
     this.ldb.set(this._namespaced(key), processedData, callback)
   }

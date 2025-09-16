@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.6.2 (2025-09-16)
+
+- fix: DBrowser set data without stringify
+
 ## 0.6.1 (2025-09-16)
 
 - fix: aliases format

@@ -124,4 +124,68 @@ describe('DBrowser', () => {
       expect(instance2).not.toBe(instance3)
     })
   })
+
+  describe('Data storage and retrieval', () => {
+    it('should store and retrieve an array of objects without encryption', async () => {
+      const instance = new DBrowser('', testAppName, false)
+      const testData = [
+        { id: 1, name: 'John', email: 'john@example.com' },
+        { id: 2, name: 'Jane', email: 'jane@example.com' },
+        { id: 3, name: 'Bob', email: 'bob@example.com' },
+      ]
+      const testKey = 'users-list'
+
+      // Store the array directly (should be stored as-is without stringify)
+      instance.set(testKey, testData)
+
+      // Retrieve and verify the data is exactly what we stored
+      const retrieved = await instance.get(testKey)
+      expect(retrieved).toEqual(testData)
+      expect(Array.isArray(retrieved)).toBe(true)
+      expect(retrieved).toHaveLength(3)
+      expect((retrieved as typeof testData)[0]).toEqual({
+        id: 1,
+        name: 'John',
+        email: 'john@example.com',
+      })
+    })
+
+    it('should store and retrieve an array of objects with encryption', async () => {
+      const instance = new DBrowser(testBrowserKey, testAppName, true)
+      const testData = [
+        { id: 1, name: 'Alice', age: 25 },
+        { id: 2, name: 'Charlie', age: 30 },
+        { id: 3, name: 'Diana', age: 28 },
+      ]
+      const testKey = 'encrypted-users'
+
+      // Store the array (will be automatically stringified and encrypted)
+      instance.set(testKey, testData)
+
+      // Retrieve and verify
+      const retrieved = await instance.get(testKey)
+      expect(retrieved).toEqual(testData)
+      expect(Array.isArray(retrieved)).toBe(true)
+      expect(retrieved).toHaveLength(3)
+      expect((retrieved as typeof testData)[1]).toEqual({
+        id: 2,
+        name: 'Charlie',
+        age: 30,
+      })
+    })
+
+    it('should handle empty array storage and retrieval', async () => {
+      const instance = new DBrowser('', testAppName, false)
+      const testData: unknown[] = []
+      const testKey = 'empty-array'
+
+      // Store the empty array directly
+      instance.set(testKey, testData)
+
+      const retrieved = await instance.get(testKey)
+      expect(retrieved).toEqual([])
+      expect(Array.isArray(retrieved)).toBe(true)
+      expect(retrieved).toHaveLength(0)
+    })
+  })
 })
