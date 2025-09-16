@@ -1,5 +1,11 @@
 # jsonjsdb-builder
 
+## 0.5.0 (2025-09-16)
+
+- add: export of low-level utilities
+- add: more tests and type safety
+- remove `JsonjsdbWatcher`
+
 ## 0.4.3 (2025-09-16)
 
 - fix: `__table__` property last_modif in snake_case

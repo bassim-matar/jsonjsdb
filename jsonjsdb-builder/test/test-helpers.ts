@@ -89,6 +89,32 @@ export function getTestExcelPath(): string {
 }
 
 /**
+ * Creates a temporary copy of Excel files for testing to avoid modifying originals
+ * (especially evolution.xlsx which gets written to during tests)
+ */
+export async function createTempTestExcelPath(
+  tempDir: string
+): Promise<string> {
+  const originalPath = getTestExcelPath()
+  const tempExcelPath = path.join(tempDir, 'excel')
+
+  // Create temp excel directory
+  await fs.mkdir(tempExcelPath, { recursive: true })
+
+  // Copy all Excel files to temp directory
+  const files = await fs.readdir(originalPath)
+  for (const file of files) {
+    if (file.endsWith('.xlsx')) {
+      const srcPath = path.join(originalPath, file)
+      const destPath = path.join(tempExcelPath, file)
+      await fs.copyFile(srcPath, destPath)
+    }
+  }
+
+  return tempExcelPath
+}
+
+/**
  * Reads expected results from fixtures (excludes evolution which has timestamps)
  */
 export async function getExpectedResults(): Promise<

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 import { promises as fs } from 'fs'
 import { existsSync } from 'fs'
 import path from 'path'
@@ -6,27 +6,43 @@ import { JsonjsdbBuilder } from '../src/index.js'
 import {
   validateJsonjsFile,
   validateMetadataFile,
-  getTestExcelPath,
+  createTempTestExcelPath,
   getExpectedResults,
   compareDatasets,
   parseJsonjsFile,
 } from './test-helpers.js'
 
 describe('JsonjsdbBuilder E2E Tests', () => {
-  const testDir = path.join(process.cwd(), 'test/fixtures/temp')
-  const outputDbDir = path.join(testDir, 'output_db')
-  const testExcelPath = getTestExcelPath()
+  const baseFixturesDir = path.join(process.cwd(), 'test/fixtures')
+  let testDir: string
+  let outputDbDir: string
+  let testExcelPath: string
+  const createdDirs: string[] = []
 
   beforeEach(async () => {
-    if (existsSync(testDir)) {
-      await fs.rm(testDir, { recursive: true, force: true })
-    }
-    await fs.mkdir(testDir, { recursive: true })
+    // Create a unique temporary test directory under fixtures to avoid collision
+    testDir = await fs.mkdtemp(path.join(baseFixturesDir, 'temp-'))
+    createdDirs.push(testDir)
+    outputDbDir = path.join(testDir, 'output_db')
+    testExcelPath = await createTempTestExcelPath(testDir)
   })
 
   afterEach(async () => {
-    if (existsSync(testDir)) {
+    if (testDir && existsSync(testDir)) {
       await fs.rm(testDir, { recursive: true, force: true })
+    }
+  })
+
+  // Ensure no leftover temp directories (handles edge cases or aborted tests)
+  afterAll(async () => {
+    for (const dir of createdDirs) {
+      if (existsSync(dir)) {
+        try {
+          await fs.rm(dir, { recursive: true, force: true })
+        } catch {
+          /* ignore */
+        }
+      }
     }
   })
 
@@ -127,6 +143,31 @@ describe('JsonjsdbBuilder E2E Tests', () => {
       // Second conversion (should handle no changes gracefully)
       await builder.updateDb(testExcelPath)
       await assertBasicFiles()
+    })
+  })
+
+  describe('Markdown directory processing', () => {
+    it('should process markdown files to JsonjsDB format', async () => {
+      const builder = await setupBuilder()
+      // prepare markdown source directory
+      const mdSourceDir = path.join(testDir, 'md_source')
+      await fs.mkdir(mdSourceDir, { recursive: true })
+
+      const testMarkdown = '# Test Title\n\nThis is a test markdown file.'
+      await fs.writeFile(path.join(mdSourceDir, 'test.md'), testMarkdown)
+
+      const mdOutputSubdir = 'md'
+      await builder.updateMdDir(mdOutputSubdir, mdSourceDir)
+
+      const mdOutputDir = path.join(outputDbDir, mdOutputSubdir)
+      const outputFile = path.join(mdOutputDir, 'test.json.js')
+      expect(existsSync(outputFile)).toBe(true)
+
+      const content = await fs.readFile(outputFile, 'utf-8')
+      expect(validateJsonjsFile(content, 'test')).toBe(true)
+      expect(content).toContain(
+        '"content":"# Test Title\\n\\nThis is a test markdown file."'
+      )
     })
   })
 })

@@ -16,7 +16,10 @@ npm install jsonjsdb-builder
 ## Table of Contents
 
 - [Basic Usage](#basic-usage)
+- [Markdown Import](#markdown-import)
+- [Preview Generation](#preview-generation)
 - [Vite Integration](#vite-integration)
+- [Low-level Utilities](#low-level-utilities)
 - [API Reference](#api-reference)
 - [File Structure](#file-structure)
 
@@ -39,32 +42,114 @@ await builder.updateDb('db') // Source Excel files directory
 - `app_db`: Target directory for generated jsonjs files
 - `db`: Source directory containing .xlsx files
 
+## Markdown Import
+
+Import a folder of Markdown files and expose them as jsonjs tables:
+
+```js
+import { JsonjsdbBuilder } from 'jsonjsdb-builder'
+
+const builder = new JsonjsdbBuilder()
+await builder.setOutputDb('app_db')
+await builder.updateMdDir('markdown', 'content_md')
+// Generates app_db/markdown/<file>.json.js
+```
+
+The generated format is: `jsonjs.data["<name>"] = [{ "content": "..." }]`.
+
+## Preview Generation
+
+Generate a lightweight preview (simple read of Excel files into a subfolder):
+
+```js
+await builder.updatePreview('preview', 'db')
+// Reads each .xlsx from /db and writes to /app_db/preview
+```
+
 ## Vite Integration
 
-### Development Workflow
-
-Integrate with Vite for automatic database updates during development:
+A direct watch helper is no longer shipped (former watcher class removed). You can configure a simple watcher in your Vite setup:
 
 ```js
 import { defineConfig } from 'vite'
 import FullReload from 'vite-plugin-full-reload'
-import { jsonjsdbWatcher, jsonjsdbAddConfig } from 'jsonjsdb-builder'
+import { JsonjsdbBuilder, jsonjsdbAddConfig } from 'jsonjsdb-builder'
 
-// Setup database watcher
-await jsonjsdbWatcher.setDb('app_db')
-await jsonjsdbWatcher.watch('db')
-await jsonjsdbWatcher.updatePreview('preview', 'data')
+const builder = new JsonjsdbBuilder()
+await builder.setOutputDb('app_db')
+await builder.updateDb('db') // initial Excel import
+await builder.updateMdDir('markdown', 'content_md') // initial markdown import
+
+if (process.env.NODE_ENV === 'development') {
+  builder.watchDb('db')
+}
 
 export default defineConfig({
   plugins: [
-    jsonjsdbAddConfig('data/jsonjsdb_config.html'),
-    process.env.NODE_ENV && FullReload(jsonjsdbWatcher.getTableIndexFilePath()),
+    jsonjsdbAddConfig('data/jsonjsdb-config.html'),
+    FullReload(builder.getTableIndexFile()),
   ],
 })
 ```
 
-**Features:**
+## Low-level Utilities
 
-- **Auto-reload**: Automatically updates jsonjs files when Excel sources change
-- **Config injection**: Adds jsonjsdb configuration to your HTML
-- **Hot reload**: Triggers browser refresh on database changes
+Low-level utility functions are exported for advanced use:
+
+```js
+import {
+  jsonjsdbToObjects,
+  jsonjsdbToMatrix,
+  jsonjsdbRead,
+  jsonjsdbWrite,
+} from 'jsonjsdb-builder'
+
+// Convert 2D matrix -> array of objects
+const objects = jsonjsdbToObjects([
+  ['id', 'name'],
+  [1, 'Alice'],
+  [2, 'Bob'],
+])
+
+// Directly write a jsonjs file
+await jsonjsdbWrite('app_db', 'users', [
+  ['id', 'name'],
+  [1, 'Alice'],
+])
+```
+
+## API Reference
+
+### Class: JsonjsdbBuilder
+
+Methods:
+
+- `setOutputDb(dir: string)`: Ensure/create and set the output directory.
+- `updateDb(inputDir: string)`: Convert all `.xlsx` files into jsonjs tables and update metadata / evolution log.
+- `updateMdDir(subdir: string, sourceDir: string)`: Import a markdown directory as jsonjs tables (key = file basename).
+- `updatePreview(subfolder: string, sourceDir: string)`: Perform a simple read of source Excel files into a subfolder (no metadata changes).
+- `getOutputDb(): string`: Absolute path of the output directory.
+- `getTableIndexFile(): string`: Path of the `__table__.json.js` index file.
+
+Utilities:
+
+- `jsonjsdbToObjects(matrix)`
+- `jsonjsdbToMatrix(objects)`
+- `jsonjsdbRead(filePath)`
+- `jsonjsdbWrite(dir, name, data, options?)`
+
+## File Structure
+
+Typical generated structure inside `outputDb`:
+
+```
+app_db/
+  __table__.json.js         # Table index + metadata
+  user.json.js
+  tag.json.js
+  evolution.json.js         # Evolution log (only if changes)
+  markdown/
+    intro.json.js
+  preview/
+    user.json.js            # copy generated via updatePreview
+```

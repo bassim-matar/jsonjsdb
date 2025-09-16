@@ -1,6 +1,20 @@
 import { describe, it, expect } from 'vitest'
 import { compareDatasets } from '../src/compareDatasets.js'
 
+type SimpleUser = { id: number; name: string }
+type UserWithEmail = { id: number; name: string; email: string }
+type UserWithCompany = {
+  id: number
+  name: string
+  company_id: number
+  department_id: number
+}
+
+const assertDefined = <T>(value: T | undefined): T => {
+  expect(value).toBeDefined()
+  return value!
+}
+
 describe('compareDatasets', () => {
   const mockTimestamp = 1694765432
 
@@ -89,7 +103,7 @@ describe('compareDatasets', () => {
     })
 
     it('should detect additions when old dataset is empty', () => {
-      const oldData = []
+      const oldData: SimpleUser[] = []
       const newData = [
         { id: 1, name: 'John' },
         { id: 2, name: 'Jane' },
@@ -145,7 +159,7 @@ describe('compareDatasets', () => {
         { id: 1, name: 'John' },
         { id: 2, name: 'Jane' },
       ]
-      const newData = []
+      const newData: SimpleUser[] = []
 
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
@@ -224,11 +238,13 @@ describe('compareDatasets', () => {
       const removedField = result.find(entry => entry.variable === 'old_field')
       const addedField = result.find(entry => entry.variable === 'new_field')
 
-      expect(removedField.old_value).toBe('value')
-      expect(removedField.new_value).toBe(null)
+      expect(removedField).toBeDefined()
+      expect(addedField).toBeDefined()
+      expect(assertDefined(removedField).old_value).toBe('value')
+      expect(assertDefined(removedField).new_value).toBe(null)
 
-      expect(addedField.old_value).toBe(null)
-      expect(addedField.new_value).toBe('new_value')
+      expect(assertDefined(addedField).old_value).toBe(null)
+      expect(assertDefined(addedField).new_value).toBe('new_value')
     })
   })
 
@@ -255,8 +271,10 @@ describe('compareDatasets', () => {
       const deleteEntry = result.find(entry => entry.type === 'delete')
       const updateEntries = result.filter(entry => entry.type === 'update')
 
-      expect(addEntry.entity_id).toBe(4)
-      expect(deleteEntry.entity_id).toBe(2)
+      expect(addEntry).toBeDefined()
+      expect(deleteEntry).toBeDefined()
+      expect(assertDefined(addEntry).entity_id).toBe(4)
+      expect(assertDefined(deleteEntry).entity_id).toBe(2)
       expect(updateEntries).toHaveLength(2)
       expect(updateEntries.every(entry => entry.entity_id === 1)).toBe(true)
     })
@@ -279,12 +297,15 @@ describe('compareDatasets', () => {
       const activeUpdate = result.find(entry => entry.variable === 'active')
       const scoreUpdate = result.find(entry => entry.variable === 'score')
 
-      expect(ageUpdate.old_value).toBe(25)
-      expect(ageUpdate.new_value).toBe(26)
-      expect(activeUpdate.old_value).toBe(true)
-      expect(activeUpdate.new_value).toBe(false)
-      expect(scoreUpdate.old_value).toBe(95.5)
-      expect(scoreUpdate.new_value).toBe(97.2)
+      expect(ageUpdate).toBeDefined()
+      expect(activeUpdate).toBeDefined()
+      expect(scoreUpdate).toBeDefined()
+      expect(assertDefined(ageUpdate).old_value).toBe(25)
+      expect(assertDefined(ageUpdate).new_value).toBe(26)
+      expect(assertDefined(activeUpdate).old_value).toBe(true)
+      expect(assertDefined(activeUpdate).new_value).toBe(false)
+      expect(assertDefined(scoreUpdate).old_value).toBe(95.5)
+      expect(assertDefined(scoreUpdate).new_value).toBe(97.2)
     })
 
     it('should handle string and number IDs', () => {
@@ -305,8 +326,10 @@ describe('compareDatasets', () => {
       const updateEntry = result.find(entry => entry.type === 'update')
       const addEntry = result.find(entry => entry.type === 'add')
 
-      expect(updateEntry.entity_id).toBe('user_1')
-      expect(addEntry.entity_id).toBe('user_2')
+      expect(updateEntry).toBeDefined()
+      expect(addEntry).toBeDefined()
+      expect(assertDefined(updateEntry).entity_id).toBe('user_1')
+      expect(assertDefined(addEntry).entity_id).toBe('user_2')
     })
   })
 
@@ -317,7 +340,7 @@ describe('compareDatasets', () => {
       const oldData = [
         { id: 1, name: 'John', company_id: 5, department_id: 10 },
       ]
-      const newData = []
+      const newData: UserWithCompany[] = []
 
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
@@ -326,7 +349,7 @@ describe('compareDatasets', () => {
 
     it('should return null when no _id fields exist', () => {
       const oldData = [{ id: 1, name: 'John', email: 'john@test.com' }]
-      const newData = []
+      const newData: UserWithEmail[] = []
 
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
