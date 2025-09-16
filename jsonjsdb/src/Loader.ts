@@ -11,7 +11,7 @@ interface LoadOption {
     variable?: string
     values?: string[]
   }
-  aliases?: string[][]
+  aliases?: Array<{ table: string; alias: string }>
   use_cache?: boolean
   version?: number | string
 }
@@ -292,7 +292,9 @@ export default class Loader {
     }
     return this.db.__index__[tableName].id[id]
   }
-  createAlias(initialAliases: string[][] | null = null) {
+  createAlias(
+    initialAliases: Array<{ table: string; alias: string }> | null = null
+  ) {
     type AliasDefinition = {
       table: string
       alias: string
@@ -301,7 +303,7 @@ export default class Loader {
     let aliases: AliasDefinition[] = []
 
     if (initialAliases) {
-      aliases = initialAliases.map(([table, alias]) => ({ table, alias }))
+      aliases = initialAliases.map(({ table, alias }) => ({ table, alias }))
     }
 
     if ('config' in this.db) {

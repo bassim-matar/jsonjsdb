@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.6.1 (2025-09-16)
+
+- fix: aliases format
+
 ## 0.6.0 (2025-09-16)
 
 - add: test for DBrowser and IntegrityChecker

@@ -45,7 +45,7 @@ interface InitOption {
     variable?: string
     values?: string[]
   }
-  aliases?: string[][]
+  aliases?: Array<{ table: string; alias: string }>
   use_cache?: boolean
   version?: number | string
   limit?: number

@@ -35,6 +35,35 @@ describe('jsonjsdb', () => {
     })
   })
 
+  describe('init({ aliases })', () => {
+    it('should work with aliases', async () => {
+      const dbOption = {
+        aliases: [
+          { table: 'user', alias: 'owner' },
+          { table: 'user', alias: 'manager' },
+        ],
+      }
+      const dbInit = await db.init(dbOption)
+      expect(dbInit).not.toBe(false)
+
+      // Verify that the aliases were created and can be accessed
+      const owners = db.getAll('owner')
+      const managers = db.getAll('manager')
+      const users = db.getAll('user')
+
+      expect(owners).toBeInstanceOf(Array)
+      expect(managers).toBeInstanceOf(Array)
+      expect(owners.length).toBe(users.length)
+      expect(managers.length).toBe(users.length)
+
+      // Verify that alias records have the correct structure
+      expect(owners[0]).toHaveProperty('id')
+      expect(owners[0]).toHaveProperty('user_id')
+      expect(managers[0]).toHaveProperty('id')
+      expect(managers[0]).toHaveProperty('user_id')
+    })
+  })
+
   describe('load()', () => {
     it('should load records', async () => {
       const users = await db.load('', 'user')
