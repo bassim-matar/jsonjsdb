@@ -29,7 +29,7 @@ import Jsonjsdb from 'jsonjsdb'
 
 const db = new Jsonjsdb()
 await db.init()
-const users = db.get_all('user')
+const users = db.getAll('user')
 ```
 
 ## 📦 Packages

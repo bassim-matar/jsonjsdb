@@ -5,7 +5,7 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['**/*.json.js'],
+    ignores: ['**/*.json.js', '**/dist/**'],
   },
   {
     files: ['**/*.{ts,tsx}'],
@@ -19,6 +19,10 @@ export default [
         },
         {
           selector: 'function',
+          format: ['camelCase'],
+        },
+        {
+          selector: 'method',
           format: ['camelCase'],
         },
         {
