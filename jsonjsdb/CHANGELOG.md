@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.6.4 (2025-09-16)
+
+- fix: IntegrityChecker empty ID detection logic (build issue)
+
 ## 0.6.3 (2025-09-16)
 
 - fix: IntegrityChecker empty ID detection logic
