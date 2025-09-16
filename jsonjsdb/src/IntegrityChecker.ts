@@ -69,12 +69,14 @@ export default class IntegrityChecker {
 
   private checkEmptyId(table: string): void {
     const ids = this.tablesIds[table]
+    // If every row yielded an undefined value, we interpret that as: no 'id' field exists at all.
+    // In that case the table must NOT be flagged for empty_id.
+    if (ids.length > 0 && ids.every(id => id === undefined)) return
+
     const hasEmptyId = ids.some(
       id => id === null || id === '' || id === undefined
     )
-    if (hasEmptyId) {
-      this.result.empty_id.push(table)
-    }
+    if (hasEmptyId) this.result.empty_id.push(table)
   }
 
   private checkDuplicateId(table: string): void {

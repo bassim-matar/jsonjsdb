@@ -77,6 +77,20 @@ describe('IntegrityChecker', () => {
 
       expect(result.empty_id).not.toContain('user')
     })
+
+    it('should ignore tables where no row has an id field at all', () => {
+      const db = {
+        __table__: [{ name: 'user' }],
+        user: [{ name: 'John' }, { name: 'Jane' }, { name: 'Bob' }],
+      }
+
+      const result = checker.check(
+        db as { __table__: { name: string }[]; user: { name: string }[] }
+      )
+
+      expect(result.empty_id).not.toContain('user')
+      expect(result.duplicate_id.user).toBeUndefined()
+    })
   })
 
   describe('check() - Duplicate ID detection', () => {
