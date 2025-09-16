@@ -1,25 +1,25 @@
-import ldb from "localdata"
-import AES from "crypto-js/aes"
-import ENC from "crypto-js/enc-utf8"
+import ldb from 'localdata'
+import AES from 'crypto-js/aes'
+import ENC from 'crypto-js/enc-utf8'
 
 interface LdbEntry {
-  k: string;
-  v: any;
+  k: string
+  v: string
 }
 
 interface LocalData {
-  getAll(callback: (entries: any) => void): void;
-  get(key: string, callback: (data: any) => void): void;
-  set(key: string, data: any, callback?: () => void): void;
-  clear(): void;
+  getAll(callback: (entries: unknown) => void): void
+  get(key: string, callback: (data: string) => void): void
+  set(key: string, data: string, callback?: () => void): void
+  clear(): void
 }
 
 class FileProtocolEncryption {
-  private browser_key: string;
-  private crypto: typeof AES;
+  private browser_key: string
+  private crypto: typeof AES
 
-  constructor(browser_key: string) {
-    this.browser_key = browser_key
+  constructor(browserKey: string) {
+    this.browser_key = browserKey
     this.crypto = AES
   }
 
@@ -33,27 +33,27 @@ class FileProtocolEncryption {
 }
 
 export default class DBrowser {
-  private encryption: FileProtocolEncryption;
-  private ldb: LocalData;
-  private _namespaced: (key: string) => string;
-  private use_encryption: boolean;
+  private encryption: FileProtocolEncryption
+  private ldb: LocalData
+  private _namespaced: (key: string) => string
+  private use_encryption: boolean
 
-  constructor(browser_key: string, app_name: string, use_encryption: boolean) {
-    this.encryption = new FileProtocolEncryption(browser_key)
+  constructor(browserKey: string, appName: string, useEncryption: boolean) {
+    this.encryption = new FileProtocolEncryption(browserKey)
     this.ldb = ldb
-    this._namespaced = key => app_name + "/" + key
-    this.use_encryption = use_encryption && Boolean(browser_key)
+    this._namespaced = key => appName + '/' + key
+    this.use_encryption = useEncryption && Boolean(browserKey)
   }
 
-  private _try_parse_json(maybe_json: string): any {
+  private tryParseJson(maybeJson: string): unknown {
     try {
-      return JSON.parse(maybe_json)
+      return JSON.parse(maybeJson)
     } catch {
-      return maybe_json
+      return maybeJson
     }
   }
 
-  private _try_decrypt(data: string): string {
+  private tryDecrypt(data: string): string {
     try {
       return this.encryption.decrypt(data)
     } catch {
@@ -61,41 +61,45 @@ export default class DBrowser {
     }
   }
 
-  getAll(key: string, callback: (data: any[]) => void): void {
+  getAll(key: string, callback: (data: Record<string, unknown>) => void): void {
     const prefix = this._namespaced(key)
-    const data: any[] = []
-    this.ldb.getAll((entries: any) => {
+    const data: Record<string, unknown> = {}
+    this.ldb.getAll((entries: unknown) => {
       const entriesArray = entries as LdbEntry[]
       for (const entry of entriesArray) {
         if (!entry.k.startsWith(prefix)) continue
-        let data_entry = entry.v
+        let dataEntry: unknown = entry.v
         if (this.use_encryption) {
-          data_entry = this._try_parse_json(this._try_decrypt(data_entry))
+          dataEntry = this.tryParseJson(this.tryDecrypt(dataEntry as string))
         }
-        const key_suffix = entry.k.substring(prefix.length)
-        if (key_suffix) {
-          data[key_suffix] = data_entry
+        const keySuffix = entry.k.substring(prefix.length)
+        if (keySuffix) {
+          data[keySuffix] = dataEntry
         }
       }
       callback(data)
     })
   }
 
-  get(key: string): Promise<any> {
+  get(key: string): Promise<unknown> {
     return new Promise(resolve => {
       this.ldb.get(this._namespaced(key), data => {
+        let result: unknown = data
         if (this.use_encryption)
-          data = this._try_parse_json(this._try_decrypt(data))
-        resolve(data)
+          result = this.tryParseJson(this.tryDecrypt(data))
+        resolve(result)
       })
     })
   }
 
-  set(key: string, data: any, callback?: () => void): void {
+  set(key: string, data: unknown, callback?: () => void): void {
+    let processedData: string
     if (this.use_encryption) {
-      data = this.encryption.encrypt(JSON.stringify(data))
+      processedData = this.encryption.encrypt(JSON.stringify(data))
+    } else {
+      processedData = typeof data === 'string' ? data : JSON.stringify(data)
     }
-    this.ldb.set(this._namespaced(key), data, callback)
+    this.ldb.set(this._namespaced(key), processedData, callback)
   }
 
   clear(): void {

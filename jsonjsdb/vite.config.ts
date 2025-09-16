@@ -1,33 +1,33 @@
-import { defineConfig } from "vitest/config"
-import dts from "vite-plugin-dts"
+import { defineConfig } from 'vitest/config'
+import dts from 'vite-plugin-dts'
 
 export default defineConfig({
   test: {
     browser: {
       enabled: true,
-      provider: "playwright",
-      instances: [{ browser: "chromium", headless: true }],
+      provider: 'playwright',
+      instances: [{ browser: 'chromium', headless: true }],
       screenshotFailures: false,
     },
   },
-  plugins: [dts()],
+  plugins: [dts({ include: ['src'] })],
   build: {
-    minify: "terser",
+    minify: 'terser',
     lib: {
-      entry: "./src/Jsonjsdb.ts",
-      name: "Jsonjsdb",
-      formats: ["es", "iife"],
+      entry: './src/Jsonjsdb.ts',
+      name: 'Jsonjsdb',
+      formats: ['es', 'iife'],
       fileName: format => {
-        if (format === "iife") return "jsonjsdb.min.js"
-        return "jsonjsdb.esm.js" // format === "es"
+        if (format === 'iife') return 'jsonjsdb.min.js'
+        return 'jsonjsdb.esm.js'
       },
     },
     rollupOptions: {
-      external: ["crypto-js", "localdata"],
+      external: ['crypto-js', 'localdata'],
       output: {
         globals: {
-          "crypto-js": "CryptoJS",
-          localdata: "localdata",
+          'crypto-js': 'CryptoJS',
+          localdata: 'localdata',
         },
       },
     },

@@ -3,18 +3,18 @@ import Jsonjsdb from '../src/Jsonjsdb'
 import Loader from '../src/Loader'
 
 describe('Loader', () => {
-  const db_key = 'gdf9898fds'
-  const path = 'test/db/' + db_key
+  const dbKey = 'gdf9898fds'
+  const path = 'test/db/' + dbKey
   let loader: Loader
 
   beforeEach(() => {
-    const db = new Jsonjsdb({ db_key, path: 'test/db' })
+    const db = new Jsonjsdb({ dbKey, path: 'test/db' })
     loader = db.loader
   })
 
   describe('load_jsonjs()', () => {
     it('should load records without throwing an error', async () => {
-      const users = await loader.load_jsonjs(path, 'user')
+      const users = await loader.loadJsonjs(path, 'user')
       expect(users).toBeInstanceOf(Array)
       expect(users.length).toBeGreaterThan(0)
       expect(users[0]).toHaveProperty('id')
@@ -38,7 +38,7 @@ describe('Loader', () => {
   describe('add_meta()', () => {
     it('should add metadata', async () => {
       await loader.load(path)
-      await loader.add_meta()
+      await loader.addMeta()
       expect(loader.db).toHaveProperty('metaFolder')
       expect(loader.db).toHaveProperty('metaDataset')
       expect(loader.db).toHaveProperty('metaVariable')

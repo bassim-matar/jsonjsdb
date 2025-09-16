@@ -4,13 +4,11 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "outDir": "./dist",
+    "strict": true,
     "verbatimModuleSyntax": true,
-    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationDir": "dist"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test"]
+  "include": ["src/**/*", "test/**/*"]
 }

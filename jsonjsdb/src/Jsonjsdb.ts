@@ -1,211 +1,325 @@
-import DBrowser from "./DBrowser"
-import Loader from "./Loader"
-import Integrity_checker from "./Integrity_checker"
+import DBrowser from './DBrowser'
+import Loader from './Loader'
+import IntegrityChecker from './IntegrityChecker'
+
+interface IntegrityResult {
+  empty_id: string[]
+  duplicate_id: Record<string, (string | number)[]>
+  parent_id_not_found: Record<string, (string | number)[]>
+  parent_id_same: Record<string, (string | number)[]>
+  foreign_id_not_found: Record<string, Record<string, (string | number)[]>>
+}
+
+interface JsonjsdbConfig {
+  path: string
+  dbKey: string | boolean
+  browserKey: string | boolean
+  appName: string
+  useCache: boolean
+  useEncryption: boolean
+}
+
+type PartialJsonjsdbConfig = Partial<JsonjsdbConfig>
+
+interface DatabaseRow {
+  id: string | number
+  [key: string]: unknown
+}
+
+interface DatabaseIndex {
+  [tableName: string]: {
+    [fieldName: string]: {
+      [value: string | number]: number | number[]
+    }
+  }
+}
+
+interface DatabaseTables {
+  __index__: DatabaseIndex
+  [tableName: string]: DatabaseRow[] | DatabaseIndex
+}
+
+interface InitOption {
+  filter?: {
+    entity?: string
+    variable?: string
+    values?: string[]
+  }
+  aliases?: string[][]
+  use_cache?: boolean
+  version?: number | string
+  limit?: number
+}
+
+interface ForeignTableObj {
+  [tableName: string]: string | number | { id: string | number }
+}
 
 export default class Jsonjsdb {
-  default_config: any
-  config: any
+  default_config: JsonjsdbConfig
+  config!: JsonjsdbConfig
   browser: DBrowser
   loader: Loader
-  integrity_checker: Integrity_checker
-  tables: any
-  db: any
+  integrityChecker: IntegrityChecker
+  tables!: DatabaseTables
+  db!: Record<string, unknown>
 
-  constructor(config?: any) {
+  constructor(config?: string | PartialJsonjsdbConfig) {
     this.default_config = {
-      path: "db",
-      db_key: false,
-      browser_key: false,
-      app_name: "jsonjsdb",
-      use_cache: false,
-      use_encryption: false,
+      path: 'db',
+      dbKey: false,
+      browserKey: false,
+      appName: 'jsonjsdb',
+      useCache: false,
+      useEncryption: false,
     }
-    if (typeof config === "string") {
-      config = this._get_html_config(config)
+
+    let processedConfig: PartialJsonjsdbConfig = {}
+    if (typeof config === 'string') {
+      const htmlConfig = this.getHtmlConfig(config)
+      processedConfig = htmlConfig || {}
+    } else if (config) {
+      processedConfig = config
     }
-    if (!config) config = {}
-    this._set_config(config)
+
+    this.setConfig(processedConfig)
     this.browser = new DBrowser(
-      this.config.browser_key,
-      this.config.app_name,
-      config.use_encryption
+      this.config.browserKey as string,
+      this.config.appName,
+      this.config.useEncryption
     )
     this.loader = new Loader(this.browser)
-    this.integrity_checker = new Integrity_checker()
+    this.integrityChecker = new IntegrityChecker()
   }
-  _get_html_config(id = "#jsonjsdb_config") {
-    const config_element = document.querySelector(id) as HTMLElement
-    if (!config_element) return false
-    const config = {}
-    Object.keys(this.default_config).forEach(key => {
-      if (config_element.dataset[key]) {
-        config[key] = config_element.dataset[key]
-      }
-    })
+  private getHtmlConfig(
+    id = '#jsonjsdb-config'
+  ): PartialJsonjsdbConfig | false {
+    const configElement = document.querySelector(id) as HTMLElement
+    if (!configElement) return false
+
+    const { dataset } = configElement
+    const config: PartialJsonjsdbConfig = {}
+
+    if (dataset.path) config.path = dataset.path
+    if (dataset.dbKey)
+      config.dbKey = dataset.dbKey === 'false' ? false : dataset.dbKey
+    if (dataset.browserKey)
+      config.browserKey =
+        dataset.browserKey === 'false' ? false : dataset.browserKey
+    if (dataset.appName) config.appName = dataset.appName
+    if (dataset.useCache) config.useCache = dataset.useCache === 'true'
+    if (dataset.useEncryption)
+      config.useEncryption = dataset.useEncryption === 'true'
+
     return config
   }
-  _set_config(config: any): void {
-    this.config = this.default_config
-    Object.keys(this.config).forEach(key => {
-      if (config[key] !== undefined) {
-        this.config[key] = config[key]
-      }
-    })
+  private setConfig(config: PartialJsonjsdbConfig): void {
+    this.config = { ...this.default_config, ...config }
 
-    if (window?.location.protocol.startsWith("http")) {
-      this.config.use_cache = false
+    if (window?.location.protocol.startsWith('http')) {
+      this.config.useCache = false
     }
-    if (this.config.db_key) {
-      this.config.path += "/" + this.config.db_key
+    if (this.config.dbKey) {
+      this.config.path += '/' + this.config.dbKey
     }
   }
 
-  async init(option: any = {}): Promise<Jsonjsdb> {
-    this.tables = await this.loader.load(
+  async init(option: InitOption = {}): Promise<Jsonjsdb> {
+    this.tables = (await this.loader.load(
       this.config.path,
-      this.config.use_cache,
+      this.config.useCache,
       option
-    )
+    )) as DatabaseTables
     return this
   }
-  async load(file_path: string, name: string): Promise<any> {
-    file_path = this.config.path + "/" + file_path
-    const data = await this.loader.load_jsonjs(file_path, name)
+  async load(filePath: string, name: string): Promise<unknown[]> {
+    filePath = this.config.path + '/' + filePath
+    const data = await this.loader.loadJsonjs(filePath, name)
     return data
   }
-  get(table: string, id: any): any {
+  get(table: string, id: string | number): DatabaseRow | undefined {
     try {
-      const result = this.tables[table][this.tables.__index__[table].id[id]]
+      const tableData = this.tables[table]
+      if (!Array.isArray(tableData)) return undefined
+
+      const indexValue = this.tables.__index__[table].id[id]
+      if (typeof indexValue !== 'number') return undefined
+
+      const result = tableData[indexValue] as DatabaseRow
       if (!result) {
         console.error(`table ${table}, id not found: ${id}`)
       }
       return result
-    } catch (error) {
+    } catch {
       if (!this.tables[table]) {
         console.error(`table ${table} not found`)
       } else if (!this.tables.__index__[table]) {
         console.error(`table ${table} not found in __index__`)
-      } else if (!("id" in this.tables.__index__[table])) {
+      } else if (!('id' in this.tables.__index__[table])) {
         console.error(`table ${table}, props "id" not found in __index__`)
       } else {
         console.error(`error not handled`)
       }
-      return
+      return undefined
     }
   }
-  get_all(table: string, foreign_table_obj?: any, option: any = {}): any[] {
-    if (!(table in this.tables)) return []
-    if (!foreign_table_obj) {
+  getAll(
+    table: string,
+    foreignTableObj?: ForeignTableObj,
+    option: InitOption = {}
+  ): DatabaseRow[] {
+    const tableData = this.tables[table]
+    if (!Array.isArray(tableData)) return []
+
+    if (!foreignTableObj) {
       if (option.limit) {
-        return this.tables[table].slice(0, option.limit)
+        return tableData.slice(0, option.limit)
       }
-      return this.tables[table]
+      return tableData
     }
-    let [foreign_table, foreign_value] = Object.entries(foreign_table_obj)[0]
-    if (typeof foreign_value === "object") foreign_value = (foreign_value as any).id
-    let foreign_key = foreign_table + "_id"
-    if (foreign_table === table) foreign_key = "parent_id"
-    const index_all = this.tables.__index__[table][foreign_key]
-    if (!index_all || !((foreign_value as any) in index_all)) return []
-    const indexes = index_all[foreign_value as any]
+
+    const foreignTableObjStart = Object.entries(foreignTableObj)[0]
+    const foreignTable = foreignTableObjStart[0]
+    let foreignValue: string | number | { id: string | number } =
+      foreignTableObjStart[1]
+
+    if (
+      typeof foreignValue === 'object' &&
+      foreignValue !== null &&
+      'id' in foreignValue
+    ) {
+      foreignValue = foreignValue.id
+    } else {
+      foreignValue = foreignValue as string | number
+    }
+
+    let foreignKey = foreignTable + '_id'
+    if (foreignTable === table) foreignKey = 'parent_id'
+
+    const indexAll = this.tables.__index__[table][foreignKey]
+    if (!indexAll || !(foreignValue in indexAll)) return []
+    const indexes = indexAll[foreignValue]
+
     if (!Array.isArray(indexes)) {
-      if (!this.tables[table][indexes]) {
-        console.error("get_all() table", table, "has an index undefined")
+      if (typeof indexes !== 'number' || !tableData[indexes]) {
+        console.error('get_all() table', table, 'has an index undefined')
         return []
       }
-      return [this.tables[table][indexes]]
+      return [tableData[indexes]]
     }
-    const variables = []
+
+    const variables: DatabaseRow[] = []
     for (const index of indexes) {
-      if (option.limit && variables.length > option.limit) break
-      if (!this.tables[table][index]) {
-        console.error("get_all() table", table, "has an index undefined")
+      if (option.limit && variables.length >= option.limit) break
+      if (!tableData[index]) {
+        console.error('get_all() table', table, 'has an index undefined')
         continue
       }
-      variables.push(this.tables[table][index])
+      variables.push(tableData[index])
     }
     return variables
   }
-  get_all_childs(table: string, item_id: any): any[] {
-    if (!(table in this.tables)) return []
-    let all = []
-    if (!item_id) {
-      console.error("get_all_childs()", table, "id", item_id)
+  getAllChilds(table: string, itemId: string | number): DatabaseRow[] {
+    const tableData = this.tables[table]
+    if (!Array.isArray(tableData)) return []
+
+    let all: DatabaseRow[] = []
+    if (!itemId) {
+      console.error('getAllChilds()', table, 'id', itemId)
       return all
     }
-    const childs = this.get_all(table, { [table]: item_id })
+    const childs = this.getAll(table, { [table]: itemId })
     all = all.concat(childs)
     for (const child of childs) {
-      if (item_id === child.id) {
-        const msg = "infinite loop for id"
-        console.error("get_all_childs()", table, msg, item_id)
+      if (itemId === child.id) {
+        const msg = 'infinite loop for id'
+        console.error('getAllChilds()', table, msg, itemId)
         return all
       }
-      const new_childs = this.get_all_childs(table, child.id)
-      all = all.concat(new_childs)
+      const newChilds = this.getAllChilds(table, child.id as string | number)
+      all = all.concat(newChilds)
     }
     return all
   }
-  foreach(table: string, callback: (row: any) => void): void {
-    const rows = this.get_all(table)
+  foreach(table: string, callback: (row: DatabaseRow) => void): void {
+    const rows = this.getAll(table)
     for (const row of rows) callback(row)
   }
-  table_has_id(table: string, id: any): boolean {
+  tableHasId(table: string, id: string | number): boolean {
     if (!this.tables[table]) return false
     if (!this.tables.__index__[table]) return false
     if (!this.tables.__index__[table].id) return false
     return id in this.tables.__index__[table].id
   }
-  get_config(id: any): string | number | undefined {
-    if (!("config" in this.tables)) return
-    const index = this.tables.__index__["config"].id
-    if (!index) return
-    if (!(id in index)) return
-    const row = this.tables["config"][index[id]]
-    return row["value"]
+  getConfig(id: string | number): string | number | undefined {
+    const configTable = this.tables['config']
+    if (!Array.isArray(configTable)) return undefined
+
+    const index = this.tables.__index__['config'].id
+    if (!index) return undefined
+    if (!(id in index)) return undefined
+
+    const indexValue = index[id]
+    if (typeof indexValue !== 'number') return undefined
+
+    const row = configTable[indexValue] as DatabaseRow
+    return row['value'] as string | number
   }
-  has_nb(table: string, id: any, nb_what: string): number {
-    if (!(nb_what in this.tables.__index__)) return 0
-    const index = this.tables.__index__[nb_what][table + "_id"]
+  hasNb(table: string, id: string | number, nbWhat: string): number {
+    if (!(nbWhat in this.tables.__index__)) return 0
+    const index = this.tables.__index__[nbWhat][table + '_id']
     if (!index) return 0
     if (!(id in index)) return 0
-    if (!Array.isArray(index[id])) return 1
-    return index[id].length
+    const indexValue = index[id]
+    if (!Array.isArray(indexValue)) return 1
+    return indexValue.length
   }
-  get_parents(from: string, id: any): any[] {
+  getParents(from: string, id: string | number): DatabaseRow[] {
     if (!id || id === null) return []
     let parent = this.get(from, id)
-    const parents = []
-    const iteration_max = 30
-    let iteration_num = 0
-    while (iteration_num < iteration_max) {
-      iteration_num += 1
-      if ([0, "", null].includes(parent.parent_id)) return parents.reverse()
-      const parent_before = parent
-      parent = this.get(from, parent.parent_id)
+    if (!parent) return []
+
+    const parents: DatabaseRow[] = []
+    const iterationMax = 30
+    let iterationNum = 0
+
+    while (iterationNum < iterationMax) {
+      iterationNum += 1
+      const parentId = parent.parent_id
+
+      if ([0, '', null].includes(parentId as string | number))
+        return parents.reverse()
+
+      const parentBefore = parent
+      parent = this.get(from, parentId as string | number)
       if (!parent) {
         console.error(
-          "get_parents() type",
+          'get_parents() type',
           from,
-          "cannot find id",
-          parent_before.parent_id
+          'cannot find id',
+          parentBefore.parent_id
         )
         return []
       }
       parents.push(parent)
     }
-    console.error("get_parents()", from, id, "iteration_max reached")
+    console.error('get_parents()', from, id, 'iteration_max reached')
     return []
   }
-  add_meta(user_data?: any, db_schema: any = false): void {
-    this.loader.add_meta(user_data, db_schema)
+  addMeta(
+    userData?: Record<string, unknown>,
+    dbSchema: Record<string, unknown> | false = false
+  ): void {
+    this.loader.addMeta(userData, dbSchema)
   }
-  get_last_modif_timestamp(): number {
-    return this.loader.get_last_modif_timestamp()
+  getLastModifTimestamp(): number {
+    return this.loader.getLastModifTimestamp()
   }
-  async check_integrity(): Promise<Record<string, any>> {
-    await this.loader.load_tables(this.config.path, false)
+  async checkIntegrity(): Promise<IntegrityResult> {
+    await this.loader.loadTables(this.config.path, false)
     this.db = this.loader.db
-    return this.integrity_checker.check(this.db)
+    return this.integrityChecker.check(
+      this.db as Parameters<typeof this.integrityChecker.check>[0]
+    )
   }
 }

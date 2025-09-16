@@ -1,127 +1,164 @@
-import DBrowser from "./DBrowser";
+import DBrowser from './DBrowser'
+
+interface TableInfo {
+  name: string
+  last_modif?: string | number
+}
+
+interface LoadOption {
+  filter?: {
+    entity?: string
+    variable?: string
+    values?: string[]
+  }
+  aliases?: string[][]
+  use_cache?: boolean
+  version?: number | string
+}
 
 declare global {
   interface Window {
     jsonjs: {
-      data?: Record<string, any>;
-    };
+      data?: Record<string, unknown[]>
+    }
   }
 }
 
 export default class Loader {
-  private _table_index = "__table__";
-  private _meta_tables = [
-    "__metaFolder__",
-    "__metaDataset__", 
-    "__metaVariable__",
-    "__meta_schema__",
-  ];
-  private _cache_prefix = "db_cache/";
+  private tableIndex = '__table__'
+  private metaTables = [
+    '__metaFolder__',
+    '__metaDataset__',
+    '__metaVariable__',
+    '__meta_schema__',
+  ]
+  private cachePrefix = 'db_cache/'
 
-  private browser: DBrowser;
-  public db: any;
-  private table_index_cache?: any;
-  private last_modif_timestamp?: number;
-  private metaVariable: Record<string, any> = {};
+  private browser: DBrowser
+  private tableIndexCache?: Record<string, string | number | undefined>
+  private lastModifTimestamp?: number
+  private metaVariable: Record<string, unknown> = {}
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public db: Record<string, any> = {}
 
   constructor(browser: DBrowser) {
     window.jsonjs = {}
     this.browser = browser
   }
-  async load(path: string, use_cache = false, option: any = {}): Promise<any> {
-    await this.load_tables(path, use_cache)
-    this._normalize_schema()
-    if (option.filter?.values?.length > 0) {
-      this._filter(option.filter)
+  async load(
+    path: string,
+    useCache = false,
+    option: LoadOption = {}
+  ): Promise<Record<string, unknown>> {
+    await this.loadTables(path, useCache)
+    this.normalizeSchema()
+    if (option.filter?.values?.length && option.filter.values.length > 0) {
+      this.filter(option.filter)
     }
-    this._create_alias(option.aliases)
-    this._create_index()
+    this.createAlias(option.aliases)
+    this.createIndex()
     return this.db
   }
-  async _load_from_cache(table_name: string): Promise<any> {
-    return this.browser.get(this._cache_prefix + table_name)
+  async loadFromCache(tableName: string): Promise<unknown[]> {
+    return this.browser.get(this.cachePrefix + tableName) as Promise<unknown[]>
   }
-  async _save_to_cache(data: any, table_name: string): Promise<void> {
-    this.browser.set(this._cache_prefix + table_name, data)
+  async saveToCache(
+    data: unknown[] | Record<string, unknown>,
+    tableName: string
+  ): Promise<void> {
+    this.browser.set(this.cachePrefix + tableName, data)
   }
-  async _load_from_file(path: string, table_name: string, option: any): Promise<any> {
-    const script = document.createElement("script")
-    let src = path + "/" + table_name + ".json.js?v="
-    src += (option && option.version) ? option.version : Math.random()
+  async loadFromFile(
+    path: string,
+    tableName: string,
+    option?: LoadOption
+  ): Promise<unknown[]> {
+    const script = document.createElement('script')
+    let src = path + '/' + tableName + '.json.js?v='
+    src += option && option.version ? option.version : Math.random()
     script.src = src
     script.async = false
     return new Promise((resolve, reject) => {
       script.onload = () => {
         if (
-          !(table_name in window.jsonjs.data!) ||
-          window.jsonjs.data![table_name] === undefined
+          !(tableName in window.jsonjs.data!) ||
+          window.jsonjs.data![tableName] === undefined
         ) {
-          const error_msg = `jsonjs.data.${table_name} not found in table ${table_name}`
-          console.error(error_msg)
-          reject(new Error(error_msg))
+          const errorMsg = `jsonjs.data.${tableName} not found in table ${tableName}`
+          console.error(errorMsg)
+          reject(new Error(errorMsg))
           return
         }
-        let data = window.jsonjs.data![table_name]
-        window.jsonjs.data![table_name] = undefined
+        let data = window.jsonjs.data![tableName]
+        delete window.jsonjs.data![tableName]
         if (data.length > 0 && Array.isArray(data[0])) {
-          data = this._array_to_object(data)
+          data = this.arrayToObject(data as unknown[][])
         }
         resolve(data)
         document.querySelectorAll(`script[src="${src}"]`)[0].remove()
         if (option && option.use_cache) {
-          this._save_to_cache(data, table_name)
+          this.saveToCache(data, tableName)
         }
       }
       script.onerror = () => {
-        const error_msg = `table "${table_name}" not found in path "${path}"`
-        window.jsonjs.data![table_name] = undefined
-        console.error(error_msg)
-        reject(new Error(error_msg))
+        const errorMsg = `table "${tableName}" not found in path "${path}"`
+        delete window.jsonjs.data![tableName]
+        console.error(errorMsg)
+        reject(new Error(errorMsg))
         return
       }
       document.head.appendChild(script)
     })
   }
-  private _array_to_object(data: any[][]): any[] {
-    data = data.map(row => {
-      return row.reduce((acc, item, index) => {
-        const key = data[0][index]
+  private arrayToObject(data: unknown[][]): Record<string, unknown>[] {
+    const [headers, ...rows] = data
+    const headerArray = headers as unknown[]
+    const rowArrays = rows as unknown[][]
+
+    return rowArrays.map((row): Record<string, unknown> => {
+      const rowArray = row as unknown[]
+      return rowArray.reduce<Record<string, unknown>>((acc, item, index) => {
+        const key = headerArray[index] as string
         return { ...acc, [key]: item }
       }, {})
     })
-    data.shift()
-    return data
   }
-  private _is_in_cache(table_name: string, version?: number | string): boolean {
-    if (!this.table_index_cache) return false
-    if (!(table_name in this.table_index_cache)) return false
-    if (this.table_index_cache[table_name] !== version) return false
+  private isInCache(tableName: string, version?: number | string): boolean {
+    if (!this.tableIndexCache) return false
+    if (!(tableName in this.tableIndexCache)) return false
+    if (this.tableIndexCache[tableName] !== version) return false
     return true
   }
-  async load_jsonjs(
+  async loadJsonjs(
     path: string,
-    table_name: string,
+    tableName: string,
     option?: { use_cache: boolean; version: number | string }
-  ): Promise<any> {
-    if (path.slice(-1) === "/") path = path.slice(0, -1)
+  ): Promise<unknown[]> {
+    if (path.slice(-1) === '/') path = path.slice(0, -1)
     if (window.jsonjs === undefined) window.jsonjs = {}
     if (window.jsonjs.data === undefined) window.jsonjs.data = {}
-    if (option?.use_cache && this._is_in_cache(table_name, option.version)) {
-      return this._load_from_cache(table_name)
+    if (option?.use_cache && this.isInCache(tableName, option.version)) {
+      return this.loadFromCache(tableName)
     } else {
-      return this._load_from_file(path, table_name, option)
+      return this.loadFromFile(path, tableName, option)
     }
   }
-  async load_tables(path: string, use_cache: boolean): Promise<void> {
-    let tables_info = await this.load_jsonjs(path, this._table_index)
-    tables_info = this._check_conformity(tables_info)
-    tables_info = this._extract_last_modif(tables_info)
-    if (use_cache) {
-      this.table_index_cache = await this.browser.get(this._cache_prefix + this._table_index)
-      const new_table_index_cache = tables_info.reduce((acc, item) => {
+  async loadTables(path: string, useCache: boolean): Promise<void> {
+    let tablesInfo = (await this.loadJsonjs(
+      path,
+      this.tableIndex
+    )) as TableInfo[]
+    tablesInfo = this.checkConformity(tablesInfo)
+    tablesInfo = this.extractLastModif(tablesInfo)
+    if (useCache) {
+      this.tableIndexCache = (await this.browser.get(
+        this.cachePrefix + this.tableIndex
+      )) as Record<string, string | number | undefined>
+      const newTableIndexCache = tablesInfo.reduce((acc, item) => {
         return { ...acc, [item.name]: item.last_modif }
-      }, {})
-      this._save_to_cache(new_table_index_cache, this._table_index)
+      }, {} as Record<string, string | number | undefined>)
+      this.saveToCache(newTableIndexCache, this.tableIndex)
     }
     const schema = {
       aliases: [],
@@ -130,270 +167,290 @@ export default class Loader {
       many_to_many: [],
     }
     this.db = {
-      [this._table_index]: tables_info,
+      [this.tableIndex]: tablesInfo,
       __schema__: schema,
       __user_data__: {},
     }
     const promises = []
     const tables = []
-    for (const table of tables_info) {
+    for (const table of tablesInfo) {
       tables.push({ name: table.name })
       promises.push(
-        this.load_jsonjs(path, table.name, {
-          version: table.last_modif,
-          use_cache,
+        this.loadJsonjs(path, table.name, {
+          version: table.last_modif ?? Date.now(),
+          use_cache: useCache,
         })
       )
     }
-    const tables_data = await Promise.all(promises)
-    for (const [i, table_data] of tables_data.entries()) {
-      this.db[tables[i].name] = table_data
+    const tablesData = await Promise.all(promises)
+    for (const [i, tableData] of tablesData.entries()) {
+      this.db[tables[i].name] = tableData
     }
   }
-  get_last_modif_timestamp(): number {
-    return this.last_modif_timestamp || 0;
+  getLastModifTimestamp(): number {
+    return this.lastModifTimestamp || 0
   }
-  _extract_last_modif(tables_info) {
-    const table_index_row = tables_info.filter(item => item.name === this._table_index)
-    if (table_index_row.length > 0 && table_index_row[0].last_modif) {
-      this.last_modif_timestamp = table_index_row[0].last_modif
+  extractLastModif(tablesInfo: TableInfo[]): TableInfo[] {
+    const tableIndexRow = tablesInfo.filter(
+      item => item.name === this.tableIndex
+    )
+    if (tableIndexRow.length > 0 && tableIndexRow[0].last_modif) {
+      this.lastModifTimestamp = tableIndexRow[0].last_modif as number
     }
-    return tables_info.filter(item => item.name !== this._table_index)
+    return tablesInfo.filter(item => item.name !== this.tableIndex)
   }
-  _check_conformity(tables_info) {
-    const validated_tables = []
-    const all_names = []
-    for (const table of tables_info) {
-      if (!("name" in table)) {
-        console.error("table name not found in meta", table)
+  checkConformity(tablesInfo: TableInfo[]): TableInfo[] {
+    const validatedTables: TableInfo[] = []
+    const allNames: string[] = []
+    for (const table of tablesInfo) {
+      if (!('name' in table)) {
+        console.error('table name not found in meta', table)
         continue
       }
-      if (all_names.includes(table.name)) {
-        console.error("table name already exists in meta", table)
+      if (allNames.includes(table.name)) {
+        console.error('table name already exists in meta', table)
         continue
       }
-      all_names.push(table.name)
-      validated_tables.push(table)
+      allNames.push(table.name)
+      validatedTables.push(table)
     }
-    return validated_tables
+    return validatedTables
   }
-  _normalize_schema() {
-    for (const table of this.db[this._table_index]) {
+  normalizeSchema() {
+    for (const table of this.db[this.tableIndex]) {
       if (this.db[table.name].length === 0) continue
       for (const variable in this.db[table.name][0]) {
-        if (!variable.endsWith("_ids")) continue
-        const entity_dest = variable.slice(0, -4)
-        if (!(entity_dest in this.db)) continue
-        const relation_table = table.name + "_" + entity_dest
-        if (!(relation_table in this.db)) {
-          this.db[this._table_index].push({ name: relation_table })
-          this.db[relation_table] = []
+        if (!variable.endsWith('_ids')) continue
+        const entityDest = variable.slice(0, -4)
+        if (!(entityDest in this.db)) continue
+        const relationTable = table.name + '_' + entityDest
+        if (!(relationTable in this.db)) {
+          this.db[this.tableIndex].push({ name: relationTable })
+          this.db[relationTable] = []
         }
         for (const row of this.db[table.name]) {
           if (!row[variable]) continue
           const ids =
-            typeof row[variable] === "string" ? row[variable].split(",") : []
+            typeof row[variable] === 'string' ? row[variable].split(',') : []
           if (ids.length === 0) continue
           for (const id of ids) {
-            this.db[relation_table].push({
-              [table.name + "_id"]: row.id,
-              [entity_dest + "_id"]: id.trim(),
+            this.db[relationTable].push({
+              [table.name + '_id']: row.id,
+              [entityDest + '_id']: id.trim(),
             })
           }
         }
       }
     }
   }
-  _filter(filter) {
-    if (!("entity" in filter)) return false
-    if (!("variable" in filter)) return false
+  filter(filter: { entity?: string; variable?: string; values?: unknown[] }) {
+    if (!('entity' in filter) || !filter.entity) return false
+    if (!('variable' in filter) || !filter.variable) return false
+    if (!('values' in filter) || !filter.values) return false
     if (!(filter.entity in this.db)) return false
-    const id_to_delete = []
+
+    const idToDelete: string[] = []
     for (const item of this.db[filter.entity]) {
       if (filter.values.includes(item[filter.variable])) {
-        id_to_delete.push(item.id)
+        idToDelete.push(item.id)
       }
     }
     this.db[filter.entity] = this.db[filter.entity].filter(
-      item => !id_to_delete.includes(item.id)
+      (item: Record<string, unknown>) => !idToDelete.includes(item.id as string)
     )
-    for (const table of this.db[this._table_index]) {
+    for (const table of this.db[this.tableIndex]) {
       if (this.db[table.name].length === 0) continue
-      if (!this.db[table.name][0].hasOwnProperty(filter.entity + "_id"))
-        continue
-      const id_to_delete_level_2 = []
+      if (!(filter.entity + '_id' in this.db[table.name][0])) continue
+      const idToDeleteLevel2: string[] = []
       for (const item of this.db[table.name]) {
-        if (id_to_delete.includes(item[filter.entity + "_id"])) {
-          id_to_delete_level_2.push(item.id)
+        if (idToDelete.includes(item[filter.entity + '_id'])) {
+          idToDeleteLevel2.push(item.id)
         }
       }
       this.db[table.name] = this.db[table.name].filter(
-        item => !id_to_delete.includes(item[filter.entity + "_id"])
+        (item: Record<string, unknown>) =>
+          !idToDelete.includes(item[filter.entity + '_id'] as string)
       )
-      for (const table_level_2 of this.db[this._table_index]) {
-        if (this.db[table_level_2.name].length === 0) continue
-        if (!this.db[table_level_2.name][0].hasOwnProperty(table.name + "_id"))
-          continue
-        this.db[table_level_2.name] = this.db[table_level_2.name].filter(
-          item => !id_to_delete_level_2.includes(item[table.name + "_id"])
+      for (const tableLevel2 of this.db[this.tableIndex]) {
+        if (this.db[tableLevel2.name].length === 0) continue
+        if (!(table.name + '_id' in this.db[tableLevel2.name][0])) continue
+        this.db[tableLevel2.name] = this.db[tableLevel2.name].filter(
+          (item: Record<string, unknown>) =>
+            !idToDeleteLevel2.includes(item[table.name + '_id'] as string)
         )
       }
     }
   }
-  _id_to_index(table_name, id) {
-    if (!(table_name in this.db.__index__)) {
-      console.error("id_to_index() table not found", table_name)
+  idToIndex(tableName: string, id: string | number): number | false {
+    if (!(tableName in this.db.__index__)) {
+      console.error('id_to_index() table not found', tableName)
       return false
     }
-    if (this.db.__index__[table_name].id[id] === undefined) {
-      console.error("id_to_index() table ", table_name, "id not found", id)
+    if (this.db.__index__[tableName].id[id] === undefined) {
+      console.error('id_to_index() table ', tableName, 'id not found', id)
       return false
     }
-    return this.db.__index__[table_name].id[id]
+    return this.db.__index__[tableName].id[id]
   }
-  _create_alias(initial_aliases = null) {
-    let aliases = []
-    if (initial_aliases) aliases = initial_aliases
-    if ("config" in this.db) {
+  createAlias(initialAliases: string[][] | null = null) {
+    type AliasDefinition = {
+      table: string
+      alias: string
+    }
+
+    let aliases: AliasDefinition[] = []
+
+    if (initialAliases) {
+      aliases = initialAliases.map(([table, alias]) => ({ table, alias }))
+    }
+
+    if ('config' in this.db) {
       for (const row of this.db.config) {
-        if (row.id?.startsWith("alias_")) {
-          aliases.push({
-            table: row.value?.split(":")[0]?.trim(),
-            alias: row.value?.split(":")[1]?.trim(),
-          })
+        if (row.id?.startsWith('alias_')) {
+          const table = row.value?.split(':')[0]?.trim()
+          const alias = row.value?.split(':')[1]?.trim()
+          if (table && alias) {
+            aliases.push({ table, alias })
+          }
         }
       }
     }
-    if ("alias" in this.db) {
+
+    if ('alias' in this.db) {
       aliases = aliases.concat(this.db.alias)
     }
+
     for (const alias of aliases) {
-      const alias_data = []
+      const aliasData: Record<string, unknown>[] = []
       if (!(alias.table in this.db)) {
-        console.error("create_alias() table not found:", alias.table)
+        console.error('create_alias() table not found:', alias.table)
         continue
       }
       for (const row of this.db[alias.table]) {
-        const alias_data_row = { id: row.id }
-        alias_data_row[alias.table + "_id"] = row.id
-        alias_data.push(alias_data_row)
+        const aliasDataRow: Record<string, unknown> = { id: row.id }
+        aliasDataRow[alias.table + '_id'] = row.id
+        aliasData.push(aliasDataRow)
       }
-      this.db[alias.alias] = alias_data
-      this.db[this._table_index].push({ name: alias.alias, alias: true })
+      this.db[alias.alias] = aliasData
+      this.db[this.tableIndex].push({ name: alias.alias, alias: true })
       this.db.__schema__.aliases.push(alias.alias)
     }
   }
-  _create_index() {
+  createIndex() {
     this.db.__index__ = {}
-    for (const table of this.db[this._table_index]) {
-      if (!table.name.includes("_")) this.db.__index__[table.name] = {}
+    for (const table of this.db[this.tableIndex]) {
+      if (!table.name.includes('_')) this.db.__index__[table.name] = {}
     }
-    for (const table of this.db[this._table_index]) {
-      if (!table.name.includes("_") && this.db[table.name][0]) {
-        this._add_primary_key(table)
-        this._process_one_to_many(table)
+    for (const table of this.db[this.tableIndex]) {
+      if (!table.name.includes('_') && this.db[table.name][0]) {
+        this.addPrimaryKey(table)
+        this.processOneToMany(table)
       }
     }
-    for (const table of this.db[this._table_index]) {
-      if (this._meta_tables.includes(table.name)) continue
-      if (table.name.includes("_") && this.db[table.name][0]) {
-        this._process_many_to_many(table, "left")
-        this._process_many_to_many(table, "right")
+    for (const table of this.db[this.tableIndex]) {
+      if (this.metaTables.includes(table.name)) continue
+      if (table.name.includes('_') && this.db[table.name][0]) {
+        this.processManyToMany(table, 'left')
+        this.processManyToMany(table, 'right')
       }
     }
   }
-  _process_many_to_many(table, side) {
-    const index = {}
-    const tables_name = table.name.split("_")
-    if (!(tables_name[0] in this.db.__index__)) {
-      console.error("process_many_to_many() table not found", tables_name[0])
+  processManyToMany(table: { name: string }, side: string) {
+    const index: Record<string, unknown> = {}
+    const tablesName = table.name.split('_')
+    if (!(tablesName[0] in this.db.__index__)) {
+      console.error('process_many_to_many() table not found', tablesName[0])
       return false
     }
-    if (!(tables_name[1] in this.db.__index__)) {
-      console.error("process_many_to_many() table not found", tables_name[1])
+    if (!(tablesName[1] in this.db.__index__)) {
+      console.error('process_many_to_many() table not found', tablesName[1])
       return false
     }
-    if (side === "right") tables_name.reverse()
-    const table_name_id_0 = tables_name[0] + "_id"
-    const table_name_id_1 = tables_name[1] + "_id"
-    for (const [i, row] of Object.entries(this.db[table.name])) {
-      if (!(row[table_name_id_1] in index)) {
-        index[row[table_name_id_1]] = this._id_to_index(
-          tables_name[0],
-          row[table_name_id_0]
+    if (side === 'right') tablesName.reverse()
+    const tableNameId0 = tablesName[0] + '_id'
+    const tableNameId1 = tablesName[1] + '_id'
+    for (const row of this.db[table.name]) {
+      if (!(row[tableNameId1] in index)) {
+        index[row[tableNameId1]] = this.idToIndex(
+          tablesName[0],
+          row[tableNameId0]
         )
         continue
       }
-      if (!Array.isArray(index[row[table_name_id_1]])) {
-        index[row[table_name_id_1]] = [index[row[table_name_id_1]]]
+      if (!Array.isArray(index[row[tableNameId1]])) {
+        index[row[tableNameId1]] = [index[row[tableNameId1]]]
       }
-      index[row[table_name_id_1]].push(
-        this._id_to_index(tables_name[0], row[table_name_id_0])
+      ;(index[row[tableNameId1]] as unknown[]).push(
+        this.idToIndex(tablesName[0], row[tableNameId0])
       )
     }
-    delete (index as any)['null']
-    this.db.__index__[tables_name[0]][table_name_id_1] = index
-    if (side === "left") {
+    delete (index as Record<string, unknown>)['null']
+    this.db.__index__[tablesName[0]][tableNameId1] = index
+    if (side === 'left') {
       this.db.__schema__.many_to_many.push([
-        tables_name[0],
-        table_name_id_1.slice(0, -3),
+        tablesName[0],
+        tableNameId1.slice(0, -3),
       ])
     }
   }
-  _process_one_to_many(table) {
+  processOneToMany(table: { name: string }) {
     for (const variable in this.db[table.name][0]) {
-      if (variable === "parent_id") {
-        this._process_self_one_to_many(table)
+      if (variable === 'parent_id') {
+        this.processSelfOneToMany(table)
         continue
       }
       if (
-        variable.endsWith("_id") &&
+        variable.endsWith('_id') &&
         variable.slice(0, -3) in this.db.__index__
       ) {
-        this._add_foreign_key(variable, table)
+        this.addForeignKey(variable, table)
       }
     }
   }
-  _process_self_one_to_many(table) {
-    const index = {}
+  processSelfOneToMany(table: { name: string }) {
+    const index: Record<string | number, number | number[]> = {}
     for (const [i, row] of Object.entries(this.db[table.name])) {
-      const rowAny = row as any
-      if (!(rowAny.parent_id in index)) {
-        index[rowAny.parent_id] = parseInt(i)
+      const rowRecord = row as Record<string, unknown>
+      const parentId = rowRecord.parent_id as string | number
+      if (!(parentId in index)) {
+        index[parentId] = parseInt(i)
         continue
       }
-      if (!Array.isArray(index[rowAny.parent_id])) {
-        index[rowAny.parent_id] = [index[rowAny.parent_id]]
+      if (!Array.isArray(index[parentId])) {
+        index[parentId] = [index[parentId] as number]
       }
-      index[rowAny.parent_id].push(parseInt(i))
+      ;(index[parentId] as number[]).push(parseInt(i))
     }
     this.db.__index__[table.name].parent_id = index
     this.db.__schema__.one_to_many.push([table.name, table.name])
   }
-  _add_primary_key(table) {
-    const index = {}
+  addPrimaryKey(table: { name: string }) {
+    const index: Record<string | number, number> = {}
     if (!(table.name in this.db)) return false
     if (this.db[table.name].length === 0) return false
-    if (!("id" in this.db[table.name][0])) return false
+    if (!('id' in this.db[table.name][0])) return false
     for (const [i, row] of Object.entries(this.db[table.name])) {
-      const rowAny = row as any
-      index[rowAny.id] = parseInt(i)
+      const rowRecord = row as Record<string, unknown>
+      const id = rowRecord.id as string | number
+      index[id] = parseInt(i)
     }
     this.db.__index__[table.name].id = index
   }
-  _add_foreign_key(variable, table) {
-    const index = {}
+  addForeignKey(variable: string, table: { name: string }) {
+    const index: Record<string, number | number[]> = {}
     for (const [i, row] of Object.entries(this.db[table.name])) {
-      if (!(row[variable] in index)) {
-        index[row[variable]] = parseInt(i)
+      const rowRecord = row as Record<string, unknown>
+      const foreignKeyValue = rowRecord[variable] as string
+      if (!(foreignKeyValue in index)) {
+        index[foreignKeyValue] = parseInt(i)
         continue
       }
-      if (!Array.isArray(index[row[variable]])) {
-        index[row[variable]] = [index[row[variable]]]
+      if (!Array.isArray(index[foreignKeyValue])) {
+        index[foreignKeyValue] = [index[foreignKeyValue] as number]
       }
-      index[row[variable]].push(parseInt(i))
+      ;(index[foreignKeyValue] as number[]).push(parseInt(i))
     }
-    delete (index as any)['null']
+    delete index['null']
     this.db.__index__[table.name][variable] = index
     if (this.db.__schema__.aliases.includes(table.name)) {
       this.db.__schema__.one_to_one.push([table.name, variable.slice(0, -3)])
@@ -401,106 +458,127 @@ export default class Loader {
       this.db.__schema__.one_to_many.push([variable.slice(0, -3), table.name])
     }
   }
-  add_db_schema(db_schema) {
-    if (db_schema.length > 0 && Array.isArray(db_schema[0])) {
-      db_schema = this._array_to_object(db_schema)
+  addDbSchema(dbSchema: unknown) {
+    if (
+      Array.isArray(dbSchema) &&
+      dbSchema.length > 0 &&
+      Array.isArray(dbSchema[0])
+    ) {
+      dbSchema = this.arrayToObject(dbSchema as unknown[][])
     }
-    this.db.__meta_schema__ = db_schema
+    this.db.__meta_schema__ = dbSchema
   }
-  add_meta(user_data?: Record<string, any>, schema?: any): void {
-    this.db.__user_data__ = user_data || {}
-    const metaDataset = {}
-    const metaFolder = {}
+  addMeta(userData?: Record<string, unknown>, schema?: unknown): void {
+    this.db.__user_data__ = userData || {}
+    const metaDataset: Record<string, Record<string, unknown>> = {}
+    const metaFolder: Record<string, Record<string, unknown>> = {}
     this.metaVariable = {}
 
-    if (schema) this.add_db_schema(schema)
+    if (schema) this.addDbSchema(schema)
 
-    const virtual_meta_tables = []
+    const virtualMetaTables: string[] = []
     const db = this.db
-    for (const table of Object.values(db[this._table_index])) {
-      const tableAny = table as any
-      if (!tableAny.last_modif) virtual_meta_tables.push(tableAny.name)
+    for (const table of Object.values(db[this.tableIndex])) {
+      const tableRecord = table as Record<string, unknown>
+      if (!tableRecord.last_modif)
+        virtualMetaTables.push(tableRecord.name as string)
     }
 
-    if ("__metaFolder__" in this.db) {
+    if ('__metaFolder__' in this.db) {
       for (const folder of this.db.__metaFolder__) {
-        metaFolder[folder.id] = folder
+        const folderRecord = folder as Record<string, unknown>
+        metaFolder[folderRecord.id as string] = folderRecord
       }
     }
-    if ("__metaDataset__" in this.db) {
+    if ('__metaDataset__' in this.db) {
       for (const dataset of this.db.__metaDataset__) {
-        metaDataset[dataset.id] = dataset
+        const datasetRecord = dataset as Record<string, unknown>
+        metaDataset[datasetRecord.id as string] = datasetRecord
       }
     }
-    if ("__metaVariable__" in this.db) {
+    if ('__metaVariable__' in this.db) {
       for (const variable of this.db.__metaVariable__) {
-        this.metaVariable[variable.dataset + "---" + variable.variable] =
-          variable
+        const variableRecord = variable as Record<string, unknown>
+        this.metaVariable[
+          variableRecord.dataset + '---' + variableRecord.variable
+        ] = variableRecord
       }
     }
-    if ("__meta_schema__" in this.db) {
+    if ('__meta_schema__' in this.db) {
       for (const row of this.db.__meta_schema__) {
-        if (!row.folder) continue
-        if (!row.dataset) {
-          row.id = row.folder
-          metaFolder[row.id] = row
+        const rowRecord = row as Record<string, unknown>
+        if (!rowRecord.folder) continue
+        if (!rowRecord.dataset) {
+          rowRecord.id = rowRecord.folder
+          metaFolder[rowRecord.id as string] = rowRecord
           continue
         }
-        if (!row.variable) {
-          row.id = row.dataset
-          metaDataset[row.id] = row
+        if (!rowRecord.variable) {
+          rowRecord.id = rowRecord.dataset
+          metaDataset[rowRecord.id as string] = rowRecord
           continue
         }
-        row.id = row.dataset + "---" + row.variable
-        this.metaVariable[row.id] = row
+        rowRecord.id = rowRecord.dataset + '---' + rowRecord.variable
+        this.metaVariable[rowRecord.id as string] = rowRecord
       }
     }
 
-    const metaFolder_data = {
-      id: "data",
-      name: "data",
-      description: (metaFolder as any).data?.description,
-      is_in_meta: (metaFolder as any).data ? true : false,
+    const metaFolderData = {
+      id: 'data',
+      name: 'data',
+      description: (
+        (metaFolder as Record<string, unknown>).data as Record<string, unknown>
+      )?.description,
+      is_in_meta: (metaFolder as Record<string, unknown>).data ? true : false,
       is_in_data: true,
     }
-    const metaFolder_user_data = {
-      id: "user_data",
-      name: "user_data",
-      description: (metaFolder as any).user_data?.description,
-      is_in_meta: (metaFolder as any).user_data ? true : false,
+    const metaFolderUserData = {
+      id: 'user_data',
+      name: 'user_data',
+      description: (
+        (metaFolder as Record<string, unknown>).user_data as Record<
+          string,
+          unknown
+        >
+      )?.description,
+      is_in_meta: (metaFolder as Record<string, unknown>).user_data
+        ? true
+        : false,
       is_in_data: true,
     }
-    this.db.metaFolder = [metaFolder_data, metaFolder_user_data]
+    this.db.metaFolder = [metaFolderData, metaFolderUserData]
     this.db.metaDataset = []
     this.db.metaVariable = []
 
-    const user_data_tables = Object.entries(this.db.__user_data__ || {})
-    for (const [table_name, table_data] of user_data_tables) {
-      const tableDataArray = table_data as any[]
+    const userDataTables = Object.entries(this.db.__user_data__ || {})
+    for (const [tableName, tableData] of userDataTables) {
+      const tableDataArray = tableData as unknown[]
       if (tableDataArray.length === 0) continue
-      const variables = Object.keys(tableDataArray[0])
+      const variables = Object.keys(
+        tableDataArray[0] as Record<string, unknown>
+      )
       this.db.metaDataset.push({
-        id: table_name,
-        metaFolder_id: "user_data",
-        name: table_name,
+        id: tableName,
+        metaFolder_id: 'user_data',
+        name: tableName,
         nb_row: tableDataArray.length,
-        description: metaDataset[table_name]?.description,
-        is_in_meta: metaDataset[table_name] ? true : false,
+        description: metaDataset[tableName]?.description,
+        is_in_meta: metaDataset[tableName] ? true : false,
         is_in_data: true,
       })
-      this._add_meta_variables(table_name, table_data, variables)
-      if (table_name in metaDataset) delete metaDataset[table_name]
+      this.addMetaVariables(tableName, tableData as unknown[], variables)
+      if (tableName in metaDataset) delete metaDataset[tableName]
     }
 
-    for (const table of this.db[this._table_index]) {
-      if (table.name.includes(this._table_index)) continue
-      if (this._meta_tables.includes(table.name)) continue
+    for (const table of this.db[this.tableIndex]) {
+      if (table.name.includes(this.tableIndex)) continue
+      if (this.metaTables.includes(table.name)) continue
       if (this.db[table.name].length === 0) continue
-      if (virtual_meta_tables.includes(table.name)) continue
+      if (virtualMetaTables.includes(table.name)) continue
       const variables = Object.keys(this.db[table.name][0])
       this.db.metaDataset.push({
         id: table.name,
-        metaFolder_id: "data",
+        metaFolder_id: 'data',
         name: table.name,
         nb_row: this.db[table.name].length,
         description: metaDataset[table.name]?.description,
@@ -508,29 +586,31 @@ export default class Loader {
         is_in_meta: metaDataset[table.name] ? true : false,
         is_in_data: true,
       })
-      this._add_meta_variables(table.name, this.db[table.name], variables)
+      this.addMetaVariables(table.name, this.db[table.name], variables)
       if (table.name in metaDataset) delete metaDataset[table.name]
     }
 
-    for (const [variable_id, variable] of Object.entries(this.metaVariable)) {
-      const dataset_id = variable.dataset
+    for (const [variableId, variable] of Object.entries(this.metaVariable)) {
+      const variableRecord = variable as Record<string, unknown>
+      const datasetId = variableRecord.dataset
       this.db.metaVariable.push({
-        id: variable_id,
-        metaDataset_id: dataset_id,
-        name: variable.variable,
-        description: variable.description,
+        id: variableId,
+        metaDataset_id: datasetId,
+        name: variableRecord.variable,
+        description: variableRecord.description,
         is_in_meta: true,
         is_in_data: false,
       })
     }
 
-    for (const [dataset_id, dataset] of Object.entries(metaDataset)) {
+    for (const [datasetId, dataset] of Object.entries(metaDataset)) {
+      const datasetRecord = dataset as Record<string, unknown>
       this.db.metaDataset.push({
-        id: dataset_id,
-        metaFolder_id: (dataset as any).folder,
-        name: (dataset as any).dataset,
+        id: datasetId,
+        metaFolder_id: datasetRecord.folder,
+        name: datasetRecord.dataset,
         nb_row: 0,
-        description: (dataset as any)?.description,
+        description: datasetRecord?.description,
         is_in_meta: true,
         is_in_data: false,
       })
@@ -539,73 +619,81 @@ export default class Loader {
     this.db.__index__.metaFolder = {}
     this.db.__index__.metaDataset = {}
     this.db.__index__.metaVariable = {}
-    this._add_primary_key({ name: "metaFolder" })
-    this._add_primary_key({ name: "metaDataset" })
-    this._add_primary_key({ name: "metaVariable" })
-    this._process_one_to_many({ name: "metaDataset" })
-    this._process_one_to_many({ name: "metaVariable" })
+    this.addPrimaryKey({ name: 'metaFolder' })
+    this.addPrimaryKey({ name: 'metaDataset' })
+    this.addPrimaryKey({ name: 'metaVariable' })
+    this.processOneToMany({ name: 'metaDataset' })
+    this.processOneToMany({ name: 'metaVariable' })
   }
-  _add_meta_variables(table_name, dataset_data, variables) {
-    const datasetArray = dataset_data as any[]
-    const nb_value_max = Math.min(300, Math.floor(datasetArray.length / 5))
+  addMetaVariables(
+    tableName: string,
+    datasetData: unknown[],
+    variables: string[]
+  ) {
+    const datasetArray = datasetData as unknown[]
+    const nbValueMax = Math.min(300, Math.floor(datasetArray.length / 5))
     for (const variable of variables) {
-      let type = "other"
-      for (const row of dataset_data) {
-        const value = row[variable]
+      let type = 'other'
+      for (const row of datasetData) {
+        const rowRecord = row as Record<string, unknown>
+        const value = rowRecord[variable]
         if (value === null || value === undefined) continue
-        if (typeof value === "string") {
-          type = "string"
+        if (typeof value === 'string') {
+          type = 'string'
           break
         }
-        if (typeof value === "number" && !isNaN(value)) {
+        if (typeof value === 'number' && !isNaN(value)) {
           if (Number.isInteger(value)) {
-            type = "integer"
+            type = 'integer'
             break
           } else {
-            type = "float"
+            type = 'float'
             break
           }
         }
-        if (typeof value === "boolean") {
-          type = "boolean"
+        if (typeof value === 'boolean') {
+          type = 'boolean'
           break
         }
       }
-      let nb_missing = 0
+      let nbMissing = 0
       const distincts = new Set()
-      for (const row of dataset_data) {
-        const value = row[variable]
-        if (value === "" || value === null || value === undefined) {
-          nb_missing += 1
+      for (const row of datasetData) {
+        const rowRecord = row as Record<string, unknown>
+        const value = rowRecord[variable]
+        if (value === '' || value === null || value === undefined) {
+          nbMissing += 1
           continue
         }
         distincts.add(value)
       }
-      let values: any = false
-      const has_value = distincts.size < nb_value_max && distincts.size > 0
-      if (has_value) {
+      let values: boolean | Array<{ value: unknown }> = false
+      const hasValue = distincts.size < nbValueMax && distincts.size > 0
+      if (hasValue) {
         values = []
         for (const value of distincts) {
           values.push({ value })
         }
       }
-      const dataset_variable_id = table_name + "---" + variable
+      const datasetVariableId = tableName + '---' + variable
       this.db.metaVariable.push({
-        id: dataset_variable_id,
-        metaDataset_id: table_name,
+        id: datasetVariableId,
+        metaDataset_id: tableName,
         name: variable,
-        description: this.metaVariable[dataset_variable_id]?.description,
+        description: (
+          this.metaVariable[datasetVariableId] as Record<string, unknown>
+        )?.description,
         type,
-        nb_missing,
+        nb_missing: nbMissing,
         nb_distinct: distincts.size,
-        nb_duplicate: dataset_data.length - distincts.size - nb_missing,
+        nb_duplicate: datasetData.length - distincts.size - nbMissing,
         values,
         values_preview: values ? values.slice(0, 10) : false,
-        is_in_meta: this.metaVariable[dataset_variable_id] ? true : false,
+        is_in_meta: this.metaVariable[datasetVariableId] ? true : false,
         is_in_data: true,
       })
-      if (dataset_variable_id in this.metaVariable)
-        delete this.metaVariable[dataset_variable_id]
+      if (datasetVariableId in this.metaVariable)
+        delete this.metaVariable[datasetVariableId]
     }
   }
 }

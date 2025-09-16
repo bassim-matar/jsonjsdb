@@ -5,10 +5,10 @@ describe('jsonjsdb', () => {
   let db: Jsonjsdb
 
   beforeAll(() => {
-    db = new Jsonjsdb({ 
-      db_key: 'gdf9898fds', 
-      browser_key: 'gdf9898fdsS',
-      path: 'test/db'
+    db = new Jsonjsdb({
+      dbKey: 'gdf9898fds',
+      browserKey: 'gdf9898fdsS',
+      path: 'test/db',
     })
   })
 
@@ -18,8 +18,8 @@ describe('jsonjsdb', () => {
 
   describe('init()', () => {
     it('should work', async () => {
-      const db_init = await db.init()
-      expect(db_init).not.toBe(false)
+      const dbInit = await db.init()
+      expect(dbInit).not.toBe(false)
     })
   })
 
@@ -30,8 +30,8 @@ describe('jsonjsdb', () => {
         variable: 'name',
         values: ['user 1', 'user 3'],
       }
-      const db_init = await db.init({ filter })
-      expect(db_init).not.toBe(false)
+      const dbInit = await db.init({ filter })
+      expect(dbInit).not.toBe(false)
     })
   })
 
@@ -54,52 +54,57 @@ describe('jsonjsdb', () => {
         const user = db.get('user', 1)
         expect(user).toHaveProperty('id', 1)
       })
-      
+
       it('should return undefined for nonexistent table', () => {
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {})
         const result = db.get('nonexistent_table', 1)
         expect(result).toBeUndefined()
         consoleSpy.mockRestore()
       })
 
       it('should return undefined for nonexistent id', () => {
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {})
         const result = db.get('user', 999)
         expect(result).toBeUndefined()
         consoleSpy.mockRestore()
       })
     })
 
-    describe('get_all()', () => {
+    describe('getAll()', () => {
       it('should run without error', () => {
-        expect(() => db.get_all('user')).not.toThrow()
+        expect(() => db.getAll('user')).not.toThrow()
       })
-      
+
       it('should return empty array for nonexistent table', () => {
-        const result = db.get_all('nonexistent_table')
+        const result = db.getAll('nonexistent_table')
         expect(result).toBeInstanceOf(Array)
         expect(result).toHaveLength(0)
       })
-      
+
       it('should return 2 records when limit is 2', () => {
-        const result = db.get_all('user', null, { limit: 2 })
+        const result = db.getAll('user', undefined, { limit: 2 })
         expect(result).toHaveLength(2)
       })
-      
+
       it('should work if an id is passed', () => {
-        const result = db.get_all('email', { user: 1 })
+        const result = db.getAll('email', { user: 1 })
         expect(result[0]).toHaveProperty('name')
       })
-      
+
       it('should work if an object is passed', () => {
         const user = { id: 1 }
-        const result = db.get_all('email', { user })
+        const result = db.getAll('email', { user })
         expect(result[0]).toHaveProperty('name')
       })
-      
+
       it('should get user 1 docs', () => {
         const user = db.get('user', 1)
-        const docs = db.get_all('doc', { user: user.id })
+        expect(user).toBeDefined()
+        const docs = db.getAll('doc', { user: user!.id })
         expect(docs).toBeInstanceOf(Array)
         expect(docs.length).toBeGreaterThan(0)
       })
@@ -113,21 +118,21 @@ describe('jsonjsdb', () => {
       })
     })
 
-    describe('table_has_id()', () => {
+    describe('tableHasId()', () => {
       it('should return false for nonexistent entity', () => {
-        const result = db.table_has_id('nonexistent_entity', 1)
+        const result = db.tableHasId('nonexistent_entity', 1)
         expect(result).toBe(false)
       })
 
       it('should return false for nonexistent id', () => {
-        const result = db.table_has_id('user', 999)
+        const result = db.tableHasId('user', 999)
         expect(result).toBe(false)
       })
     })
 
-    describe('get_config()', () => {
+    describe('getConfig()', () => {
       it('should return undefined for nonexistent id', () => {
-        const result = db.get_config('nonexistent_id')
+        const result = db.getConfig('nonexistent_id')
         expect(result).toBeUndefined()
       })
     })
