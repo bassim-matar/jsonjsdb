@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+*.json.js linguist-vendored=true linguist-generated=true
+/jsonjsdb/test/db/**/*.json.js linguist-vendored=true linguist-generated=true
+/jsonjsdb-builder/test/fixtures/**/*.json.js linguist-vendored=true linguist-generated=true
