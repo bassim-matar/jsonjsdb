@@ -1,6 +1,6 @@
 [![NPM Version](https://img.shields.io/npm/v/jsonjsdb-builder)](https://www.npmjs.com/package/jsonjsdb-builder)
 [![NPM License](https://img.shields.io/npm/l/jsonjsdb-builder)](LICENSE)
-[![CI](<https://github.com/bassim-matar/jsonjsdb/workflows/CI%20-%20Builder%20(jsonjsdb-builder)/badge.svg>)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci-builder.yml)
+[![CI](https://github.com/bassim-matar/jsonjsdb/workflows/ci-builder.yml/badge.svg)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci-builder.yml)
 
 # Jsonjsdb Builder
 
