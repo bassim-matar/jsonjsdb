@@ -1,6 +1,10 @@
 {
   "name": "jsonjsdb-monorepo",
   "private": true,
+  "workspaces": [
+    "jsonjsdb",
+    "jsonjsdb-builder"
+  ],
   "description": "A comprehensive client-side relational database solution for static Single Page Applications (SPA). Jsonjsdb enables offline data storage and querying capabilities when running applications on the local file system without requiring server infrastructure.",
   "license": "MIT",
   "author": "Bassim Matar",
@@ -18,9 +22,6 @@
     "test:builder": "cd jsonjsdb-builder && npm run test",
     "dev": "npm run dev:core",
     "dev:core": "cd jsonjsdb && npm run dev",
-    "install:all": "npm run install:core && npm run install:builder",
-    "install:core": "cd jsonjsdb && npm install",
-    "install:builder": "cd jsonjsdb-builder && npm install",
     "lint": "npm run lint:core && npm run lint:builder",
     "lint:core": "cd jsonjsdb && npm run lint",
     "lint:builder": "cd jsonjsdb-builder && npm run lint"
