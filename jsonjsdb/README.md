@@ -1,6 +1,7 @@
 [![NPM Version](https://img.shields.io/npm/v/jsonjsdb)](https://www.npmjs.com/package/jsonjsdb)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/jsonjsdb)
-[![NPM License](https://img.shields.io/npm/l/jsonjsdb)](../LICENSE)
+[![NPM License](https://img.shields.io/npm/l/jsonjsdb)](LICENSE)
+[![CI](<https://github.com/bassim-matar/jsonjsdb/workflows/CI%20-%20Core%20(jsonjsdb)/badge.svg>)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci-core.yml)
 
 # Jsonjsdb - Core Library
 
@@ -34,6 +35,7 @@ A client-side relational database solution for static Single Page Applications. 
     - [`has_nb()`](#has_nbtable-id-nb_what)
     - [`get_parents()`](#get_parentsfrom-id)
     - [`get_config()`](#get_configid)
+- [📄 License](#-license)
 
 ## Installation
 
@@ -389,3 +391,7 @@ const setting = db.getConfig('max_items')
 - `id`: Configuration key
 
 **Returns:** any | undefined
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
