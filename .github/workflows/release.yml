@@ -1,0 +1,188 @@
+name: Release Packages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Get package versions
+        id: versions
+        run: |
+          CORE_VERSION=$(node -p "require('./jsonjsdb/package.json').version")
+          BUILDER_VERSION=$(node -p "require('./jsonjsdb-builder/package.json').version")
+
+          echo "core_version=${CORE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "builder_version=${BUILDER_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "core_tag=jsonjsdb-v${CORE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "builder_tag=jsonjsdb-builder-v${BUILDER_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Check version changes
+        id: changes
+        run: |
+          CORE_VERSION="${{ steps.versions.outputs.core_version }}"
+          BUILDER_VERSION="${{ steps.versions.outputs.builder_version }}"
+
+          # Get latest releases for each package
+          CORE_LATEST=$(gh release list --limit 50 --json tagName --jq '.[] | select(.tagName | startswith("jsonjsdb-v")) | .tagName' | head -1 || echo "")
+          BUILDER_LATEST=$(gh release list --limit 50 --json tagName --jq '.[] | select(.tagName | startswith("jsonjsdb-builder-v")) | .tagName' | head -1 || echo "")
+
+          # Check core package
+          if [[ -z "$CORE_LATEST" ]]; then
+            echo "No previous jsonjsdb releases found"
+            echo "core_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            CORE_LATEST_VERSION="${CORE_LATEST#jsonjsdb-v}"
+            if [[ "$CORE_VERSION" != "$CORE_LATEST_VERSION" ]]; then
+              echo "jsonjsdb version changed from ${CORE_LATEST_VERSION} to ${CORE_VERSION}"
+              echo "core_changed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "jsonjsdb version unchanged (${CORE_VERSION})"
+              echo "core_changed=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+          # Check builder package
+          if [[ -z "$BUILDER_LATEST" ]]; then
+            echo "No previous jsonjsdb-builder releases found"
+            echo "builder_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            BUILDER_LATEST_VERSION="${BUILDER_LATEST#jsonjsdb-builder-v}"
+            if [[ "$BUILDER_VERSION" != "$BUILDER_LATEST_VERSION" ]]; then
+              echo "jsonjsdb-builder version changed from ${BUILDER_LATEST_VERSION} to ${BUILDER_VERSION}"
+              echo "builder_changed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "jsonjsdb-builder version unchanged (${BUILDER_VERSION})"
+              echo "builder_changed=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract changelog for core
+        id: core_changelog
+        if: steps.changes.outputs.core_changed == 'true'
+        run: |
+          VERSION="${{ steps.versions.outputs.core_version }}"
+          CHANGELOG_FILE="jsonjsdb/CHANGELOG.md"
+
+          if [ -f "$CHANGELOG_FILE" ]; then
+            # Extract changelog section for this version
+            awk "
+            /^## ${VERSION} / { found=1; next }
+            /^## / && found { exit }
+            found { print }
+            " "$CHANGELOG_FILE" > core_changelog_section.md
+            
+            if [ ! -s core_changelog_section.md ]; then
+              echo "notes=" >> "$GITHUB_OUTPUT"
+            else
+              {
+                echo "notes<<EOF"
+                cat core_changelog_section.md
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "notes=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extract changelog for builder
+        id: builder_changelog
+        if: steps.changes.outputs.builder_changed == 'true'
+        run: |
+          VERSION="${{ steps.versions.outputs.builder_version }}"
+          CHANGELOG_FILE="jsonjsdb-builder/CHANGELOG.md"
+
+          if [ -f "$CHANGELOG_FILE" ]; then
+            # Extract changelog section for this version
+            awk "
+            /^## ${VERSION} / { found=1; next }
+            /^## / && found { exit }
+            found { print }
+            " "$CHANGELOG_FILE" > builder_changelog_section.md
+            
+            if [ ! -s builder_changelog_section.md ]; then
+              echo "notes=" >> "$GITHUB_OUTPUT"
+            else
+              {
+                echo "notes<<EOF"
+                cat builder_changelog_section.md
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "notes=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish jsonjsdb to npm
+        if: steps.changes.outputs.core_changed == 'true'
+        run: |
+          cd jsonjsdb
+          npm publish --access public
+        env:
+          # yamllint disable-line rule:truthy
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish jsonjsdb-builder to npm
+        if: steps.changes.outputs.builder_changed == 'true'
+        run: |
+          cd jsonjsdb-builder
+          npm publish --access public
+        env:
+          # yamllint disable-line rule:truthy
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create git tags and releases
+        if: steps.changes.outputs.core_changed == 'true' || steps.changes.outputs.builder_changed == 'true'
+        run: |
+          # Create tags and releases for changed packages
+          if [[ "${{ steps.changes.outputs.core_changed }}" == "true" ]]; then
+            CORE_TAG="${{ steps.versions.outputs.core_tag }}"
+            git tag -a "${CORE_TAG}" -m "Release ${CORE_TAG}"
+            git push origin "${CORE_TAG}"
+            
+            if [[ "${{ steps.core_changelog.outputs.notes }}" != "" ]]; then
+              gh release create "${CORE_TAG}" \
+                --title "jsonjsdb ${{ steps.versions.outputs.core_version }}" \
+                --notes "${{ steps.core_changelog.outputs.notes }}"
+            else
+              gh release create "${CORE_TAG}" \
+                --title "jsonjsdb ${{ steps.versions.outputs.core_version }}" \
+                --generate-notes
+            fi
+          fi
+
+          if [[ "${{ steps.changes.outputs.builder_changed }}" == "true" ]]; then
+            BUILDER_TAG="${{ steps.versions.outputs.builder_tag }}"
+            git tag -a "${BUILDER_TAG}" -m "Release ${BUILDER_TAG}"
+            git push origin "${BUILDER_TAG}"
+            
+            if [[ "${{ steps.builder_changelog.outputs.notes }}" != "" ]]; then
+              gh release create "${BUILDER_TAG}" \
+                --title "jsonjsdb-builder ${{ steps.versions.outputs.builder_version }}" \
+                --notes "${{ steps.builder_changelog.outputs.notes }}"
+            else
+              gh release create "${BUILDER_TAG}" \
+                --title "jsonjsdb-builder ${{ steps.versions.outputs.builder_version }}" \
+                --generate-notes
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

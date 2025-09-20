@@ -1,0 +1,175 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-build-core:
+    name: Test and Build Core Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check core changes
+        id: core-changes
+        run: |
+          # Check if we have a previous commit to compare against
+          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            # Normal case: compare with previous commit
+            if git diff HEAD~1 HEAD --name-only | grep -E '^(jsonjsdb/|package\.json|package-lock\.json|eslint\.config\.ts|\.github/workflows/)'; then
+              echo "changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Fallback: first commit or shallow clone, run tests to be safe
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        if: steps.core-changes.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Install dependencies
+        if: steps.core-changes.outputs.changed == 'true'
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        if: steps.core-changes.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers
+        if: steps.core-changes.outputs.changed == 'true'
+        run: npx playwright install chromium
+
+      - name: Run ESLint
+        if: steps.core-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb
+        run: npm run lint
+
+      - name: Run tests
+        if: steps.core-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb
+        run: npm test
+
+      - name: Build package
+        if: steps.core-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb
+        run: npm run build
+
+      - name: Upload build artifacts
+        if: steps.core-changes.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsonjsdb-dist
+          path: jsonjsdb/dist/
+          retention-days: 7
+
+      - name: Check package integrity
+        if: steps.core-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb
+        run: npm pack --dry-run
+
+  test-and-build-builder:
+    name: Test and Build Builder Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check builder changes
+        id: builder-changes
+        run: |
+          # Check if we have a previous commit to compare against
+          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            # Normal case: compare with previous commit
+            if git diff HEAD~1 HEAD --name-only | grep -E '^(jsonjsdb-builder/|package\.json|package-lock\.json|eslint\.config\.ts|\.github/workflows/)'; then
+              echo "changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Fallback: first commit or shallow clone, run tests to be safe
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        if: steps.builder-changes.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Install dependencies
+        if: steps.builder-changes.outputs.changed == 'true'
+        run: npm ci
+
+      - name: Run ESLint
+        if: steps.builder-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb-builder
+        run: npm run lint
+
+      - name: Run tests
+        if: steps.builder-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb-builder
+        run: npm run test
+
+      - name: Build package
+        if: steps.builder-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb-builder
+        run: npm run build
+
+      - name: Upload build artifacts
+        if: steps.builder-changes.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsonjsdb-builder-dist
+          path: jsonjsdb-builder/dist/
+          retention-days: 7
+
+      - name: Check package integrity
+        if: steps.builder-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb-builder
+        run: npm pack --dry-run
+
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [test-and-build-core, test-and-build-builder]
+    if: always()
+    steps:
+      - name: Check CI success
+        run: |
+          echo "Core job result: ${{ needs.test-and-build-core.result }}"
+          echo "Builder job result: ${{ needs.test-and-build-builder.result }}"
+
+          # Check if any required job failed
+          if [[ "${{ needs.test-and-build-core.result }}" == "failure" || "${{ needs.test-and-build-builder.result }}" == "failure" ]]; then
+            echo "❌ CI failed - one or more jobs failed"
+            exit 1
+          fi
+
+          # Check if any job was skipped (no changes detected)
+          if [[ "${{ needs.test-and-build-core.result }}" == "success" || "${{ needs.test-and-build-builder.result }}" == "success" ]]; then
+            echo "✅ CI passed - all relevant packages tested successfully"
+          else
+            echo "ℹ️  No package changes detected - CI passes"
+          fi

@@ -1,7 +1,7 @@
 [![NPM Version](https://img.shields.io/npm/v/jsonjsdb)](https://www.npmjs.com/package/jsonjsdb)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/jsonjsdb)
 [![NPM License](https://img.shields.io/npm/l/jsonjsdb)](LICENSE)
-[![CI](<https://github.com/bassim-matar/jsonjsdb/workflows/CI%20-%20Core%20(jsonjsdb)/badge.svg>)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci-core.yml)
+[![CI](https://github.com/bassim-matar/jsonjsdb/workflows/ci-core.yml/badge.svg)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci-core.yml)
 
 # Jsonjsdb - Core Library
 
