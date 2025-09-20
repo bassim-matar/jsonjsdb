@@ -57,4 +57,5 @@ jobs:
           retention-days: 7
 
       - name: Check package integrity
+        working-directory: jsonjsdb-builder
         run: npm pack --dry-run

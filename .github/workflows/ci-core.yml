@@ -68,4 +68,5 @@ jobs:
           retention-days: 7
 
       - name: Check package integrity
+        working-directory: jsonjsdb
         run: npm pack --dry-run
