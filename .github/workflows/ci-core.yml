@@ -1,0 +1,65 @@
+name: CI - Core (jsonjsdb)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'jsonjsdb/**'
+      - '.github/workflows/ci-core.yml'
+      - '!**/*.md'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'jsonjsdb/**'
+      - '.github/workflows/ci-core.yml'
+      - '!**/*.md'
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jsonjsdb
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'jsonjsdb/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('jsonjsdb/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build package
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsonjsdb-dist
+          path: jsonjsdb/dist/
+          retention-days: 7
+
+      - name: Check package integrity
+        run: npm pack --dry-run
