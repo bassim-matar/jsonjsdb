@@ -20,9 +20,11 @@ This is a monorepo containing two main packages:
 
 ## Development Context
 
-- Monorepo structure with shared development practices
-- Each package has its own build configuration
-- Shared coding standards across both packages
+- **Monorepo with Workspaces**: Uses npm workspaces for dependency management and unified commands
+- **CI/CD Pipeline**: Separate GitHub Actions workflows for each package (ci-core.yml, ci-builder.yml)
+- **Path-based Triggers**: CI workflows triggered only when relevant package files change
+- **Unified Commands**: Root package.json provides commands for building/testing both packages
+- **Shared Tooling**: Common ESLint config and development standards across workspaces
 
 ## Code Comments Policy
 
