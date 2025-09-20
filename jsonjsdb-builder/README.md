@@ -23,7 +23,7 @@ npm install jsonjsdb-builder
 - [Low-level Utilities](#low-level-utilities)
 - [API Reference](#api-reference)
 - [File Structure](#file-structure)
-- [📄 License](#-license)
+- [License](#license)
 
 ## Basic Usage
 
@@ -156,6 +156,6 @@ app_db/
     user.json.js            # copy generated via updatePreview
 ```
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.

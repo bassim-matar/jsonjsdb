@@ -35,7 +35,7 @@ A client-side relational database solution for static Single Page Applications. 
     - [`has_nb()`](#has_nbtable-id-nb_what)
     - [`get_parents()`](#get_parentsfrom-id)
     - [`get_config()`](#get_configid)
-- [📄 License](#-license)
+- [License](#license)
 
 ## Installation
 
@@ -392,6 +392,6 @@ const setting = db.getConfig('max_items')
 
 **Returns:** any | undefined
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
