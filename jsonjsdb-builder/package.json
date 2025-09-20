@@ -32,7 +32,8 @@
   ],
   "scripts": {
     "build": "vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint src test"
   },
   "devDependencies": {
     "@types/node": "^24.5.0",

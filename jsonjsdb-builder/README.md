@@ -1,5 +1,6 @@
 [![NPM Version](https://img.shields.io/npm/v/jsonjsdb-builder)](https://www.npmjs.com/package/jsonjsdb-builder)
-[![NPM License](https://img.shields.io/npm/l/jsonjsdb-builder)](../LICENSE)
+[![NPM License](https://img.shields.io/npm/l/jsonjsdb-builder)](LICENSE)
+[![CI](<https://github.com/bassim-matar/jsonjsdb/workflows/CI%20-%20Builder%20(jsonjsdb-builder)/badge.svg>)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci-builder.yml)
 
 # Jsonjsdb Builder
 
@@ -22,6 +23,7 @@ npm install jsonjsdb-builder
 - [Low-level Utilities](#low-level-utilities)
 - [API Reference](#api-reference)
 - [File Structure](#file-structure)
+- [License](#license)
 
 ## Basic Usage
 
@@ -153,3 +155,7 @@ app_db/
   preview/
     user.json.js            # copy generated via updatePreview
 ```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
