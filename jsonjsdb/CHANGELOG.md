@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.6.6 (2025-09-20)
+
+- fix: remove git tag creation and push from release workflow
+
 ## 0.6.5 (2025-09-20)
 
 - add: ci/cd github action for automated test and releases
