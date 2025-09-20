@@ -3,6 +3,7 @@
 - [Getting Started](#getting-started)
   - [Standard Workflow](#standard-workflow)
   - [Quick Workflow (WIP branches)](#quick-workflow-wip-branches)
+  - [Git Setup (Optional)](#git-setup-optional)
 - [Development Scripts](#development-scripts)
 - [Guidelines](#guidelines)
   - [Pull Requests](#pull-requests)
@@ -13,7 +14,6 @@
   - [Key Directories](#key-directories)
 - [Releases & Maintenance](#releases--maintenance)
   - [Release Process](#release-process)
-  - [Maintainer Commands](#maintainer-commands)
   - [Branch Cleanup](#branch-cleanup)
 - [Support](#support)
 
@@ -85,22 +85,19 @@ Then use `git cleanup` to automatically switch to main, pull changes, and delete
 
 ## Development Scripts
 
-| Command                   | Purpose                                      |
-| ------------------------- | -------------------------------------------- |
-| `npm run dev`             | Development mode (core package vitest watch) |
-| `npm run dev:core`        | Development mode (core package only)         |
-| `npm run build`           | Build both packages                          |
-| `npm run build:core`      | Build core jsonjsdb library only             |
-| `npm run build:builder`   | Build jsonjsdb-builder package only          |
-| `npm run test`            | Run test suite (both packages)               |
-| `npm run test:core`       | Run tests (core package only)                |
-| `npm run test:builder`    | Run tests (builder package only)             |
-| `npm run install:all`     | Install dependencies for all packages        |
-| `npm run install:core`    | Install dependencies (core package only)     |
-| `npm run install:builder` | Install dependencies (builder package only)  |
-| `npm run lint`            | Lint all packages                            |
-| `npm run lint:core`       | Lint core package only                       |
-| `npm run lint:builder`    | Lint builder package only                    |
+| Command                 | Purpose                                      |
+| ----------------------- | -------------------------------------------- |
+| `npm run dev`           | Development mode (core package vitest watch) |
+| `npm run dev:core`      | Development mode (core package only)         |
+| `npm run build`         | Build both packages                          |
+| `npm run build:core`    | Build core jsonjsdb library only             |
+| `npm run build:builder` | Build jsonjsdb-builder package only          |
+| `npm run test`          | Run test suite (both packages)               |
+| `npm run test:core`     | Run tests (core package only)                |
+| `npm run test:builder`  | Run tests (builder package only)             |
+| `npm run lint`          | Lint all packages                            |
+| `npm run lint:core`     | Lint core package only                       |
+| `npm run lint:builder`  | Lint builder package only                    |
 
 ## Guidelines
 
