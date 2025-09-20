@@ -16,3 +16,4 @@ For detailed changes, see individual package changelogs:
 
 - add: release.yml for automated releases
 - change: restructured CI with unified workflow in ci.yml
+- fix: remove git tag creation and push from release workflow
