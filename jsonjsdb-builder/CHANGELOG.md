@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.5.1 (2025-09-20)
+
+- add: ci/cd github action for automated test and releases
+
 ## 0.5.0 (2025-09-16)
 
 - add: export of low-level utilities

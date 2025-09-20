@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.6.5 (2025-09-20)
+
+- add: ci/cd github action for automated test and releases
+
 ## 0.6.4 (2025-09-16)
 
 - fix: IntegrityChecker empty ID detection logic (build issue)
