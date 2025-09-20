@@ -21,9 +21,9 @@
     "install:all": "npm run install:core && npm run install:builder",
     "install:core": "cd jsonjsdb && npm install",
     "install:builder": "cd jsonjsdb-builder && npm install",
-    "lint": "eslint .",
-    "lint:core": "eslint jsonjsdb/src",
-    "lint:builder": "eslint jsonjsdb-builder/src"
+    "lint": "npm run lint:core && npm run lint:builder",
+    "lint:core": "cd jsonjsdb && npm run lint",
+    "lint:builder": "cd jsonjsdb-builder && npm run lint"
   },
   "prettier": {
     "semi": false,
