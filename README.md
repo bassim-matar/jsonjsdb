@@ -1,8 +1,7 @@
 [![NPM Version](https://img.shields.io/npm/v/jsonjsdb)](https://www.npmjs.com/package/jsonjsdb)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/jsonjsdb)
 [![NPM License](https://img.shields.io/npm/l/jsonjsdb)](LICENSE)
-[![Core CI](<https://github.com/bassim-matar/jsonjsdb/workflows/CI%20-%20Core%20(jsonjsdb)/badge.svg>)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci-core.yml)
-[![Builder CI](<https://github.com/bassim-matar/jsonjsdb/workflows/CI%20-%20Builder%20(jsonjsdb-builder)/badge.svg>)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci-builder.yml)
+[![CI](https://github.com/bassim-matar/jsonjsdb/workflows/CI/badge.svg)](https://github.com/bassim-matar/jsonjsdb/actions/workflows/ci.yml)
 
 # Jsonjsdb
 
