@@ -137,7 +137,6 @@ jobs:
           cd jsonjsdb
           npm publish --access public
         env:
-          # yamllint disable-line rule:truthy
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish jsonjsdb-builder to npm
@@ -146,7 +145,6 @@ jobs:
           cd jsonjsdb-builder
           npm publish --access public
         env:
-          # yamllint disable-line rule:truthy
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create git tags and releases
