@@ -1,14 +1,7 @@
 import DBrowser from './DBrowser'
 import Loader from './Loader'
 import IntegrityChecker from './IntegrityChecker'
-
-interface IntegrityResult {
-  empty_id: string[]
-  duplicate_id: Record<string, (string | number)[]>
-  parent_id_not_found: Record<string, (string | number)[]>
-  parent_id_same: Record<string, (string | number)[]>
-  foreign_id_not_found: Record<string, Record<string, (string | number)[]>>
-}
+import type { IntegrityResult } from './types'
 
 interface JsonjsdbConfig {
   path: string
@@ -46,7 +39,7 @@ interface InitOption {
     values?: string[]
   }
   aliases?: Array<{ table: string; alias: string }>
-  use_cache?: boolean
+  useCache?: boolean
   version?: number | string
   limit?: number
 }
@@ -56,7 +49,7 @@ interface ForeignTableObj {
 }
 
 export default class Jsonjsdb {
-  default_config: JsonjsdbConfig
+  defaultConfig: JsonjsdbConfig
   config!: JsonjsdbConfig
   browser: DBrowser
   loader: Loader
@@ -65,7 +58,7 @@ export default class Jsonjsdb {
   db!: Record<string, unknown>
 
   constructor(config?: string | PartialJsonjsdbConfig) {
-    this.default_config = {
+    this.defaultConfig = {
       path: 'db',
       dbKey: false,
       browserKey: false,
@@ -114,7 +107,7 @@ export default class Jsonjsdb {
     return config
   }
   private setConfig(config: PartialJsonjsdbConfig): void {
-    this.config = { ...this.default_config, ...config }
+    this.config = { ...this.defaultConfig, ...config }
 
     if (window?.location.protocol.startsWith('http')) {
       this.config.useCache = false

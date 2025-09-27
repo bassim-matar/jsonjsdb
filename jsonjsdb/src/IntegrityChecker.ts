@@ -1,25 +1,9 @@
-interface TableDefinition {
-  name: string
-}
-
-interface TableRow {
-  id: string | number
-  parent_id?: string | number | null
-  [key: string]: string | number | null | undefined
-}
-
-interface IntegrityResult {
-  empty_id: string[]
-  duplicate_id: Record<string, (string | number)[]>
-  parent_id_not_found: Record<string, (string | number)[]>
-  parent_id_same: Record<string, (string | number)[]>
-  foreign_id_not_found: Record<string, Record<string, (string | number)[]>>
-}
-
-interface Database {
-  __table__: TableDefinition[]
-  [tableName: string]: TableRow[] | TableDefinition[]
-}
+import type {
+  IntegrityResult,
+  TableDefinition,
+  TableRow,
+  Database,
+} from './types'
 
 export default class IntegrityChecker {
   private tableIndex = '__table__'
@@ -31,11 +15,11 @@ export default class IntegrityChecker {
     this.tables = []
     this.tablesIds = {}
     this.result = {
-      empty_id: [],
-      duplicate_id: {},
-      parent_id_not_found: {},
-      parent_id_same: {},
-      foreign_id_not_found: {},
+      emptyId: [],
+      duplicateId: {},
+      parentIdNotFound: {},
+      parentIdSame: {},
+      foreignIdNotFound: {},
     }
   }
 
@@ -43,11 +27,11 @@ export default class IntegrityChecker {
     this.tables = []
     this.tablesIds = {}
     this.result = {
-      empty_id: [],
-      duplicate_id: {},
-      parent_id_not_found: {},
-      parent_id_same: {},
-      foreign_id_not_found: {},
+      emptyId: [],
+      duplicateId: {},
+      parentIdNotFound: {},
+      parentIdSame: {},
+      foreignIdNotFound: {},
     }
 
     const tableDefinitions = db[this.tableIndex] as TableDefinition[]
@@ -70,13 +54,13 @@ export default class IntegrityChecker {
   private checkEmptyId(table: string): void {
     const ids = this.tablesIds[table]
     // If every row yielded an undefined value, we interpret that as: no 'id' field exists at all.
-    // In that case the table must NOT be flagged for empty_id.
+    // In that case the table must NOT be flagged for emptyId.
     if (ids.length > 0 && ids.every(id => id === undefined)) return
 
     const hasEmptyId = ids.some(
       id => id === null || id === '' || id === undefined
     )
-    if (hasEmptyId) this.result.empty_id.push(table)
+    if (hasEmptyId) this.result.emptyId.push(table)
   }
 
   private checkDuplicateId(table: string): void {
@@ -91,7 +75,7 @@ export default class IntegrityChecker {
     })
     duplicates = Array.from(new Set(duplicates))
     if (duplicates.length > 0) {
-      this.result.duplicate_id[table] = duplicates
+      this.result.duplicateId[table] = duplicates
     }
   }
 
@@ -107,7 +91,7 @@ export default class IntegrityChecker {
       }
     }
     if (parentIdSame.length > 0) {
-      this.result.parent_id_same[table] = parentIdSame
+      this.result.parentIdSame[table] = parentIdSame
     }
   }
 
@@ -124,7 +108,7 @@ export default class IntegrityChecker {
       }
     }
     if (parentIdNotFound.length > 0) {
-      this.result.parent_id_not_found[table] = parentIdNotFound
+      this.result.parentIdNotFound[table] = parentIdNotFound
     }
   }
 
@@ -163,7 +147,7 @@ export default class IntegrityChecker {
       }
     }
     if (Object.keys(foreignIdNotFound).length > 0) {
-      this.result.foreign_id_not_found[table] = foreignIdNotFound
+      this.result.foreignIdNotFound[table] = foreignIdNotFound
     }
   }
 }

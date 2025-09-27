@@ -12,7 +12,7 @@ interface LoadOption {
     values?: string[]
   }
   aliases?: Array<{ table: string; alias: string }>
-  use_cache?: boolean
+  useCache?: boolean
   version?: number | string
 }
 
@@ -97,7 +97,7 @@ export default class Loader {
         }
         resolve(data)
         document.querySelectorAll(`script[src="${src}"]`)[0].remove()
-        if (option && option.use_cache) {
+        if (option && option.useCache) {
           this.saveToCache(data, tableName)
         }
       }
@@ -133,12 +133,12 @@ export default class Loader {
   async loadJsonjs(
     path: string,
     tableName: string,
-    option?: { use_cache: boolean; version: number | string }
+    option?: { useCache: boolean; version: number | string }
   ): Promise<unknown[]> {
     if (path.slice(-1) === '/') path = path.slice(0, -1)
     if (window.jsonjs === undefined) window.jsonjs = {}
     if (window.jsonjs.data === undefined) window.jsonjs.data = {}
-    if (option?.use_cache && this.isInCache(tableName, option.version)) {
+    if (option?.useCache && this.isInCache(tableName, option.version)) {
       return this.loadFromCache(tableName)
     } else {
       return this.loadFromFile(path, tableName, option)
@@ -162,9 +162,9 @@ export default class Loader {
     }
     const schema = {
       aliases: [],
-      one_to_one: [],
-      one_to_many: [],
-      many_to_many: [],
+      oneToOne: [],
+      oneToMany: [],
+      manyToMany: [],
     }
     this.db = {
       [this.tableIndex]: tablesInfo,
@@ -178,7 +178,7 @@ export default class Loader {
       promises.push(
         this.loadJsonjs(path, table.name, {
           version: table.last_modif ?? Date.now(),
-          use_cache: useCache,
+          useCache: useCache,
         })
       )
     }
@@ -361,11 +361,11 @@ export default class Loader {
     const index: Record<string, unknown> = {}
     const tablesName = table.name.split('_')
     if (!(tablesName[0] in this.db.__index__)) {
-      console.error('process_many_to_many() table not found', tablesName[0])
+      console.error('processManyToMany() table not found', tablesName[0])
       return false
     }
     if (!(tablesName[1] in this.db.__index__)) {
-      console.error('process_many_to_many() table not found', tablesName[1])
+      console.error('processManyToMany() table not found', tablesName[1])
       return false
     }
     if (side === 'right') tablesName.reverse()
@@ -389,7 +389,7 @@ export default class Loader {
     delete (index as Record<string, unknown>)['null']
     this.db.__index__[tablesName[0]][tableNameId1] = index
     if (side === 'left') {
-      this.db.__schema__.many_to_many.push([
+      this.db.__schema__.manyToMany.push([
         tablesName[0],
         tableNameId1.slice(0, -3),
       ])
@@ -424,7 +424,7 @@ export default class Loader {
       ;(index[parentId] as number[]).push(parseInt(i))
     }
     this.db.__index__[table.name].parent_id = index
-    this.db.__schema__.one_to_many.push([table.name, table.name])
+    this.db.__schema__.oneToMany.push([table.name, table.name])
   }
   addPrimaryKey(table: { name: string }) {
     const index: Record<string | number, number> = {}
@@ -455,9 +455,9 @@ export default class Loader {
     delete index['null']
     this.db.__index__[table.name][variable] = index
     if (this.db.__schema__.aliases.includes(table.name)) {
-      this.db.__schema__.one_to_one.push([table.name, variable.slice(0, -3)])
+      this.db.__schema__.oneToOne.push([table.name, variable.slice(0, -3)])
     } else {
-      this.db.__schema__.one_to_many.push([variable.slice(0, -3), table.name])
+      this.db.__schema__.oneToMany.push([variable.slice(0, -3), table.name])
     }
   }
   addDbSchema(dbSchema: unknown) {
@@ -531,8 +531,8 @@ export default class Loader {
       description: (
         (metaFolder as Record<string, unknown>).data as Record<string, unknown>
       )?.description,
-      is_in_meta: (metaFolder as Record<string, unknown>).data ? true : false,
-      is_in_data: true,
+      isInMeta: (metaFolder as Record<string, unknown>).data ? true : false,
+      isInData: true,
     }
     const metaFolderUserData = {
       id: 'user_data',
@@ -543,10 +543,10 @@ export default class Loader {
           unknown
         >
       )?.description,
-      is_in_meta: (metaFolder as Record<string, unknown>).user_data
+      isInMeta: (metaFolder as Record<string, unknown>).user_data
         ? true
         : false,
-      is_in_data: true,
+      isInData: true,
     }
     this.db.metaFolder = [metaFolderData, metaFolderUserData]
     this.db.metaDataset = []
@@ -565,8 +565,8 @@ export default class Loader {
         name: tableName,
         nb_row: tableDataArray.length,
         description: metaDataset[tableName]?.description,
-        is_in_meta: metaDataset[tableName] ? true : false,
-        is_in_data: true,
+        isInMeta: metaDataset[tableName] ? true : false,
+        isInData: true,
       })
       this.addMetaVariables(tableName, tableData as unknown[], variables)
       if (tableName in metaDataset) delete metaDataset[tableName]
@@ -584,9 +584,9 @@ export default class Loader {
         name: table.name,
         nb_row: this.db[table.name].length,
         description: metaDataset[table.name]?.description,
-        last_update_timestamp: table.last_modif,
-        is_in_meta: metaDataset[table.name] ? true : false,
-        is_in_data: true,
+        lastUpdateTimestamp: table.last_modif,
+        isInMeta: metaDataset[table.name] ? true : false,
+        isInData: true,
       })
       this.addMetaVariables(table.name, this.db[table.name], variables)
       if (table.name in metaDataset) delete metaDataset[table.name]
@@ -600,8 +600,8 @@ export default class Loader {
         metaDataset_id: datasetId,
         name: variableRecord.variable,
         description: variableRecord.description,
-        is_in_meta: true,
-        is_in_data: false,
+        isInMeta: true,
+        isInData: false,
       })
     }
 
@@ -613,8 +613,8 @@ export default class Loader {
         name: datasetRecord.dataset,
         nb_row: 0,
         description: datasetRecord?.description,
-        is_in_meta: true,
-        is_in_data: false,
+        isInMeta: true,
+        isInData: false,
       })
     }
 
@@ -690,9 +690,9 @@ export default class Loader {
         nb_distinct: distincts.size,
         nb_duplicate: datasetData.length - distincts.size - nbMissing,
         values,
-        values_preview: values ? values.slice(0, 10) : false,
-        is_in_meta: this.metaVariable[datasetVariableId] ? true : false,
-        is_in_data: true,
+        valuesPreview: values ? values.slice(0, 10) : false,
+        isInMeta: this.metaVariable[datasetVariableId] ? true : false,
+        isInData: true,
       })
       if (datasetVariableId in this.metaVariable)
         delete this.metaVariable[datasetVariableId]

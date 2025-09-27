@@ -33,7 +33,7 @@
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
-    "lint": "eslint src test"
+    "lint": "eslint src"
   },
   "devDependencies": {
     "@types/node": "^24.5.0",
