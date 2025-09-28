@@ -245,4 +245,73 @@ describe('jsonjsdb', () => {
       })
     })
   })
+
+  describe('getSchema()', () => {
+    it('should return a deep copy of the schema', async () => {
+      await db.init()
+      const schema = db.getSchema()
+
+      expect(schema).toBeDefined()
+      expect(schema).toHaveProperty('oneToOne')
+      expect(schema).toHaveProperty('oneToMany')
+      expect(schema).toHaveProperty('manyToMany')
+      expect(schema).toHaveProperty('aliases')
+
+      expect(Array.isArray(schema.oneToOne)).toBe(true)
+      expect(Array.isArray(schema.oneToMany)).toBe(true)
+      expect(Array.isArray(schema.manyToMany)).toBe(true)
+      expect(Array.isArray(schema.aliases)).toBe(true)
+    })
+
+    it('should return a deep copy that does not affect the original', async () => {
+      await db.init()
+      const schema1 = db.getSchema()
+      const schema2 = db.getSchema()
+
+      // Get initial lengths
+      const initialAliasesLength = schema2.aliases.length
+      const initialOneToOneLength = schema2.oneToOne.length
+
+      // Modify the first copy
+      schema1.aliases.push('test_alias')
+      schema1.oneToOne.push(['test1', 'test2'])
+
+      // The second copy should not be affected
+      expect(schema2.aliases).not.toContain('test_alias')
+      expect(schema2.oneToOne.length).toBe(initialOneToOneLength)
+    })
+
+    it('should return default empty schema when no schema exists', async () => {
+      const dbWithoutSchema = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        path: 'test/db',
+      })
+
+      await dbWithoutSchema.init()
+      const schema = dbWithoutSchema.getSchema()
+
+      // The test database should have an empty default schema structure
+      expect(schema).toHaveProperty('oneToOne')
+      expect(schema).toHaveProperty('oneToMany')
+      expect(schema).toHaveProperty('manyToMany')
+      expect(schema).toHaveProperty('aliases')
+      expect(Array.isArray(schema.oneToOne)).toBe(true)
+      expect(Array.isArray(schema.oneToMany)).toBe(true)
+      expect(Array.isArray(schema.manyToMany)).toBe(true)
+      expect(Array.isArray(schema.aliases)).toBe(true)
+    })
+  })
+
+  describe('checkIntegrity()', () => {
+    it('should check database integrity successfully', async () => {
+      const result = await db.checkIntegrity()
+
+      expect(result).toHaveProperty('emptyId')
+      expect(result).toHaveProperty('duplicateId')
+      expect(result).toHaveProperty('parentIdNotFound')
+      expect(result).toHaveProperty('parentIdSame')
+      expect(result).toHaveProperty('foreignIdNotFound')
+      expect(Array.isArray(result.emptyId)).toBe(true)
+    })
+  })
 })

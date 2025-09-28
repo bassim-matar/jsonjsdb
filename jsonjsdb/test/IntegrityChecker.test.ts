@@ -8,6 +8,13 @@ describe('IntegrityChecker', () => {
     checker = new IntegrityChecker()
   })
 
+  const checkWithTables = (db: any) => {
+    // Extract table names from __table__ property, then remove it from db
+    const tables = db.__table__ || []
+    const { __table__, ...dataOnly } = db
+    return checker.check(dataOnly, tables)
+  }
+
   describe('Constructor', () => {
     it('should create instance with default state', () => {
       expect(checker).toBeInstanceOf(IntegrityChecker)
@@ -20,7 +27,7 @@ describe('IntegrityChecker', () => {
         __table__: [],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result).toEqual({
         emptyId: [],
@@ -43,7 +50,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.emptyId).toContain('user')
     })
@@ -58,7 +65,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.emptyId).toContain('user')
     })
@@ -73,7 +80,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.emptyId).not.toContain('user')
     })
@@ -84,9 +91,7 @@ describe('IntegrityChecker', () => {
         user: [{ name: 'John' }, { name: 'Jane' }, { name: 'Bob' }],
       }
 
-      const result = checker.check(
-        db as { __table__: { name: string }[]; user: { name: string }[] },
-      )
+      const result = checkWithTables(db)
 
       expect(result.emptyId).not.toContain('user')
       expect(result.duplicateId.user).toBeUndefined()
@@ -106,7 +111,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.duplicateId.user).toContain(1)
       expect(result.duplicateId.user).toContain(2)
@@ -123,7 +128,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.duplicateId.user).toBeUndefined()
     })
@@ -140,7 +145,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.parentIdSame.category).toContain(3)
       expect(result.parentIdSame.category).not.toContain(1)
@@ -156,7 +161,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.parentIdSame.user).toBeUndefined()
     })
@@ -173,7 +178,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.parentIdNotFound.category).toContain(999)
       expect(result.parentIdNotFound.category).not.toContain(1)
@@ -189,7 +194,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.parentIdNotFound.category).toBeUndefined()
     })
@@ -210,7 +215,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.foreignIdNotFound.post).toBeDefined()
       expect(result.foreignIdNotFound.post.user_id).toContain(999)
@@ -229,7 +234,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.foreignIdNotFound.post).toBeUndefined()
     })
@@ -243,7 +248,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       // parent_id should not be treated as a foreign key
       expect(result.foreignIdNotFound.category).toBeUndefined()
@@ -270,7 +275,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       // Check empty IDs
       expect(result.emptyId).toContain('user')
@@ -297,7 +302,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.emptyId).toHaveLength(0)
       expect(Object.keys(result.duplicateId)).toHaveLength(0)
@@ -314,7 +319,7 @@ describe('IntegrityChecker', () => {
         user: [],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result.emptyId).not.toContain('user')
       expect(result.duplicateId.user).toBeUndefined()
@@ -333,7 +338,7 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       // Should not report foreign key violations for string vs number IDs
       expect(result.foreignIdNotFound.post).toBeUndefined()

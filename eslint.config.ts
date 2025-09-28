@@ -2,7 +2,6 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 
 const allowedProps = [
-  '__[a-zA-Z_]+__',
   'parent_id',
   'last_modif',
   'nb_row',

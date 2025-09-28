@@ -1,7 +1,7 @@
 import DBrowser from './DBrowser'
 import Loader from './Loader'
 import IntegrityChecker from './IntegrityChecker'
-import type { IntegrityResult } from './types'
+import type { IntegrityResult, Schema, DatabaseMetadata } from './types'
 
 interface JsonjsdbConfig {
   path: string
@@ -19,17 +19,8 @@ interface DatabaseRow {
   [key: string]: unknown
 }
 
-interface DatabaseIndex {
-  [tableName: string]: {
-    [fieldName: string]: {
-      [value: string | number]: number | number[]
-    }
-  }
-}
-
 interface DatabaseTables {
-  __index__: DatabaseIndex
-  [tableName: string]: DatabaseRow[] | DatabaseIndex
+  [tableName: string]: DatabaseRow[]
 }
 
 interface InitOption {
@@ -60,7 +51,7 @@ export default class Jsonjsdb<
   loader: Loader
   integrityChecker: IntegrityChecker
   tables!: DatabaseTables
-  db!: Record<string, unknown>
+  metadata!: DatabaseMetadata
   private _use: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
   private _useRecursive: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
 
@@ -130,6 +121,8 @@ export default class Jsonjsdb<
       this.config.useCache,
       option,
     )) as DatabaseTables
+    this.metadata = this.loader.metadata
+
     this.computeUsage()
     return this
   }
@@ -147,7 +140,7 @@ export default class Jsonjsdb<
       const tableData = this.tables[tableStr]
       if (!Array.isArray(tableData)) return undefined
 
-      const indexValue = this.tables.__index__[tableStr].id[id]
+      const indexValue = this.metadata.index[tableStr].id[id]
       if (typeof indexValue !== 'number') return undefined
 
       const result = tableData[indexValue] as DatabaseRow
@@ -159,9 +152,9 @@ export default class Jsonjsdb<
       const tableStr = String(table)
       if (!this.tables[tableStr]) {
         console.error(`table ${tableStr} not found`)
-      } else if (!this.tables.__index__[tableStr]) {
+      } else if (!this.metadata.index[tableStr]) {
         console.error(`table ${tableStr} not found in __index__`)
-      } else if (!('id' in this.tables.__index__[tableStr])) {
+      } else if (!('id' in this.metadata.index[tableStr])) {
         console.error(`table ${tableStr}, props "id" not found in __index__`)
       } else {
         console.error(`error not handled`)
@@ -203,7 +196,7 @@ export default class Jsonjsdb<
     let foreignKey = foreignTable + '_id'
     if (foreignTable === table) foreignKey = 'parent_id'
 
-    const indexAll = this.tables.__index__[tableStr][foreignKey]
+    const indexAll = this.metadata.index[tableStr][foreignKey]
     if (!indexAll || !(foreignValue in indexAll)) return []
     const indexes = indexAll[foreignValue]
 
@@ -262,15 +255,15 @@ export default class Jsonjsdb<
   }
   tableHasId(table: string, id: string | number): boolean {
     if (!this.tables[table]) return false
-    if (!this.tables.__index__[table]) return false
-    if (!this.tables.__index__[table].id) return false
-    return id in this.tables.__index__[table].id
+    if (!this.metadata.index[table]) return false
+    if (!this.metadata.index[table].id) return false
+    return id in this.metadata.index[table].id
   }
   getConfig(id: string | number): string | number | undefined {
     const configTable = this.tables['config']
     if (!Array.isArray(configTable)) return undefined
 
-    const index = this.tables.__index__['config'].id
+    const index = this.metadata.index['config'].id
     if (!index) return undefined
     if (!(id in index)) return undefined
 
@@ -281,8 +274,8 @@ export default class Jsonjsdb<
     return row['value'] as string | number
   }
   hasNb(table: string, id: string | number, nbWhat: string): number {
-    if (!(nbWhat in this.tables.__index__)) return 0
-    const index = this.tables.__index__[nbWhat][table + '_id']
+    if (!(nbWhat in this.metadata.index)) return 0
+    const index = this.metadata.index[nbWhat][table + '_id']
     if (!index) return 0
     if (!(id in index)) return 0
     const indexValue = index[id]
@@ -363,11 +356,12 @@ export default class Jsonjsdb<
     }
   }
 
+  getSchema(): Schema {
+    return structuredClone(this.metadata.schema)
+  }
+
   async checkIntegrity(): Promise<IntegrityResult> {
     await this.loader.loadTables(this.config.path, false)
-    this.db = this.loader.db
-    return this.integrityChecker.check(
-      this.db as Parameters<typeof this.integrityChecker.check>[0],
-    )
+    return this.integrityChecker.check(this.loader.db, this.metadata.tables)
   }
 }

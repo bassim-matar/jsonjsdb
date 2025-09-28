@@ -1,9 +1,5 @@
 import DBrowser from './DBrowser'
-
-interface TableInfo {
-  name: string
-  last_modif?: string | number
-}
+import type { DatabaseMetadata, TableInfo, TableRow } from './types'
 
 interface LoadOption {
   filter?: {
@@ -26,12 +22,6 @@ declare global {
 
 export default class Loader {
   private tableIndex = '__table__'
-  private metaTables = [
-    '__metaFolder__',
-    '__metaDataset__',
-    '__metaVariable__',
-    '__meta_schema__',
-  ]
   private cachePrefix = 'db_cache/'
 
   private browser: DBrowser
@@ -39,8 +29,19 @@ export default class Loader {
   private lastModifTimestamp?: number
   private metaVariable: Record<string, unknown> = {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public db: Record<string, any> = {}
+  public db: Record<string, TableRow[]> = {}
+
+  public metadata: DatabaseMetadata = {
+    schema: {
+      aliases: [],
+      oneToOne: [],
+      oneToMany: [],
+      manyToMany: [],
+    },
+    index: {},
+    tables: [],
+    dbSchema: undefined,
+  }
 
   constructor(browser: DBrowser) {
     window.jsonjs = {}
@@ -163,17 +164,18 @@ export default class Loader {
       )
       this.saveToCache(newTableIndexCache, this.tableIndex)
     }
-    const schema = {
+
+    this.metadata.schema = {
       aliases: [],
       oneToOne: [],
       oneToMany: [],
       manyToMany: [],
     }
-    this.db = {
-      [this.tableIndex]: tablesInfo,
-      __schema__: schema,
-      __user_data__: {},
-    }
+
+    this.metadata.index = {}
+    this.metadata.tables = tablesInfo
+
+    this.db = {}
     const promises = []
     const tables = []
     for (const table of tablesInfo) {
@@ -187,7 +189,7 @@ export default class Loader {
     }
     const tablesData = await Promise.all(promises)
     for (const [i, tableData] of tablesData.entries()) {
-      this.db[tables[i].name] = tableData
+      this.db[tables[i].name] = tableData as TableRow[]
     }
   }
   getLastModifTimestamp(): number {
@@ -220,7 +222,7 @@ export default class Loader {
     return validatedTables
   }
   normalizeSchema() {
-    for (const table of this.db[this.tableIndex]) {
+    for (const table of this.metadata.tables) {
       if (this.db[table.name].length === 0) continue
       for (const variable in this.db[table.name][0]) {
         if (!variable.endsWith('_ids')) continue
@@ -228,7 +230,7 @@ export default class Loader {
         if (!(entityDest in this.db)) continue
         const relationTable = table.name + '_' + entityDest
         if (!(relationTable in this.db)) {
-          this.db[this.tableIndex].push({ name: relationTable })
+          this.metadata.tables.push({ name: relationTable })
           this.db[relationTable] = []
         }
         for (const row of this.db[table.name]) {
@@ -255,27 +257,32 @@ export default class Loader {
     const idToDelete: string[] = []
     for (const item of this.db[filter.entity]) {
       if (filter.values.includes(item[filter.variable])) {
-        idToDelete.push(item.id)
+        if (item.id) {
+          idToDelete.push(String(item.id))
+        }
       }
     }
     this.db[filter.entity] = this.db[filter.entity].filter(
       (item: Record<string, unknown>) =>
         !idToDelete.includes(item.id as string),
     )
-    for (const table of this.db[this.tableIndex]) {
+    for (const table of this.metadata.tables) {
       if (this.db[table.name].length === 0) continue
       if (!(filter.entity + '_id' in this.db[table.name][0])) continue
       const idToDeleteLevel2: string[] = []
       for (const item of this.db[table.name]) {
-        if (idToDelete.includes(item[filter.entity + '_id'])) {
-          idToDeleteLevel2.push(item.id)
+        const foreignId = item[filter.entity + '_id']
+        if (foreignId && idToDelete.includes(String(foreignId))) {
+          if (item.id) {
+            idToDeleteLevel2.push(String(item.id))
+          }
         }
       }
       this.db[table.name] = this.db[table.name].filter(
         (item: Record<string, unknown>) =>
           !idToDelete.includes(item[filter.entity + '_id'] as string),
       )
-      for (const tableLevel2 of this.db[this.tableIndex]) {
+      for (const tableLevel2 of this.metadata.tables) {
         if (this.db[tableLevel2.name].length === 0) continue
         if (!(table.name + '_id' in this.db[tableLevel2.name][0])) continue
         this.db[tableLevel2.name] = this.db[tableLevel2.name].filter(
@@ -285,16 +292,18 @@ export default class Loader {
       }
     }
   }
-  idToIndex(tableName: string, id: string | number): number | false {
-    if (!(tableName in this.db.__index__)) {
-      console.error('id_to_index() table not found', tableName)
+  idToIndex(tableName: string, id: number | string): number | false {
+    if (!this.metadata.index[tableName]) {
+      console.error('id_to_index() table not found: ', tableName)
       return false
     }
-    if (this.db.__index__[tableName].id[id] === undefined) {
+    if (this.metadata.index[tableName].id[id] === undefined) {
       console.error('id_to_index() table ', tableName, 'id not found', id)
       return false
     }
-    return this.db.__index__[tableName].id[id]
+    const indexValue = this.metadata.index[tableName].id[id]
+    // For id index, we expect only a single number, not an array
+    return typeof indexValue === 'number' ? indexValue : false
   }
   createAlias(
     initialAliases: Array<{ table: string; alias: string }> | null = null,
@@ -312,18 +321,21 @@ export default class Loader {
 
     if ('config' in this.db) {
       for (const row of this.db.config) {
-        if (row.id?.startsWith('alias_')) {
-          const table = row.value?.split(':')[0]?.trim()
-          const alias = row.value?.split(':')[1]?.trim()
-          if (table && alias) {
-            aliases.push({ table, alias })
+        if (typeof row.id === 'string' && row.id.startsWith('alias_')) {
+          const value = row.value
+          if (typeof value === 'string') {
+            const table = value.split(':')[0]?.trim()
+            const alias = value.split(':')[1]?.trim()
+            if (table && alias) {
+              aliases.push({ table, alias })
+            }
           }
         }
       }
     }
 
     if ('alias' in this.db) {
-      aliases = aliases.concat(this.db.alias)
+      aliases = aliases.concat(this.db.alias as typeof aliases)
     }
 
     for (const alias of aliases) {
@@ -337,24 +349,23 @@ export default class Loader {
         aliasDataRow[alias.table + '_id'] = row.id
         aliasData.push(aliasDataRow)
       }
-      this.db[alias.alias] = aliasData
-      this.db[this.tableIndex].push({ name: alias.alias, alias: true })
-      this.db.__schema__.aliases.push(alias.alias)
+      this.db[alias.alias] = aliasData as TableRow[]
+      this.metadata.tables.push({ name: alias.alias, alias: true })
+      this.metadata.schema.aliases.push(alias.alias)
     }
   }
   createIndex() {
-    this.db.__index__ = {}
-    for (const table of this.db[this.tableIndex]) {
-      if (!table.name.includes('_')) this.db.__index__[table.name] = {}
+    this.metadata.index = {}
+    for (const table of this.metadata.tables) {
+      if (!table.name.includes('_')) this.metadata.index[table.name] = {}
     }
-    for (const table of this.db[this.tableIndex]) {
+    for (const table of this.metadata.tables) {
       if (!table.name.includes('_') && this.db[table.name][0]) {
         this.addPrimaryKey(table)
         this.processOneToMany(table)
       }
     }
-    for (const table of this.db[this.tableIndex]) {
-      if (this.metaTables.includes(table.name)) continue
+    for (const table of this.metadata.tables) {
       if (table.name.includes('_') && this.db[table.name][0]) {
         this.processManyToMany(table, 'left')
         this.processManyToMany(table, 'right')
@@ -362,13 +373,13 @@ export default class Loader {
     }
   }
   processManyToMany(table: { name: string }, side: string) {
-    const index: Record<string, unknown> = {}
+    const index: Record<string | number, number | number[]> = {}
     const tablesName = table.name.split('_')
-    if (!(tablesName[0] in this.db.__index__)) {
+    if (!(tablesName[0] in this.metadata.index)) {
       console.error('processManyToMany() table not found', tablesName[0])
       return false
     }
-    if (!(tablesName[1] in this.db.__index__)) {
+    if (!(tablesName[1] in this.metadata.index)) {
       console.error('processManyToMany() table not found', tablesName[1])
       return false
     }
@@ -376,24 +387,28 @@ export default class Loader {
     const tableNameId0 = tablesName[0] + '_id'
     const tableNameId1 = tablesName[1] + '_id'
     for (const row of this.db[table.name]) {
-      if (!(row[tableNameId1] in index)) {
-        index[row[tableNameId1]] = this.idToIndex(
-          tablesName[0],
-          row[tableNameId0],
-        )
+      const id0 = row[tableNameId0]
+      const id1 = row[tableNameId1]
+
+      if (id0 == null || id1 == null) continue
+
+      const indexValue = this.idToIndex(tablesName[0], id0 as string | number)
+      if (indexValue === false) continue
+
+      const key = String(id1)
+      if (!(key in index)) {
+        index[key] = indexValue
         continue
       }
-      if (!Array.isArray(index[row[tableNameId1]])) {
-        index[row[tableNameId1]] = [index[row[tableNameId1]]]
+      if (!Array.isArray(index[key])) {
+        index[key] = [index[key] as number]
       }
-      ;(index[row[tableNameId1]] as unknown[]).push(
-        this.idToIndex(tablesName[0], row[tableNameId0]),
-      )
+      ;(index[key] as number[]).push(indexValue)
     }
     delete (index as Record<string, unknown>)['null']
-    this.db.__index__[tablesName[0]][tableNameId1] = index
+    this.metadata.index[tablesName[0]][tableNameId1] = index
     if (side === 'left') {
-      this.db.__schema__.manyToMany.push([
+      this.metadata.schema.manyToMany.push([
         tablesName[0],
         tableNameId1.slice(0, -3),
       ])
@@ -407,7 +422,7 @@ export default class Loader {
       }
       if (
         variable.endsWith('_id') &&
-        variable.slice(0, -3) in this.db.__index__
+        variable.slice(0, -3) in this.metadata.index
       ) {
         this.addForeignKey(variable, table)
       }
@@ -427,8 +442,8 @@ export default class Loader {
       }
       ;(index[parentId] as number[]).push(parseInt(i))
     }
-    this.db.__index__[table.name].parent_id = index
-    this.db.__schema__.oneToMany.push([table.name, table.name])
+    this.metadata.index[table.name].parent_id = index
+    this.metadata.schema.oneToMany.push([table.name, table.name])
   }
   addPrimaryKey(table: { name: string }) {
     const index: Record<string | number, number> = {}
@@ -440,7 +455,7 @@ export default class Loader {
       const id = rowRecord.id as string | number
       index[id] = parseInt(i)
     }
-    this.db.__index__[table.name].id = index
+    this.metadata.index[table.name].id = index
   }
   addForeignKey(variable: string, table: { name: string }) {
     const index: Record<string, number | number[]> = {}
@@ -457,11 +472,11 @@ export default class Loader {
       ;(index[foreignKeyValue] as number[]).push(parseInt(i))
     }
     delete index['null']
-    this.db.__index__[table.name][variable] = index
-    if (this.db.__schema__.aliases.includes(table.name)) {
-      this.db.__schema__.oneToOne.push([table.name, variable.slice(0, -3)])
+    this.metadata.index[table.name][variable] = index
+    if (this.metadata.schema.aliases.includes(table.name)) {
+      this.metadata.schema.oneToOne.push([table.name, variable.slice(0, -3)])
     } else {
-      this.db.__schema__.oneToMany.push([variable.slice(0, -3), table.name])
+      this.metadata.schema.oneToMany.push([variable.slice(0, -3), table.name])
     }
   }
   addDbSchema(dbSchema: unknown) {
@@ -472,10 +487,9 @@ export default class Loader {
     ) {
       dbSchema = this.arrayToObject(dbSchema as unknown[][])
     }
-    this.db.__meta_schema__ = dbSchema
+    this.metadata.dbSchema = dbSchema
   }
   addMeta(userData?: Record<string, unknown>, schema?: unknown): void {
-    this.db.__user_data__ = userData || {}
     const metaDataset: Record<string, Record<string, unknown>> = {}
     const metaFolder: Record<string, Record<string, unknown>> = {}
     this.metaVariable = {}
@@ -483,35 +497,12 @@ export default class Loader {
     if (schema) this.addDbSchema(schema)
 
     const virtualMetaTables: string[] = []
-    const db = this.db
-    for (const table of Object.values(db[this.tableIndex])) {
-      const tableRecord = table as Record<string, unknown>
-      if (!tableRecord.last_modif)
-        virtualMetaTables.push(tableRecord.name as string)
+    for (const table of this.metadata.tables) {
+      if (!table.last_modif) virtualMetaTables.push(table.name)
     }
 
-    if ('__metaFolder__' in this.db) {
-      for (const folder of this.db.__metaFolder__) {
-        const folderRecord = folder as Record<string, unknown>
-        metaFolder[folderRecord.id as string] = folderRecord
-      }
-    }
-    if ('__metaDataset__' in this.db) {
-      for (const dataset of this.db.__metaDataset__) {
-        const datasetRecord = dataset as Record<string, unknown>
-        metaDataset[datasetRecord.id as string] = datasetRecord
-      }
-    }
-    if ('__metaVariable__' in this.db) {
-      for (const variable of this.db.__metaVariable__) {
-        const variableRecord = variable as Record<string, unknown>
-        this.metaVariable[
-          variableRecord.dataset + '---' + variableRecord.variable
-        ] = variableRecord
-      }
-    }
-    if ('__meta_schema__' in this.db) {
-      for (const row of this.db.__meta_schema__) {
+    if (this.metadata.dbSchema) {
+      for (const row of this.metadata.dbSchema as Record<string, unknown>[]) {
         const rowRecord = row as Record<string, unknown>
         if (!rowRecord.folder) continue
         if (!rowRecord.dataset) {
@@ -556,7 +547,7 @@ export default class Loader {
     this.db.metaDataset = []
     this.db.metaVariable = []
 
-    const userDataTables = Object.entries(this.db.__user_data__ || {})
+    const userDataTables = Object.entries(userData || {})
     for (const [tableName, tableData] of userDataTables) {
       const tableDataArray = tableData as unknown[]
       if (tableDataArray.length === 0) continue
@@ -576,9 +567,8 @@ export default class Loader {
       if (tableName in metaDataset) delete metaDataset[tableName]
     }
 
-    for (const table of this.db[this.tableIndex]) {
+    for (const table of this.metadata.tables) {
       if (table.name.includes(this.tableIndex)) continue
-      if (this.metaTables.includes(table.name)) continue
       if (this.db[table.name].length === 0) continue
       if (virtualMetaTables.includes(table.name)) continue
       const variables = Object.keys(this.db[table.name][0])
@@ -622,9 +612,9 @@ export default class Loader {
       })
     }
 
-    this.db.__index__.metaFolder = {}
-    this.db.__index__.metaDataset = {}
-    this.db.__index__.metaVariable = {}
+    this.metadata.index.metaFolder = {}
+    this.metadata.index.metaDataset = {}
+    this.metadata.index.metaVariable = {}
     this.addPrimaryKey({ name: 'metaFolder' })
     this.addPrimaryKey({ name: 'metaDataset' })
     this.addPrimaryKey({ name: 'metaVariable' })

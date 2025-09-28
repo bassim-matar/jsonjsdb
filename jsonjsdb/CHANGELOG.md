@@ -1,5 +1,10 @@
 # jsonjsdb
 
+### 0.7.0 (2025-09-28)
+
+- add: generic type, getSchema method and "use" prop for existing entities
+- refactor: use metadata property for metadata tables so the tables property is kept for actual data tables
+
 ## 0.6.6 (2025-09-20)
 
 - fix: remove git tag creation and push from release workflow

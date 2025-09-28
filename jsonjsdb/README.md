@@ -24,17 +24,22 @@ A client-side relational database solution for static Single Page Applications. 
     - [`new Jsonjsdb()`](#new-jsonjsdbconfig)
   - [Data Loading](#data-loading)
     - [`init()`](#initoption)
-    - [`load()`](#loadfile_path-name)
+    - [`load()`](#loadfilePath-name)
   - [Data Retrieval](#data-retrieval)
     - [`get()`](#gettable-id)
-    - [`get_all()`](#get_alltable-foreign_table_obj-option)
-    - [`get_all_childs()`](#get_all_childstable-item_id)
+    - [`getAll()`](#getalltable-foreigntableobj-option)
+    - [`getAllChilds()`](#getallchildstable-itemid)
   - [Utility Methods](#utility-methods)
     - [`foreach()`](#foreachtable-callback)
-    - [`table_has_id()`](#table_has_idtable-id)
-    - [`has_nb()`](#has_nbtable-id-nb_what)
-    - [`get_parents()`](#get_parentsfrom-id)
-    - [`get_config()`](#get_configid)
+    - [`tableHasId()`](#tablehasidtable-id)
+    - [`hasNb()`](#hasnbtable-id-nb_what)
+    - [`getParents()`](#getparentsfrom-id)
+    - [`getConfig()`](#getconfigid)
+    - [`getSchema()`](#getschema)
+  - [Properties](#properties)
+    - [`use`](#use)
+    - [`useRecursive`](#userecursive)
+  - [TypeScript Support](#typescript-support)
 - [License](#license)
 
 ## Installation
@@ -391,6 +396,107 @@ const setting = db.getConfig('max_items')
 - `id`: Configuration key
 
 **Returns:** any | undefined
+
+#### `getSchema()`
+
+Gets a copy of the database schema information.
+
+```js
+const schema = db.getSchema()
+console.log(schema) // Complete schema structure with table definitions
+```
+
+**Parameters:** None
+
+**Returns:** Schema object (deep clone of the metadata schema)
+
+## Properties
+
+### `use`
+
+A computed property that returns an object indicating which tables are being used (non-empty tables without underscores).
+
+```js
+const usedTables = db.use
+console.log(usedTables) // { user: true, post: true, ... }
+
+// Check if a specific table is in use
+if (db.use.user) {
+  console.log('User table is being used')
+}
+```
+
+### `useRecursive`
+
+A computed property that returns an object indicating which tables have recursive relationships (contain `parent_id` field).
+
+```js
+const recursiveTables = db.useRecursive
+console.log(recursiveTables) // { category: true, comment: true, ... }
+
+// Check if a table supports hierarchical data
+if (db.useRecursive.category) {
+  console.log('Category table supports parent-child relationships')
+}
+```
+
+## TypeScript Support
+
+Jsonjsdb provides full TypeScript support with generic typing for your database tables. You can specify the types of your entities using the `TEntityTypeMap` generic parameter.
+
+### Defining Your Entity Types
+
+```typescript
+import Jsonjsdb from 'jsonjsdb'
+
+// Define your entity types
+interface User {
+  id: number
+  name: string
+  email: string
+  company_id?: number
+}
+
+interface Company {
+  id: number
+  name: string
+  website?: string
+}
+
+// Define your database schema type map
+type MyDatabaseSchema = {
+  user: User
+  company: Company
+}
+
+// Create a typed database instance
+const db = new Jsonjsdb<MyDatabaseSchema>()
+await db.init()
+```
+
+### Benefits of TypeScript Typing
+
+With proper typing, you get:
+
+- **Intellisense and autocompletion** for table names and entity properties
+- **Type safety during development** with static analysis in your IDE/editor
+
+```typescript
+// TypeScript knows 'user' is a valid table name
+const user = db.get('user', 123) // user is typed as User | undefined
+
+// TypeScript knows the properties of User
+console.log(user?.name, user?.email)
+
+// Get all users with type safety
+const users = db.getAll('user') // users is typed as User[]
+
+// Properties maintain their types
+if (db.use.user) {
+  // TypeScript knows 'user' is a valid key
+  console.log('User table is being used')
+}
+```
 
 ## License
 

@@ -1,14 +1,8 @@
-import type {
-  IntegrityResult,
-  TableDefinition,
-  TableRow,
-  Database,
-} from './types'
+import type { IntegrityResult, TableRow } from './types'
 
 export default class IntegrityChecker {
-  private tableIndex = '__table__'
   private tables: string[] = []
-  private tablesIds: Record<string, (string | number)[]> = {}
+  private tablesIds: Record<string, (string | number | undefined)[]> = {}
   private result: IntegrityResult
 
   constructor() {
@@ -23,7 +17,10 @@ export default class IntegrityChecker {
     }
   }
 
-  check(db: Database): IntegrityResult {
+  check(
+    db: Record<string, TableRow[]>,
+    tables: { name: string }[],
+  ): IntegrityResult {
     this.tables = []
     this.tablesIds = {}
     this.result = {
@@ -34,8 +31,7 @@ export default class IntegrityChecker {
       foreignIdNotFound: {},
     }
 
-    const tableDefinitions = db[this.tableIndex] as TableDefinition[]
-    for (const table of tableDefinitions) {
+    for (const table of tables) {
       this.tables.push(table.name)
       const tableData = db[table.name] as TableRow[]
       this.tablesIds[table.name] = tableData.map(row => row.id)
@@ -73,20 +69,25 @@ export default class IntegrityChecker {
         return item
       }
     })
-    duplicates = Array.from(new Set(duplicates))
+    duplicates = Array.from(new Set(duplicates)).filter(
+      (id): id is string | number => id != null,
+    )
     if (duplicates.length > 0) {
-      this.result.duplicateId[table] = duplicates
+      this.result.duplicateId[table] = duplicates as (string | number)[]
     }
   }
 
-  private checkParentIdSame(db: Database, table: string): void {
+  private checkParentIdSame(
+    db: Record<string, TableRow[]>,
+    table: string,
+  ): void {
     const tableData = db[table] as TableRow[]
     if (tableData.length === 0) return
     if (!Object.keys(tableData[0]).includes('parent_id')) return
 
     const parentIdSame: (string | number)[] = []
     for (const row of tableData) {
-      if (row.id === row.parent_id) {
+      if (row.id != null && row.id === row.parent_id) {
         parentIdSame.push(row.id)
       }
     }
@@ -95,7 +96,10 @@ export default class IntegrityChecker {
     }
   }
 
-  private checkParentIdNotFound(db: Database, table: string): void {
+  private checkParentIdNotFound(
+    db: Record<string, TableRow[]>,
+    table: string,
+  ): void {
     const tableData = db[table] as TableRow[]
     if (tableData.length === 0) return
     if (!Object.keys(tableData[0]).includes('parent_id')) return
@@ -112,7 +116,7 @@ export default class IntegrityChecker {
     }
   }
 
-  private checkForeignId(db: Database, table: string): void {
+  private checkForeignId(db: Record<string, TableRow[]>, table: string): void {
     const tableData = db[table] as TableRow[]
     if (tableData.length === 0) return
 

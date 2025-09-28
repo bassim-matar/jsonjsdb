@@ -14,7 +14,6 @@ For detailed changes, see individual package changelogs:
 
 ### 2025-09-27
 
-- add: generic type to Jsonjsdb class and "use" prop for existing entities
 - add: prettier and ts check in ci
 - refactor: enforce camelCase for property with eslint rule
 
