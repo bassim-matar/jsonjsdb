@@ -79,7 +79,7 @@ describe('TableSerializer utilities', () => {
   it('write compact mode should not pretty print objects', async () => {
     const tmpDir = path.join(
       process.cwd(),
-      'test/fixtures/temp-serializer-compact'
+      'test/fixtures/temp-serializer-compact',
     )
     await fs.mkdir(tmpDir, { recursive: true })
     tempDirs.push(tmpDir)

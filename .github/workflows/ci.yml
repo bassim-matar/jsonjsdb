@@ -62,6 +62,15 @@ jobs:
         working-directory: jsonjsdb
         run: npm run lint
 
+      - name: Run TypeScript type check
+        if: steps.core-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb
+        run: npx tsc --noEmit
+
+      - name: Check code formatting
+        if: steps.core-changes.outputs.changed == 'true'
+        run: npm run format:check
+
       - name: Run tests
         if: steps.core-changes.outputs.changed == 'true'
         working-directory: jsonjsdb
@@ -126,6 +135,15 @@ jobs:
         if: steps.builder-changes.outputs.changed == 'true'
         working-directory: jsonjsdb-builder
         run: npm run lint
+
+      - name: Run TypeScript type check
+        if: steps.builder-changes.outputs.changed == 'true'
+        working-directory: jsonjsdb-builder
+        run: npx tsc --noEmit
+
+      - name: Check code formatting
+        if: steps.builder-changes.outputs.changed == 'true'
+        run: npm run format:check
 
       - name: Run tests
         if: steps.builder-changes.outputs.changed == 'true'

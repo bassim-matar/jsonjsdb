@@ -165,5 +165,153 @@ describe('jsonjsdb', () => {
         expect(result).toBeUndefined()
       })
     })
+
+    describe('use and useRecursive', () => {
+      it('should have use property with correct entities', () => {
+        expect(db.use).toBeDefined()
+        expect(typeof db.use).toBe('object')
+
+        // These tables exist and have data
+        expect(db.use.user).toBe(true)
+        expect(db.use.doc).toBe(true)
+        expect(db.use.email).toBe(true)
+        expect(db.use.tag).toBe(true)
+        expect(db.use.config).toBe(true)
+        expect(db.use.connexion).toBe(true)
+
+        // This table doesn't exist
+        expect(db.use.nonexistent).toBeUndefined()
+      })
+
+      it('should have useRecursive property', () => {
+        expect(db.useRecursive).toBeDefined()
+        expect(typeof db.useRecursive).toBe('object')
+      })
+
+      it('should not mark tables with underscores as used', () => {
+        // user_tag contains underscore, should be ignored
+        expect(db.use.user_tag).toBeUndefined()
+      })
+
+      it('should detect recursive entities correctly', () => {
+        // Since test data doesn't have parent_id, let's test the logic by mocking
+        const originalTables = db.tables
+
+        // Mock a table with parent_id (without underscore to pass the filter)
+        db.tables = {
+          ...originalTables,
+          recursivetable: [
+            { id: 1, name: 'test 1', parent_id: null },
+            { id: 2, name: 'test 2', parent_id: 1 },
+          ],
+        }
+
+        // Re-compute usage with mocked data
+        db['computeUsage']()
+
+        expect(db.use.recursivetable).toBe(true)
+        expect(db.useRecursive.recursivetable).toBe(true)
+
+        // Restore original tables
+        db.tables = originalTables
+        db['computeUsage']()
+      })
+
+      it('should not mark entities as recursive if they have no parent_id', () => {
+        // Test tables don't have parent_id, so none should be recursive
+        expect(db.useRecursive.user).toBeUndefined()
+        expect(db.useRecursive.doc).toBeUndefined()
+        expect(db.useRecursive.email).toBeUndefined()
+        expect(db.useRecursive.tag).toBeUndefined()
+      })
+
+      it('should handle empty tables correctly', () => {
+        const originalTables = db.tables
+
+        // Mock an empty table (without underscore)
+        db.tables = {
+          ...originalTables,
+          emptytable: [],
+        }
+
+        db['computeUsage']()
+
+        // Empty table should not be marked as used
+        expect(db.use.emptytable).toBeUndefined()
+
+        // Restore original tables
+        db.tables = originalTables
+        db['computeUsage']()
+      })
+    })
+  })
+
+  describe('getSchema()', () => {
+    it('should return a deep copy of the schema', async () => {
+      await db.init()
+      const schema = db.getSchema()
+
+      expect(schema).toBeDefined()
+      expect(schema).toHaveProperty('oneToOne')
+      expect(schema).toHaveProperty('oneToMany')
+      expect(schema).toHaveProperty('manyToMany')
+      expect(schema).toHaveProperty('aliases')
+
+      expect(Array.isArray(schema.oneToOne)).toBe(true)
+      expect(Array.isArray(schema.oneToMany)).toBe(true)
+      expect(Array.isArray(schema.manyToMany)).toBe(true)
+      expect(Array.isArray(schema.aliases)).toBe(true)
+    })
+
+    it('should return a deep copy that does not affect the original', async () => {
+      await db.init()
+      const schema1 = db.getSchema()
+      const schema2 = db.getSchema()
+
+      // Get initial lengths
+      const initialAliasesLength = schema2.aliases.length
+      const initialOneToOneLength = schema2.oneToOne.length
+
+      // Modify the first copy
+      schema1.aliases.push('test_alias')
+      schema1.oneToOne.push(['test1', 'test2'])
+
+      // The second copy should not be affected
+      expect(schema2.aliases).not.toContain('test_alias')
+      expect(schema2.oneToOne.length).toBe(initialOneToOneLength)
+    })
+
+    it('should return default empty schema when no schema exists', async () => {
+      const dbWithoutSchema = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        path: 'test/db',
+      })
+
+      await dbWithoutSchema.init()
+      const schema = dbWithoutSchema.getSchema()
+
+      // The test database should have an empty default schema structure
+      expect(schema).toHaveProperty('oneToOne')
+      expect(schema).toHaveProperty('oneToMany')
+      expect(schema).toHaveProperty('manyToMany')
+      expect(schema).toHaveProperty('aliases')
+      expect(Array.isArray(schema.oneToOne)).toBe(true)
+      expect(Array.isArray(schema.oneToMany)).toBe(true)
+      expect(Array.isArray(schema.manyToMany)).toBe(true)
+      expect(Array.isArray(schema.aliases)).toBe(true)
+    })
+  })
+
+  describe('checkIntegrity()', () => {
+    it('should check database integrity successfully', async () => {
+      const result = await db.checkIntegrity()
+
+      expect(result).toHaveProperty('emptyId')
+      expect(result).toHaveProperty('duplicateId')
+      expect(result).toHaveProperty('parentIdNotFound')
+      expect(result).toHaveProperty('parentIdSame')
+      expect(result).toHaveProperty('foreignIdNotFound')
+      expect(Array.isArray(result.emptyId)).toBe(true)
+    })
   })
 })

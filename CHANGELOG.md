@@ -12,6 +12,11 @@ For detailed changes, see individual package changelogs:
 
 ## Project Overview
 
+### 2025-09-27
+
+- add: prettier and ts check in ci
+- refactor: enforce camelCase for property with eslint rule
+
 ### 2025-09-20
 
 - add: release.yml for automated releases

@@ -27,7 +27,7 @@ describe('compareDatasets', () => {
         oldData,
         newData,
         mockTimestamp,
-        '__meta__'
+        '__meta__',
       )
 
       expect(result).toEqual([])

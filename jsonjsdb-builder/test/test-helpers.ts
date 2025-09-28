@@ -7,7 +7,7 @@ import path from 'path'
  */
 export function validateJsonjsFile(
   content: string,
-  tableName: string
+  tableName: string,
 ): boolean {
   try {
     const prefixes = [
@@ -30,7 +30,7 @@ export function validateJsonjsFile(
  */
 export function parseJsonjsFile(
   content: string,
-  tableName: string
+  tableName: string,
 ): Record<string, unknown>[] {
   const expectedPrefix = `jsonjs.data['${tableName}'] = \n`
   if (!content.startsWith(expectedPrefix)) {
@@ -46,7 +46,7 @@ export function parseJsonjsFile(
  */
 export function compareDatasets(
   dataset1: Record<string, unknown>[],
-  dataset2: Record<string, unknown>[]
+  dataset2: Record<string, unknown>[],
 ): boolean {
   if (dataset1.length !== dataset2.length) return false
 
@@ -67,7 +67,7 @@ export function compareDatasets(
  */
 export function validateMetadataFile(
   content: string,
-  expectedTables: string[]
+  expectedTables: string[],
 ): boolean {
   try {
     const data = parseJsonjsFile(content, '__table__')
@@ -93,7 +93,7 @@ export function getTestExcelPath(): string {
  * (especially evolution.xlsx which gets written to during tests)
  */
 export async function createTempTestExcelPath(
-  tempDir: string
+  tempDir: string,
 ): Promise<string> {
   const originalPath = getTestExcelPath()
   const tempExcelPath = path.join(tempDir, 'excel')

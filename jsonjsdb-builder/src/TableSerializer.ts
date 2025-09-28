@@ -48,7 +48,7 @@ export async function writeJsonjs(
   outputDir: string,
   name: string,
   data: Row[] | TableRow[],
-  options: { compact?: boolean; alreadyObjects?: boolean } = {}
+  options: { compact?: boolean; alreadyObjects?: boolean } = {},
 ): Promise<string> {
   const { compact = false, alreadyObjects = false } = options
   let content = `jsonjs.data['${name}'] = \n`

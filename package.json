@@ -24,7 +24,14 @@
     "dev:core": "cd jsonjsdb && npm run dev",
     "lint": "npm run lint:core && npm run lint:builder",
     "lint:core": "cd jsonjsdb && npm run lint",
-    "lint:builder": "cd jsonjsdb-builder && npm run lint"
+    "lint:builder": "cd jsonjsdb-builder && npm run lint",
+    "type-check": "npm run type-check:core && npm run type-check:builder",
+    "type-check:core": "cd jsonjsdb && npx tsc --noEmit",
+    "type-check:builder": "cd jsonjsdb-builder && npx tsc --noEmit",
+    "format": "prettier --write . '!**/*.json.js'",
+    "format:check": "prettier --check . '!**/*.json.js'",
+    "check": "npm run format:check && npm run lint && npm run type-check",
+    "verify": "npm run check && npm run test"
   },
   "prettier": {
     "semi": false,
@@ -34,6 +41,7 @@
   "devDependencies": {
     "eslint": "^9.35.0",
     "jiti": "^2.5.1",
+    "prettier": "^3.6.2",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.44.0"
   }

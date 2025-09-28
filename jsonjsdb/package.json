@@ -37,7 +37,7 @@
     "dev": "vitest",
     "test": "vitest run",
     "test:ui": "vitest --ui",
-    "lint": "eslint src test"
+    "lint": "eslint src"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",

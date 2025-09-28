@@ -8,6 +8,13 @@ describe('IntegrityChecker', () => {
     checker = new IntegrityChecker()
   })
 
+  const checkWithTables = (db: any) => {
+    // Extract table names from __table__ property, then remove it from db
+    const tables = db.__table__ || []
+    const { __table__, ...dataOnly } = db
+    return checker.check(dataOnly, tables)
+  }
+
   describe('Constructor', () => {
     it('should create instance with default state', () => {
       expect(checker).toBeInstanceOf(IntegrityChecker)
@@ -20,14 +27,14 @@ describe('IntegrityChecker', () => {
         __table__: [],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       expect(result).toEqual({
-        empty_id: [],
-        duplicate_id: {},
-        parent_id_not_found: {},
-        parent_id_same: {},
-        foreign_id_not_found: {},
+        emptyId: [],
+        duplicateId: {},
+        parentIdNotFound: {},
+        parentIdSame: {},
+        foreignIdNotFound: {},
       })
     })
   })
@@ -43,9 +50,9 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.empty_id).toContain('user')
+      expect(result.emptyId).toContain('user')
     })
 
     it('should detect null IDs', () => {
@@ -58,9 +65,9 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.empty_id).toContain('user')
+      expect(result.emptyId).toContain('user')
     })
 
     it('should not flag valid IDs', () => {
@@ -73,9 +80,9 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.empty_id).not.toContain('user')
+      expect(result.emptyId).not.toContain('user')
     })
 
     it('should ignore tables where no row has an id field at all', () => {
@@ -84,12 +91,10 @@ describe('IntegrityChecker', () => {
         user: [{ name: 'John' }, { name: 'Jane' }, { name: 'Bob' }],
       }
 
-      const result = checker.check(
-        db as { __table__: { name: string }[]; user: { name: string }[] }
-      )
+      const result = checkWithTables(db)
 
-      expect(result.empty_id).not.toContain('user')
-      expect(result.duplicate_id.user).toBeUndefined()
+      expect(result.emptyId).not.toContain('user')
+      expect(result.duplicateId.user).toBeUndefined()
     })
   })
 
@@ -106,11 +111,11 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.duplicate_id.user).toContain(1)
-      expect(result.duplicate_id.user).toContain(2)
-      expect(result.duplicate_id.user).not.toContain(3)
+      expect(result.duplicateId.user).toContain(1)
+      expect(result.duplicateId.user).toContain(2)
+      expect(result.duplicateId.user).not.toContain(3)
     })
 
     it('should not flag unique IDs', () => {
@@ -123,9 +128,9 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.duplicate_id.user).toBeUndefined()
+      expect(result.duplicateId.user).toBeUndefined()
     })
   })
 
@@ -140,11 +145,11 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.parent_id_same.category).toContain(3)
-      expect(result.parent_id_same.category).not.toContain(1)
-      expect(result.parent_id_same.category).not.toContain(2)
+      expect(result.parentIdSame.category).toContain(3)
+      expect(result.parentIdSame.category).not.toContain(1)
+      expect(result.parentIdSame.category).not.toContain(2)
     })
 
     it('should handle tables without parent_id column', () => {
@@ -156,9 +161,9 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.parent_id_same.user).toBeUndefined()
+      expect(result.parentIdSame.user).toBeUndefined()
     })
   })
 
@@ -173,10 +178,10 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.parent_id_not_found.category).toContain(999)
-      expect(result.parent_id_not_found.category).not.toContain(1)
+      expect(result.parentIdNotFound.category).toContain(999)
+      expect(result.parentIdNotFound.category).not.toContain(1)
     })
 
     it('should ignore null and empty parent_id values', () => {
@@ -189,9 +194,9 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.parent_id_not_found.category).toBeUndefined()
+      expect(result.parentIdNotFound.category).toBeUndefined()
     })
   })
 
@@ -210,12 +215,12 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.foreign_id_not_found.post).toBeDefined()
-      expect(result.foreign_id_not_found.post.user_id).toContain(999)
-      expect(result.foreign_id_not_found.post.user_id).not.toContain(1)
-      expect(result.foreign_id_not_found.post.user_id).not.toContain(2)
+      expect(result.foreignIdNotFound.post).toBeDefined()
+      expect(result.foreignIdNotFound.post.user_id).toContain(999)
+      expect(result.foreignIdNotFound.post.user_id).not.toContain(1)
+      expect(result.foreignIdNotFound.post.user_id).not.toContain(2)
     })
 
     it('should ignore null and empty foreign key values', () => {
@@ -229,9 +234,9 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.foreign_id_not_found.post).toBeUndefined()
+      expect(result.foreignIdNotFound.post).toBeUndefined()
     })
 
     it('should ignore parent_id in foreign key detection', () => {
@@ -243,10 +248,10 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       // parent_id should not be treated as a foreign key
-      expect(result.foreign_id_not_found.category).toBeUndefined()
+      expect(result.foreignIdNotFound.category).toBeUndefined()
     })
   })
 
@@ -270,18 +275,18 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       // Check empty IDs
-      expect(result.empty_id).toContain('user')
+      expect(result.emptyId).toContain('user')
 
       // Check duplicate IDs
-      expect(result.duplicate_id.user).toContain(1)
+      expect(result.duplicateId.user).toContain(1)
 
       // Check foreign key violations
-      expect(result.foreign_id_not_found.post.user_id).toContain(999)
-      expect(result.foreign_id_not_found.comment.post_id).toContain(999)
-      expect(result.foreign_id_not_found.comment.user_id).toContain(888)
+      expect(result.foreignIdNotFound.post.user_id).toContain(999)
+      expect(result.foreignIdNotFound.comment.post_id).toContain(999)
+      expect(result.foreignIdNotFound.comment.user_id).toContain(888)
     })
 
     it('should handle valid database with no issues', () => {
@@ -297,13 +302,13 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.empty_id).toHaveLength(0)
-      expect(Object.keys(result.duplicate_id)).toHaveLength(0)
-      expect(Object.keys(result.parent_id_not_found)).toHaveLength(0)
-      expect(Object.keys(result.parent_id_same)).toHaveLength(0)
-      expect(Object.keys(result.foreign_id_not_found)).toHaveLength(0)
+      expect(result.emptyId).toHaveLength(0)
+      expect(Object.keys(result.duplicateId)).toHaveLength(0)
+      expect(Object.keys(result.parentIdNotFound)).toHaveLength(0)
+      expect(Object.keys(result.parentIdSame)).toHaveLength(0)
+      expect(Object.keys(result.foreignIdNotFound)).toHaveLength(0)
     })
   })
 
@@ -314,10 +319,10 @@ describe('IntegrityChecker', () => {
         user: [],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
-      expect(result.empty_id).not.toContain('user')
-      expect(result.duplicate_id.user).toBeUndefined()
+      expect(result.emptyId).not.toContain('user')
+      expect(result.duplicateId.user).toBeUndefined()
     })
 
     it('should handle string and number IDs consistently', () => {
@@ -333,10 +338,10 @@ describe('IntegrityChecker', () => {
         ],
       }
 
-      const result = checker.check(db)
+      const result = checkWithTables(db)
 
       // Should not report foreign key violations for string vs number IDs
-      expect(result.foreign_id_not_found.post).toBeUndefined()
+      expect(result.foreignIdNotFound.post).toBeUndefined()
     })
   })
 })
