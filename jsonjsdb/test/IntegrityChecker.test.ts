@@ -85,7 +85,7 @@ describe('IntegrityChecker', () => {
       }
 
       const result = checker.check(
-        db as { __table__: { name: string }[]; user: { name: string }[] }
+        db as { __table__: { name: string }[]; user: { name: string }[] },
       )
 
       expect(result.emptyId).not.toContain('user')

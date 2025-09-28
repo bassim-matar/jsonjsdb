@@ -88,7 +88,7 @@ describe('JsonjsdbBuilder E2E Tests', () => {
       for (const tableName of Object.keys(expectedResults)) {
         const generatedContent = await fs.readFile(
           path.join(outputDbDir, `${tableName}.json.js`),
-          'utf-8'
+          'utf-8',
         )
         const generatedData = parseJsonjsFile(generatedContent, tableName)
         const expectedData = expectedResults[tableName]
@@ -166,7 +166,7 @@ describe('JsonjsdbBuilder E2E Tests', () => {
       const content = await fs.readFile(outputFile, 'utf-8')
       expect(validateJsonjsFile(content, 'test')).toBe(true)
       expect(content).toContain(
-        '"content":"# Test Title\\n\\nThis is a test markdown file."'
+        '"content":"# Test Title\\n\\nThis is a test markdown file."',
       )
     })
   })

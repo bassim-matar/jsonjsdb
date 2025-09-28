@@ -52,7 +52,7 @@ export default class Jsonjsdb<
   TEntityTypeMap extends Record<string, DatabaseRow> = Record<
     string,
     DatabaseRow
-  >
+  >,
 > {
   defaultConfig: JsonjsdbConfig
   config!: JsonjsdbConfig
@@ -86,13 +86,13 @@ export default class Jsonjsdb<
     this.browser = new DBrowser(
       this.config.browserKey as string,
       this.config.appName,
-      this.config.useEncryption
+      this.config.useEncryption,
     )
     this.loader = new Loader(this.browser)
     this.integrityChecker = new IntegrityChecker()
   }
   private getHtmlConfig(
-    id = '#jsonjsdb-config'
+    id = '#jsonjsdb-config',
   ): PartialJsonjsdbConfig | false {
     const configElement = document.querySelector(id) as HTMLElement
     if (!configElement) return false
@@ -128,7 +128,7 @@ export default class Jsonjsdb<
     this.tables = (await this.loader.load(
       this.config.path,
       this.config.useCache,
-      option
+      option,
     )) as DatabaseTables
     this.computeUsage()
     return this
@@ -140,7 +140,7 @@ export default class Jsonjsdb<
   }
   get<K extends keyof TEntityTypeMap>(
     table: K,
-    id: string | number
+    id: string | number,
   ): TEntityTypeMap[K] | undefined {
     try {
       const tableStr = String(table)
@@ -172,7 +172,7 @@ export default class Jsonjsdb<
   getAll<K extends keyof TEntityTypeMap>(
     table: K,
     foreignTableObj?: ForeignTableObj,
-    option: InitOption = {}
+    option: InitOption = {},
   ): TEntityTypeMap[K][] {
     const tableStr = String(table)
     const tableData = this.tables[tableStr]
@@ -228,7 +228,7 @@ export default class Jsonjsdb<
   }
   getAllChilds<K extends keyof TEntityTypeMap>(
     table: K,
-    itemId: string | number
+    itemId: string | number,
   ): TEntityTypeMap[K][] {
     const tableStr = String(table)
     const tableData = this.tables[tableStr]
@@ -255,7 +255,7 @@ export default class Jsonjsdb<
   }
   foreach<K extends keyof TEntityTypeMap>(
     table: K,
-    callback: (row: TEntityTypeMap[K]) => void
+    callback: (row: TEntityTypeMap[K]) => void,
   ): void {
     const rows = this.getAll(table)
     for (const row of rows) callback(row)
@@ -291,7 +291,7 @@ export default class Jsonjsdb<
   }
   getParents<K extends keyof TEntityTypeMap>(
     from: K,
-    id: string | number
+    id: string | number,
   ): TEntityTypeMap[K][] {
     if (!id || id === null) return []
     let parent = this.get(from, id)
@@ -317,7 +317,7 @@ export default class Jsonjsdb<
           'get_parents() type',
           String(from),
           'cannot find id',
-          parentBeforeRow.parent_id
+          parentBeforeRow.parent_id,
         )
         return []
       }
@@ -367,7 +367,7 @@ export default class Jsonjsdb<
     await this.loader.loadTables(this.config.path, false)
     this.db = this.loader.db
     return this.integrityChecker.check(
-      this.db as Parameters<typeof this.integrityChecker.check>[0]
+      this.db as Parameters<typeof this.integrityChecker.check>[0],
     )
   }
 }

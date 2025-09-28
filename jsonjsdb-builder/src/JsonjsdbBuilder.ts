@@ -94,7 +94,7 @@ export class JsonjsdbBuilder {
 
   public async updatePreview(
     subfolder: string,
-    sourcePreview: Path
+    sourcePreview: Path,
   ): Promise<void> {
     const sourcePath = path.resolve(sourcePreview)
     const outputPath = path.join(this.outputDb, subfolder)
@@ -182,7 +182,7 @@ export class JsonjsdbBuilder {
     }
     const items = await fs.readdir(outputDb, { withFileTypes: true })
     const files = items.filter(
-      item => item.isFile() && item.name.endsWith('.json.js')
+      item => item.isFile() && item.name.endsWith('.json.js'),
     ).length
     if (files > 0) return outputDb
     const folders = items.filter(item => item.isDirectory())
@@ -191,7 +191,7 @@ export class JsonjsdbBuilder {
   }
 
   private async deleteOldFiles(
-    inputMetadata: MetadataItem[]
+    inputMetadata: MetadataItem[],
   ): Promise<boolean> {
     const deletePromises = []
     const inputMetadataObj = this.metadataListToObject(inputMetadata)
@@ -212,7 +212,7 @@ export class JsonjsdbBuilder {
 
   private async saveMetadata(
     inputMetadata: MetadataItem[],
-    outputMetadata: MetadataItem[]
+    outputMetadata: MetadataItem[],
   ): Promise<void> {
     outputMetadata = outputMetadata.filter(row => row.name !== tableIndex)
     if (JSON.stringify(inputMetadata) === JSON.stringify(outputMetadata)) return
@@ -227,7 +227,7 @@ export class JsonjsdbBuilder {
 
   private async updateTables(
     inputMetadata: MetadataItem[],
-    outputMetadata: MetadataItem[]
+    outputMetadata: MetadataItem[],
   ): Promise<boolean> {
     const outputMetadataObj = this.metadataListToObject(outputMetadata)
     const updatePromises = []
@@ -252,7 +252,7 @@ export class JsonjsdbBuilder {
         evolution = toObjects(evolutionRaw as Row[])
       }
       evolution.push(
-        ...this.newEvoEntries.map(entry => entry as unknown as TableRow)
+        ...this.newEvoEntries.map(entry => entry as unknown as TableRow),
       )
       const evolutionList = toMatrix(evolution as TableRow[])
       await writeJsonjs(this.outputDb, 'evolution', evolutionList, {
@@ -295,16 +295,16 @@ export class JsonjsdbBuilder {
 
   private async addNewEvoEntries(
     table: string,
-    tableData: Row[]
+    tableData: Row[],
   ): Promise<void> {
     const oldTableData = await readJsonjs(
-      path.join(this.outputDb, `${table}.json.js`)
+      path.join(this.outputDb, `${table}.json.js`),
     )
     const newEvoEntries = compareDatasets(
       oldTableData,
       toObjects(tableData),
       this.updateDbTimestamp,
-      table
+      table,
     )
     this.newEvoEntries.push(...newEvoEntries)
   }

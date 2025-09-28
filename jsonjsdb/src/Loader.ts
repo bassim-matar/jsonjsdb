@@ -49,7 +49,7 @@ export default class Loader {
   async load(
     path: string,
     useCache = false,
-    option: LoadOption = {}
+    option: LoadOption = {},
   ): Promise<Record<string, unknown>> {
     await this.loadTables(path, useCache)
     this.normalizeSchema()
@@ -65,14 +65,14 @@ export default class Loader {
   }
   async saveToCache(
     data: unknown[] | Record<string, unknown>,
-    tableName: string
+    tableName: string,
   ): Promise<void> {
     this.browser.set(this.cachePrefix + tableName, data)
   }
   async loadFromFile(
     path: string,
     tableName: string,
-    option?: LoadOption
+    option?: LoadOption,
   ): Promise<unknown[]> {
     const script = document.createElement('script')
     let src = path + '/' + tableName + '.json.js?v='
@@ -133,7 +133,7 @@ export default class Loader {
   async loadJsonjs(
     path: string,
     tableName: string,
-    option?: { useCache: boolean; version: number | string }
+    option?: { useCache: boolean; version: number | string },
   ): Promise<unknown[]> {
     if (path.slice(-1) === '/') path = path.slice(0, -1)
     if (window.jsonjs === undefined) window.jsonjs = {}
@@ -147,17 +147,20 @@ export default class Loader {
   async loadTables(path: string, useCache: boolean): Promise<void> {
     let tablesInfo = (await this.loadJsonjs(
       path,
-      this.tableIndex
+      this.tableIndex,
     )) as TableInfo[]
     tablesInfo = this.checkConformity(tablesInfo)
     tablesInfo = this.extractLastModif(tablesInfo)
     if (useCache) {
       this.tableIndexCache = (await this.browser.get(
-        this.cachePrefix + this.tableIndex
+        this.cachePrefix + this.tableIndex,
       )) as Record<string, string | number | undefined>
-      const newTableIndexCache = tablesInfo.reduce((acc, item) => {
-        return { ...acc, [item.name]: item.last_modif }
-      }, {} as Record<string, string | number | undefined>)
+      const newTableIndexCache = tablesInfo.reduce(
+        (acc, item) => {
+          return { ...acc, [item.name]: item.last_modif }
+        },
+        {} as Record<string, string | number | undefined>,
+      )
       this.saveToCache(newTableIndexCache, this.tableIndex)
     }
     const schema = {
@@ -179,7 +182,7 @@ export default class Loader {
         this.loadJsonjs(path, table.name, {
           version: table.last_modif ?? Date.now(),
           useCache: useCache,
-        })
+        }),
       )
     }
     const tablesData = await Promise.all(promises)
@@ -192,7 +195,7 @@ export default class Loader {
   }
   extractLastModif(tablesInfo: TableInfo[]): TableInfo[] {
     const tableIndexRow = tablesInfo.filter(
-      item => item.name === this.tableIndex
+      item => item.name === this.tableIndex,
     )
     if (tableIndexRow.length > 0 && tableIndexRow[0].last_modif) {
       this.lastModifTimestamp = tableIndexRow[0].last_modif as number
@@ -256,7 +259,8 @@ export default class Loader {
       }
     }
     this.db[filter.entity] = this.db[filter.entity].filter(
-      (item: Record<string, unknown>) => !idToDelete.includes(item.id as string)
+      (item: Record<string, unknown>) =>
+        !idToDelete.includes(item.id as string),
     )
     for (const table of this.db[this.tableIndex]) {
       if (this.db[table.name].length === 0) continue
@@ -269,14 +273,14 @@ export default class Loader {
       }
       this.db[table.name] = this.db[table.name].filter(
         (item: Record<string, unknown>) =>
-          !idToDelete.includes(item[filter.entity + '_id'] as string)
+          !idToDelete.includes(item[filter.entity + '_id'] as string),
       )
       for (const tableLevel2 of this.db[this.tableIndex]) {
         if (this.db[tableLevel2.name].length === 0) continue
         if (!(table.name + '_id' in this.db[tableLevel2.name][0])) continue
         this.db[tableLevel2.name] = this.db[tableLevel2.name].filter(
           (item: Record<string, unknown>) =>
-            !idToDeleteLevel2.includes(item[table.name + '_id'] as string)
+            !idToDeleteLevel2.includes(item[table.name + '_id'] as string),
         )
       }
     }
@@ -293,7 +297,7 @@ export default class Loader {
     return this.db.__index__[tableName].id[id]
   }
   createAlias(
-    initialAliases: Array<{ table: string; alias: string }> | null = null
+    initialAliases: Array<{ table: string; alias: string }> | null = null,
   ) {
     type AliasDefinition = {
       table: string
@@ -375,7 +379,7 @@ export default class Loader {
       if (!(row[tableNameId1] in index)) {
         index[row[tableNameId1]] = this.idToIndex(
           tablesName[0],
-          row[tableNameId0]
+          row[tableNameId0],
         )
         continue
       }
@@ -383,7 +387,7 @@ export default class Loader {
         index[row[tableNameId1]] = [index[row[tableNameId1]]]
       }
       ;(index[row[tableNameId1]] as unknown[]).push(
-        this.idToIndex(tablesName[0], row[tableNameId0])
+        this.idToIndex(tablesName[0], row[tableNameId0]),
       )
     }
     delete (index as Record<string, unknown>)['null']
@@ -557,7 +561,7 @@ export default class Loader {
       const tableDataArray = tableData as unknown[]
       if (tableDataArray.length === 0) continue
       const variables = Object.keys(
-        tableDataArray[0] as Record<string, unknown>
+        tableDataArray[0] as Record<string, unknown>,
       )
       this.db.metaDataset.push({
         id: tableName,
@@ -630,7 +634,7 @@ export default class Loader {
   addMetaVariables(
     tableName: string,
     datasetData: unknown[],
-    variables: string[]
+    variables: string[],
   ) {
     const datasetArray = datasetData as unknown[]
     const nbValueMax = Math.min(300, Math.floor(datasetArray.length / 5))

@@ -58,7 +58,7 @@ export default class IntegrityChecker {
     if (ids.length > 0 && ids.every(id => id === undefined)) return
 
     const hasEmptyId = ids.some(
-      id => id === null || id === '' || id === undefined
+      id => id === null || id === '' || id === undefined,
     )
     if (hasEmptyId) this.result.emptyId.push(table)
   }
@@ -136,7 +136,7 @@ export default class IntegrityChecker {
         if (row[foreignVar] === null || row[foreignVar] === '') continue
         if (
           !this.tablesIds[foreignTable].includes(
-            row[foreignVar] as string | number
+            row[foreignVar] as string | number,
           )
         ) {
           foreignTableIdNotFound.push(row[foreignVar] as string | number)

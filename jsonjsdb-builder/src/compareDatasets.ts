@@ -41,7 +41,7 @@ export function compareDatasets(
   datasetOld: TableRow[],
   datasetNew: TableRow[],
   timestamp: number,
-  entity: string
+  entity: string,
 ): EvolutionEntry[] {
   const newEvoEntries: EvolutionEntry[] = []
 
@@ -52,10 +52,10 @@ export function compareDatasets(
   addIdIfMissing(datasetNew)
 
   const mapOld = new Map<string | number, TableRow>(
-    datasetOld.map(item => [item.id as string | number, item])
+    datasetOld.map(item => [item.id as string | number, item]),
   )
   const mapNew = new Map<string | number, TableRow>(
-    datasetNew.map(item => [item.id as string | number, item])
+    datasetNew.map(item => [item.id as string | number, item]),
   )
 
   let variables: string[] = []
@@ -63,7 +63,7 @@ export function compareDatasets(
   else if (datasetNew.length === 0) variables = Object.keys(datasetOld[0])
   else
     variables = Array.from(
-      new Set([...Object.keys(datasetOld[0]), ...Object.keys(datasetNew[0])])
+      new Set([...Object.keys(datasetOld[0]), ...Object.keys(datasetNew[0])]),
     )
 
   const idsOld = new Set<string | number>(mapOld.keys())
