@@ -165,5 +165,84 @@ describe('jsonjsdb', () => {
         expect(result).toBeUndefined()
       })
     })
+
+    describe('use and useRecursive', () => {
+      it('should have use property with correct entities', () => {
+        expect(db.use).toBeDefined()
+        expect(typeof db.use).toBe('object')
+
+        // These tables exist and have data
+        expect(db.use.user).toBe(true)
+        expect(db.use.doc).toBe(true)
+        expect(db.use.email).toBe(true)
+        expect(db.use.tag).toBe(true)
+        expect(db.use.config).toBe(true)
+        expect(db.use.connexion).toBe(true)
+
+        // This table doesn't exist
+        expect(db.use.nonexistent).toBeUndefined()
+      })
+
+      it('should have useRecursive property', () => {
+        expect(db.useRecursive).toBeDefined()
+        expect(typeof db.useRecursive).toBe('object')
+      })
+
+      it('should not mark tables with underscores as used', () => {
+        // user_tag contains underscore, should be ignored
+        expect(db.use.user_tag).toBeUndefined()
+      })
+
+      it('should detect recursive entities correctly', () => {
+        // Since test data doesn't have parent_id, let's test the logic by mocking
+        const originalTables = db.tables
+
+        // Mock a table with parent_id (without underscore to pass the filter)
+        db.tables = {
+          ...originalTables,
+          recursivetable: [
+            { id: 1, name: 'test 1', parent_id: null },
+            { id: 2, name: 'test 2', parent_id: 1 },
+          ],
+        }
+
+        // Re-compute usage with mocked data
+        db['computeUsage']()
+
+        expect(db.use.recursivetable).toBe(true)
+        expect(db.useRecursive.recursivetable).toBe(true)
+
+        // Restore original tables
+        db.tables = originalTables
+        db['computeUsage']()
+      })
+
+      it('should not mark entities as recursive if they have no parent_id', () => {
+        // Test tables don't have parent_id, so none should be recursive
+        expect(db.useRecursive.user).toBeUndefined()
+        expect(db.useRecursive.doc).toBeUndefined()
+        expect(db.useRecursive.email).toBeUndefined()
+        expect(db.useRecursive.tag).toBeUndefined()
+      })
+
+      it('should handle empty tables correctly', () => {
+        const originalTables = db.tables
+
+        // Mock an empty table (without underscore)
+        db.tables = {
+          ...originalTables,
+          emptytable: [],
+        }
+
+        db['computeUsage']()
+
+        // Empty table should not be marked as used
+        expect(db.use.emptytable).toBeUndefined()
+
+        // Restore original tables
+        db.tables = originalTables
+        db['computeUsage']()
+      })
+    })
   })
 })
