@@ -31,8 +31,8 @@ A client-side relational database solution for static Single Page Applications. 
     - [`getAllChilds()`](#getallchildstable-itemid)
   - [Utility Methods](#utility-methods)
     - [`foreach()`](#foreachtable-callback)
-    - [`tableHasId()`](#tablehasidtable-id)
-    - [`hasNb()`](#hasnbtable-id-nb_what)
+    - [`exists()`](#existstable-id)
+    - [`countRelated()`](#countrelatedtable-id-relatedtable)
     - [`getParents()`](#getparentsfrom-id)
     - [`getConfig()`](#getconfigid)
     - [`getSchema()`](#getschema)
@@ -332,12 +332,12 @@ db.foreach('user', user => {
 
 **Returns:** void
 
-#### `tableHasId(table, id)`
+#### `exists(table, id)`
 
-Checks if a table contains a specific ID.
+Checks if a record with a specific ID exists in a table.
 
 ```js
-if (db.tableHasId('user', 123)) {
+if (db.exists('user', 123)) {
   console.log('User exists')
 }
 ```
@@ -349,21 +349,21 @@ if (db.tableHasId('user', 123)) {
 
 **Returns:** boolean
 
-#### `hasNb(table, id, nb_what)`
+#### `countRelated(table, id, relatedTable)`
 
-Counts how many records reference a specific ID in another table.
+Counts how many records in a related table reference a specific ID.
 
 ```js
 // Count how many posts reference user 123
-const postCount = db.hasNb('user', 123, 'post')
+const postCount = db.countRelated('user', 123, 'post')
 console.log(`User has ${postCount} posts`)
 ```
 
 **Parameters:**
 
-- `table`: The table name to use for foreign key (table + "\_id")
-- `id`: ID of the referenced item
-- `nbWhat`: Table name where to count references
+- `table`: The table containing the record to count relations for
+- `id`: ID of the record to count relations for
+- `relatedTable`: Table name where to count references (looks for foreign key table + "\_id")
 
 **Returns:** number
 

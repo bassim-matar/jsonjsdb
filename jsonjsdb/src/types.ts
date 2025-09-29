@@ -1,4 +1,4 @@
-export interface IntegrityResult {
+export type IntegrityResult = {
   emptyId: string[]
   duplicateId: Record<string, (string | number)[]>
   parentIdNotFound: Record<string, (string | number)[]>
@@ -6,13 +6,13 @@ export interface IntegrityResult {
   foreignIdNotFound: Record<string, Record<string, (string | number)[]>>
 }
 
-export interface TableRow {
+export type TableRow = {
   id?: string | number
   parent_id?: string | number | null
   [key: string]: unknown
 }
 
-export interface Schema {
+export type Schema = {
   oneToOne: [string, string][]
   oneToMany: string[][]
   manyToMany: [string, string][]
@@ -20,22 +20,22 @@ export interface Schema {
 }
 
 // Database index structure types
-export interface TableIndex {
+export type TableIndex = {
   [propertyName: string]: Record<string | number, number | number[]>
 }
 
-export interface DatabaseIndex {
+export type DatabaseIndex = {
   [tableName: string]: TableIndex
 }
 
-export interface DatabaseMetadata {
+export type DatabaseMetadata = {
   schema: Schema
   index: DatabaseIndex
   tables: TableInfo[]
   dbSchema?: unknown
 }
 
-export interface TableInfo {
+export type TableInfo = {
   name: string
   last_modif?: string | number
   alias?: boolean

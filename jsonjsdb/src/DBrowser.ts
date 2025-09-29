@@ -2,12 +2,12 @@ import ldb from 'localdata'
 import AES from 'crypto-js/aes'
 import ENC from 'crypto-js/enc-utf8'
 
-interface LdbEntry {
+type LdbEntry = {
   k: string
   v: string
 }
 
-interface LocalData {
+type LocalData = {
   getAll(callback: (entries: unknown) => void): void
   get(key: string, callback: (data: string) => void): void
   set(key: string, data: unknown, callback?: () => void): void

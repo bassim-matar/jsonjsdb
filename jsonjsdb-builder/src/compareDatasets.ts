@@ -1,6 +1,6 @@
 type TableRow = Record<string, unknown>
 
-export interface EvolutionEntry {
+export type EvolutionEntry = {
   timestamp: number
   type: 'add' | 'delete' | 'update'
   entity: string
