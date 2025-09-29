@@ -1,7 +1,7 @@
 import DBrowser from './DBrowser'
 import type { DatabaseMetadata, TableInfo, TableRow } from './types'
 
-interface LoadOption {
+type LoadOption = {
   filter?: {
     entity?: string
     variable?: string

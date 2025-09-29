@@ -3,7 +3,7 @@ import Loader from './Loader'
 import IntegrityChecker from './IntegrityChecker'
 import type { IntegrityResult, Schema, DatabaseMetadata } from './types'
 
-interface JsonjsdbConfig {
+type JsonjsdbConfig = {
   path: string
   dbKey: string | boolean
   browserKey: string | boolean
@@ -14,16 +14,13 @@ interface JsonjsdbConfig {
 
 type PartialJsonjsdbConfig = Partial<JsonjsdbConfig>
 
-interface DatabaseRow {
-  id: string | number
+type DatabaseRow = {
+  id?: string | number
+  parent_id?: string | number | null
   [key: string]: unknown
 }
 
-interface DatabaseTables {
-  [tableName: string]: DatabaseRow[]
-}
-
-interface InitOption {
+type InitOption = {
   filter?: {
     entity?: string
     variable?: string
@@ -35,8 +32,8 @@ interface InitOption {
   limit?: number
 }
 
-interface ForeignTableObj {
-  [tableName: string]: string | number | { id: string | number }
+type ForeignTableObj = {
+  [tableName: string]: string | number | { id: string | number } | undefined
 }
 
 export default class Jsonjsdb<
@@ -50,7 +47,7 @@ export default class Jsonjsdb<
   browser: DBrowser
   loader: Loader
   integrityChecker: IntegrityChecker
-  tables!: DatabaseTables
+  tables!: TEntityTypeMap
   metadata!: DatabaseMetadata
   private _use: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
   private _useRecursive: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
@@ -120,7 +117,7 @@ export default class Jsonjsdb<
       this.config.path,
       this.config.useCache,
       option,
-    )) as DatabaseTables
+    )) as TEntityTypeMap
     this.metadata = this.loader.metadata
 
     this.computeUsage()
@@ -132,30 +129,28 @@ export default class Jsonjsdb<
     return data
   }
   get<K extends keyof TEntityTypeMap>(
-    table: K,
+    table: K & string,
     id: string | number,
   ): TEntityTypeMap[K] | undefined {
     try {
-      const tableStr = String(table)
-      const tableData = this.tables[tableStr]
+      const tableData = this.tables[table]
       if (!Array.isArray(tableData)) return undefined
 
-      const indexValue = this.metadata.index[tableStr].id[id]
+      const indexValue = this.metadata.index[table].id[id]
       if (typeof indexValue !== 'number') return undefined
 
-      const result = tableData[indexValue] as DatabaseRow
+      const result = tableData[indexValue]
       if (!result) {
-        console.error(`table ${String(table)}, id not found: ${id}`)
+        console.error(`table ${table}, id not found: ${id}`)
       }
-      return result as TEntityTypeMap[K]
+      return result
     } catch {
-      const tableStr = String(table)
-      if (!this.tables[tableStr]) {
-        console.error(`table ${tableStr} not found`)
-      } else if (!this.metadata.index[tableStr]) {
-        console.error(`table ${tableStr} not found in __index__`)
-      } else if (!('id' in this.metadata.index[tableStr])) {
-        console.error(`table ${tableStr}, props "id" not found in __index__`)
+      if (!this.tables[table]) {
+        console.error(`table ${table} not found`)
+      } else if (!this.metadata.index[table]) {
+        console.error(`table ${table} not found in __index__`)
+      } else if (!('id' in this.metadata.index[table])) {
+        console.error(`table ${table}, props "id" not found in __index__`)
       } else {
         console.error(`error not handled`)
       }
@@ -163,25 +158,26 @@ export default class Jsonjsdb<
     }
   }
   getAll<K extends keyof TEntityTypeMap>(
-    table: K,
+    table: K & string,
     foreignTableObj?: ForeignTableObj,
     option: InitOption = {},
   ): TEntityTypeMap[K][] {
-    const tableStr = String(table)
-    const tableData = this.tables[tableStr]
+    const tableData = this.tables[table]
     if (!Array.isArray(tableData)) return []
 
     if (!foreignTableObj) {
       if (option.limit) {
-        return tableData.slice(0, option.limit) as TEntityTypeMap[K][]
+        return tableData.slice(0, option.limit)
       }
-      return tableData as TEntityTypeMap[K][]
+      return tableData
     }
 
     const foreignTableObjStart = Object.entries(foreignTableObj)[0]
     const foreignTable = foreignTableObjStart[0]
-    let foreignValue: string | number | { id: string | number } =
+    let foreignValue: string | number | { id: string | number } | undefined =
       foreignTableObjStart[1]
+
+    if (foreignValue === undefined) return []
 
     if (
       typeof foreignValue === 'object' &&
@@ -196,49 +192,48 @@ export default class Jsonjsdb<
     let foreignKey = foreignTable + '_id'
     if (foreignTable === table) foreignKey = 'parent_id'
 
-    const indexAll = this.metadata.index[tableStr][foreignKey]
+    const indexAll = this.metadata.index[table][foreignKey]
     if (!indexAll || !(foreignValue in indexAll)) return []
     const indexes = indexAll[foreignValue]
 
     if (!Array.isArray(indexes)) {
       if (typeof indexes !== 'number' || !tableData[indexes]) {
-        console.error('get_all() table', tableStr, 'has an index undefined')
+        console.error('get_all() table', table, 'has an index undefined')
         return []
       }
-      return [tableData[indexes] as TEntityTypeMap[K]]
+      return [tableData[indexes]]
     }
 
-    const variables: TEntityTypeMap[K][] = []
+    const variables = []
     for (const index of indexes) {
       if (option.limit && variables.length >= option.limit) break
       if (!tableData[index]) {
-        console.error('get_all() table', tableStr, 'has an index undefined')
+        console.error('get_all() table', table, 'has an index undefined')
         continue
       }
-      variables.push(tableData[index] as TEntityTypeMap[K])
+      variables.push(tableData[index])
     }
     return variables
   }
   getAllChilds<K extends keyof TEntityTypeMap>(
-    table: K,
+    table: K & string,
     itemId: string | number,
   ): TEntityTypeMap[K][] {
-    const tableStr = String(table)
-    const tableData = this.tables[tableStr]
+    const tableData = this.tables[table]
     if (!Array.isArray(tableData)) return []
 
     let all: TEntityTypeMap[K][] = []
     if (!itemId) {
-      console.error('getAllChilds()', tableStr, 'id', itemId)
+      console.error('getAllChilds()', table, 'id', itemId)
       return all
     }
-    const childs = this.getAll(table, { [tableStr]: itemId })
+    const childs = this.getAll(table, { [table]: itemId })
     all = all.concat(childs)
     for (const child of childs) {
-      const childRow = child as DatabaseRow
+      const childRow = child
       if (itemId === childRow.id) {
         const msg = 'infinite loop for id'
-        console.error('getAllChilds()', tableStr, msg, itemId)
+        console.error('getAllChilds()', table, msg, itemId)
         return all
       }
       const newChilds = this.getAllChilds(table, childRow.id as string | number)
@@ -247,13 +242,16 @@ export default class Jsonjsdb<
     return all
   }
   foreach<K extends keyof TEntityTypeMap>(
-    table: K,
+    table: K & string,
     callback: (row: TEntityTypeMap[K]) => void,
   ): void {
     const rows = this.getAll(table)
     for (const row of rows) callback(row)
   }
-  tableHasId(table: string, id: string | number): boolean {
+  exists<K extends keyof TEntityTypeMap>(
+    table: K & string,
+    id: string | number,
+  ): boolean {
     if (!this.tables[table]) return false
     if (!this.metadata.index[table]) return false
     if (!this.metadata.index[table].id) return false
@@ -270,12 +268,16 @@ export default class Jsonjsdb<
     const indexValue = index[id]
     if (typeof indexValue !== 'number') return undefined
 
-    const row = configTable[indexValue] as DatabaseRow
+    const row = configTable[indexValue]
     return row['value'] as string | number
   }
-  hasNb(table: string, id: string | number, nbWhat: string): number {
-    if (!(nbWhat in this.metadata.index)) return 0
-    const index = this.metadata.index[nbWhat][table + '_id']
+  countRelated<K extends keyof TEntityTypeMap>(
+    table: K & string,
+    id: string | number,
+    relatedTable: string,
+  ): number {
+    if (!(relatedTable in this.metadata.index)) return 0
+    const index = this.metadata.index[relatedTable][table + '_id']
     if (!index) return 0
     if (!(id in index)) return 0
     const indexValue = index[id]
@@ -283,7 +285,7 @@ export default class Jsonjsdb<
     return indexValue.length
   }
   getParents<K extends keyof TEntityTypeMap>(
-    from: K,
+    from: K & string,
     id: string | number,
   ): TEntityTypeMap[K][] {
     if (!id || id === null) return []
@@ -296,7 +298,7 @@ export default class Jsonjsdb<
 
     while (iterationNum < iterationMax) {
       iterationNum += 1
-      const parentRow = parent as DatabaseRow
+      const parentRow = parent as TEntityTypeMap[K]
       const parentId = parentRow.parent_id
 
       if ([0, '', null].includes(parentId as string | number))
@@ -305,10 +307,10 @@ export default class Jsonjsdb<
       const parentBefore = parent
       parent = this.get(from, parentId as string | number)
       if (!parent) {
-        const parentBeforeRow = parentBefore as DatabaseRow
+        const parentBeforeRow = parentBefore
         console.error(
           'get_parents() type',
-          String(from),
+          from,
           'cannot find id',
           parentBeforeRow.parent_id,
         )
@@ -316,7 +318,7 @@ export default class Jsonjsdb<
       }
       parents.push(parent)
     }
-    console.error('get_parents()', String(from), id, 'iteration_max reached')
+    console.error('get_parents()', from, id, 'iteration_max reached')
     return []
   }
   addMeta(userData?: Record<string, unknown>, dbSchema?: string[][]): void {

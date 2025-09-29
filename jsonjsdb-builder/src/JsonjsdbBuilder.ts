@@ -20,7 +20,7 @@ type MetadataObj = Record<string, number>
 type Path = string
 type Extension = 'xlsx'
 
-interface MetadataItem {
+type MetadataItem = {
   name: string
   last_modif: number
 }

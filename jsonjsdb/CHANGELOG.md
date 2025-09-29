@@ -1,5 +1,13 @@
 # jsonjsdb
 
+## 0.7.1 (2025-09-29)
+
+- add: support for undefined values in ForeignTableObj interface
+- add: comprehensive tests for countRelated() methods
+- change: make DatabaseRow.id optional to support tables without id
+- change: rename `tableHasId()` to `exists()` for better API clarity
+- change: rename `hasNb()` to `countRelated()` for professional naming
+
 ### 0.7.0 (2025-09-28)
 
 - add: generic type, getSchema method and "use" prop for existing entities

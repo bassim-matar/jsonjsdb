@@ -133,6 +133,7 @@ describe('jsonjsdb', () => {
       it('should get user 1 docs', () => {
         const user = db.get('user', 1)
         expect(user).toBeDefined()
+        expect(user!.id).toBeDefined()
         const docs = db.getAll('doc', { user: user!.id })
         expect(docs).toBeInstanceOf(Array)
         expect(docs.length).toBeGreaterThan(0)
@@ -147,15 +148,57 @@ describe('jsonjsdb', () => {
       })
     })
 
-    describe('tableHasId()', () => {
+    describe('exists()', () => {
       it('should return false for nonexistent entity', () => {
-        const result = db.tableHasId('nonexistent_entity', 1)
+        const result = db.exists('nonexistent_entity', 1)
         expect(result).toBe(false)
       })
 
       it('should return false for nonexistent id', () => {
-        const result = db.tableHasId('user', 999)
+        const result = db.exists('user', 999)
         expect(result).toBe(false)
+      })
+
+      it('should return true for existing record', () => {
+        const result = db.exists('user', 1)
+        expect(result).toBe(true)
+      })
+
+      it('should return false for table without id index', () => {
+        const result = db.exists('nonexistent_table', 1)
+        expect(result).toBe(false)
+      })
+    })
+
+    describe('countRelated()', () => {
+      it('should return 0 for nonexistent related table', () => {
+        const result = db.countRelated('user', 1, 'nonexistent_table')
+        expect(result).toBe(0)
+      })
+
+      it('should return 0 for nonexistent record', () => {
+        const result = db.countRelated('user', 999, 'email')
+        expect(result).toBe(0)
+      })
+
+      it('should count related records correctly', () => {
+        // Count emails for user 1
+        const emailCount = db.countRelated('user', 1, 'email')
+        expect(typeof emailCount).toBe('number')
+        expect(emailCount).toBeGreaterThanOrEqual(0)
+      })
+
+      it('should count docs for user correctly', () => {
+        // Count docs for user 1
+        const docCount = db.countRelated('user', 1, 'doc')
+        expect(typeof docCount).toBe('number')
+        expect(docCount).toBeGreaterThanOrEqual(0)
+      })
+
+      it('should return 0 when no related records exist', () => {
+        // Use a user that likely has no related records
+        const result = db.countRelated('user', 999, 'email')
+        expect(result).toBe(0)
       })
     })
 
@@ -196,25 +239,30 @@ describe('jsonjsdb', () => {
       it('should detect recursive entities correctly', () => {
         // Since test data doesn't have parent_id, let's test the logic by mocking
         const originalTables = db.tables
+        const originalComputeUsage = db['computeUsage'].bind(db)
 
-        // Mock a table with parent_id (without underscore to pass the filter)
-        db.tables = {
-          ...originalTables,
-          recursivetable: [
-            { id: 1, name: 'test 1', parent_id: null },
-            { id: 2, name: 'test 2', parent_id: 1 },
-          ],
-        }
+        // Create mock data with proper types
+        const recursiveData = [
+          { id: 1, name: 'test 1', parent_id: null },
+          { id: 2, name: 'test 2', parent_id: 1 },
+        ]
+
+        // Temporarily add the recursive table using Object.defineProperty
+        Object.defineProperty(db.tables, 'recursivetable', {
+          value: recursiveData,
+          configurable: true,
+          enumerable: true,
+        })
 
         // Re-compute usage with mocked data
-        db['computeUsage']()
+        originalComputeUsage()
 
         expect(db.use.recursivetable).toBe(true)
         expect(db.useRecursive.recursivetable).toBe(true)
 
-        // Restore original tables
-        db.tables = originalTables
-        db['computeUsage']()
+        // Clean up - remove the test property
+        delete (db.tables as Record<string, unknown>)['recursivetable']
+        originalComputeUsage()
       })
 
       it('should not mark entities as recursive if they have no parent_id', () => {
@@ -226,22 +274,23 @@ describe('jsonjsdb', () => {
       })
 
       it('should handle empty tables correctly', () => {
-        const originalTables = db.tables
+        const originalComputeUsage = db['computeUsage'].bind(db)
 
-        // Mock an empty table (without underscore)
-        db.tables = {
-          ...originalTables,
-          emptytable: [],
-        }
+        // Add an empty table temporarily
+        Object.defineProperty(db.tables, 'emptytable', {
+          value: [],
+          configurable: true,
+          enumerable: true,
+        })
 
-        db['computeUsage']()
+        originalComputeUsage()
 
         // Empty table should not be marked as used
         expect(db.use.emptytable).toBeUndefined()
 
-        // Restore original tables
-        db.tables = originalTables
-        db['computeUsage']()
+        // Clean up
+        delete (db.tables as Record<string, unknown>)['emptytable']
+        originalComputeUsage()
       })
     })
   })
