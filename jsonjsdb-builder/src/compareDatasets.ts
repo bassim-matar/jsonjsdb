@@ -27,7 +27,7 @@ function addIdIfMissing(dataset: TableRow[]) {
 
 function getFirstParentId(obj: TableRow): string | number | null {
   for (const key of Object.keys(obj)) {
-    if (key.endsWith('_id')) {
+    if (key.endsWith('_id') || key.endsWith('Id')) {
       const value = obj[key]
       return typeof value === 'string' || typeof value === 'number'
         ? value

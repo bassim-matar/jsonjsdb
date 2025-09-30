@@ -1,5 +1,11 @@
 # jsonjsdb
 
+## 0.7.2 (2025-09-30)
+
+- add: escapeHtml to prevent XSS attacks when rendering data in HTML context
+- fix: tables type and and checkIntegrity method in Jsonjsdb class
+- refactor: use idSuffix variable to improve flexibility and maintainability
+
 ## 0.7.1 (2025-09-29)
 
 - add: support for undefined values in ForeignTableObj interface

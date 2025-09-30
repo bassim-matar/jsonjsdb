@@ -1,7 +1,13 @@
 import DBrowser from './DBrowser'
 import Loader from './Loader'
 import IntegrityChecker from './IntegrityChecker'
-import type { IntegrityResult, Schema, DatabaseMetadata } from './types'
+import type {
+  IntegrityResult,
+  Schema,
+  DatabaseMetadata,
+  DatabaseRow,
+  TableCollection,
+} from './types'
 
 type JsonjsdbConfig = {
   path: string
@@ -10,15 +16,10 @@ type JsonjsdbConfig = {
   appName: string
   useCache: boolean
   useEncryption: boolean
+  escapeHtml: boolean
 }
 
 type PartialJsonjsdbConfig = Partial<JsonjsdbConfig>
-
-type DatabaseRow = {
-  id?: string | number
-  parent_id?: string | number | null
-  [key: string]: unknown
-}
 
 type InitOption = {
   filter?: {
@@ -30,6 +31,7 @@ type InitOption = {
   useCache?: boolean
   version?: number | string
   limit?: number
+  escapeHtml?: boolean
 }
 
 type ForeignTableObj = {
@@ -47,8 +49,9 @@ export default class Jsonjsdb<
   browser: DBrowser
   loader: Loader
   integrityChecker: IntegrityChecker
-  tables!: TEntityTypeMap
+  tables!: TableCollection<TEntityTypeMap>
   metadata!: DatabaseMetadata
+  private idSuffix = '_id'
   private _use: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
   private _useRecursive: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
 
@@ -60,6 +63,7 @@ export default class Jsonjsdb<
       appName: 'jsonjsdb',
       useCache: false,
       useEncryption: false,
+      escapeHtml: true,
     }
 
     let processedConfig: PartialJsonjsdbConfig = {}
@@ -76,7 +80,7 @@ export default class Jsonjsdb<
       this.config.appName,
       this.config.useEncryption,
     )
-    this.loader = new Loader(this.browser)
+    this.loader = new Loader(this.browser, this.config.escapeHtml)
     this.integrityChecker = new IntegrityChecker()
   }
   private getHtmlConfig(
@@ -98,6 +102,7 @@ export default class Jsonjsdb<
     if (dataset.useCache) config.useCache = dataset.useCache === 'true'
     if (dataset.useEncryption)
       config.useEncryption = dataset.useEncryption === 'true'
+    if (dataset.escapeHtml) config.escapeHtml = dataset.escapeHtml === 'true'
 
     return config
   }
@@ -117,17 +122,26 @@ export default class Jsonjsdb<
       this.config.path,
       this.config.useCache,
       option,
-    )) as TEntityTypeMap
+    )) as TableCollection<TEntityTypeMap>
     this.metadata = this.loader.metadata
 
     this.computeUsage()
     return this
   }
-  async load(filePath: string, name: string): Promise<unknown[]> {
+  async load(
+    filePath: string,
+    name: string,
+    escapeHtml = true,
+  ): Promise<unknown[]> {
     filePath = this.config.path + '/' + filePath
-    const data = await this.loader.loadJsonjs(filePath, name)
+    const data = await this.loader.loadJsonjs(filePath, name, {
+      useCache: false,
+      version: Date.now(),
+      escapeHtml,
+    })
     return data
   }
+
   get<K extends keyof TEntityTypeMap>(
     table: K & string,
     id: string | number,
@@ -189,8 +203,8 @@ export default class Jsonjsdb<
       foreignValue = foreignValue as string | number
     }
 
-    let foreignKey = foreignTable + '_id'
-    if (foreignTable === table) foreignKey = 'parent_id'
+    let foreignKey = foreignTable + this.idSuffix
+    if (foreignTable === table) foreignKey = 'parent' + this.idSuffix
 
     const indexAll = this.metadata.index[table][foreignKey]
     if (!indexAll || !(foreignValue in indexAll)) return []
@@ -277,7 +291,7 @@ export default class Jsonjsdb<
     relatedTable: string,
   ): number {
     if (!(relatedTable in this.metadata.index)) return 0
-    const index = this.metadata.index[relatedTable][table + '_id']
+    const index = this.metadata.index[relatedTable][table + this.idSuffix]
     if (!index) return 0
     if (!(id in index)) return 0
     const indexValue = index[id]
@@ -299,7 +313,7 @@ export default class Jsonjsdb<
     while (iterationNum < iterationMax) {
       iterationNum += 1
       const parentRow = parent as TEntityTypeMap[K]
-      const parentId = parentRow.parent_id
+      const parentId = parentRow['parent' + this.idSuffix]
 
       if ([0, '', null].includes(parentId as string | number))
         return parents.reverse()
@@ -312,7 +326,7 @@ export default class Jsonjsdb<
           'get_parents() type',
           from,
           'cannot find id',
-          parentBeforeRow.parent_id,
+          parentBeforeRow['parent' + this.idSuffix],
         )
         return []
       }
@@ -351,7 +365,7 @@ export default class Jsonjsdb<
       if (
         firstItem &&
         typeof firstItem === 'object' &&
-        'parent_id' in firstItem
+        'parent' + this.idSuffix in firstItem
       ) {
         ;(this._useRecursive as Record<string, boolean>)[entity] = true
       }
@@ -364,6 +378,9 @@ export default class Jsonjsdb<
 
   async checkIntegrity(): Promise<IntegrityResult> {
     await this.loader.loadTables(this.config.path, false)
-    return this.integrityChecker.check(this.loader.db, this.metadata.tables)
+    return this.integrityChecker.check(
+      this.loader.db,
+      this.loader.metadata.tables,
+    )
   }
 }
