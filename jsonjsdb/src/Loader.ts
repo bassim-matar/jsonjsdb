@@ -25,6 +25,7 @@ declare global {
 export default class Loader {
   private tableIndex = '__table__'
   private cachePrefix = 'db_cache/'
+  private idSuffix = '_id'
 
   private browser: DBrowser
   private tableIndexCache?: Record<string, string | number | undefined>
@@ -262,8 +263,8 @@ export default class Loader {
     for (const table of this.metadata.tables) {
       if (this.db[table.name].length === 0) continue
       for (const variable in this.db[table.name][0]) {
-        if (!variable.endsWith('_ids')) continue
-        const entityDest = variable.slice(0, -4)
+        if (!variable.endsWith(this.idSuffix + 's')) continue
+        const entityDest = variable.slice(0, -(this.idSuffix.length + 1))
         if (!(entityDest in this.db)) continue
         const relationTable = table.name + '_' + entityDest
         if (!(relationTable in this.db)) {
@@ -277,8 +278,8 @@ export default class Loader {
           if (ids.length === 0) continue
           for (const id of ids) {
             this.db[relationTable].push({
-              [table.name + '_id']: row.id,
-              [entityDest + '_id']: id.trim(),
+              [table.name + this.idSuffix]: row.id,
+              [entityDest + this.idSuffix]: id.trim(),
             })
           }
         }
@@ -305,10 +306,10 @@ export default class Loader {
     )
     for (const table of this.metadata.tables) {
       if (this.db[table.name].length === 0) continue
-      if (!(filter.entity + '_id' in this.db[table.name][0])) continue
+      if (!(filter.entity + this.idSuffix in this.db[table.name][0])) continue
       const idToDeleteLevel2: string[] = []
       for (const item of this.db[table.name]) {
-        const foreignId = item[filter.entity + '_id']
+        const foreignId = item[filter.entity + this.idSuffix]
         if (foreignId && idToDelete.includes(String(foreignId))) {
           if (item.id) {
             idToDeleteLevel2.push(String(item.id))
@@ -317,14 +318,17 @@ export default class Loader {
       }
       this.db[table.name] = this.db[table.name].filter(
         (item: Record<string, unknown>) =>
-          !idToDelete.includes(item[filter.entity + '_id'] as string),
+          !idToDelete.includes(item[filter.entity + this.idSuffix] as string),
       )
       for (const tableLevel2 of this.metadata.tables) {
         if (this.db[tableLevel2.name].length === 0) continue
-        if (!(table.name + '_id' in this.db[tableLevel2.name][0])) continue
+        if (!(table.name + this.idSuffix in this.db[tableLevel2.name][0]))
+          continue
         this.db[tableLevel2.name] = this.db[tableLevel2.name].filter(
           (item: Record<string, unknown>) =>
-            !idToDeleteLevel2.includes(item[table.name + '_id'] as string),
+            !idToDeleteLevel2.includes(
+              item[table.name + this.idSuffix] as string,
+            ),
         )
       }
     }
@@ -383,7 +387,7 @@ export default class Loader {
       }
       for (const row of this.db[alias.table]) {
         const aliasDataRow: Record<string, unknown> = { id: row.id }
-        aliasDataRow[alias.table + '_id'] = row.id
+        aliasDataRow[alias.table + this.idSuffix] = row.id
         aliasData.push(aliasDataRow)
       }
       this.db[alias.alias] = aliasData as TableRow[]
@@ -421,8 +425,8 @@ export default class Loader {
       return false
     }
     if (side === 'right') tablesName.reverse()
-    const tableNameId0 = tablesName[0] + '_id'
-    const tableNameId1 = tablesName[1] + '_id'
+    const tableNameId0 = tablesName[0] + this.idSuffix
+    const tableNameId1 = tablesName[1] + this.idSuffix
     for (const row of this.db[table.name]) {
       const id0 = row[tableNameId0]
       const id1 = row[tableNameId1]
@@ -447,19 +451,19 @@ export default class Loader {
     if (side === 'left') {
       this.metadata.schema.manyToMany.push([
         tablesName[0],
-        tableNameId1.slice(0, -3),
+        tableNameId1.slice(0, -this.idSuffix.length),
       ])
     }
   }
   processOneToMany(table: { name: string }) {
     for (const variable in this.db[table.name][0]) {
-      if (variable === 'parent_id') {
+      if (variable === 'parent' + this.idSuffix) {
         this.processSelfOneToMany(table)
         continue
       }
       if (
-        variable.endsWith('_id') &&
-        variable.slice(0, -3) in this.metadata.index
+        variable.endsWith(this.idSuffix) &&
+        variable.slice(0, -this.idSuffix.length) in this.metadata.index
       ) {
         this.addForeignKey(variable, table)
       }
@@ -511,9 +515,15 @@ export default class Loader {
     delete index['null']
     this.metadata.index[table.name][variable] = index
     if (this.metadata.schema.aliases.includes(table.name)) {
-      this.metadata.schema.oneToOne.push([table.name, variable.slice(0, -3)])
+      this.metadata.schema.oneToOne.push([
+        table.name,
+        variable.slice(0, -this.idSuffix.length),
+      ])
     } else {
-      this.metadata.schema.oneToMany.push([variable.slice(0, -3), table.name])
+      this.metadata.schema.oneToMany.push([
+        variable.slice(0, -this.idSuffix.length),
+        table.name,
+      ])
     }
   }
   addDbSchema(dbSchema: unknown) {
@@ -593,7 +603,7 @@ export default class Loader {
       )
       this.db.metaDataset.push({
         id: tableName,
-        metaFolder_id: 'user_data',
+        ['metaFolder' + this.idSuffix]: 'user_data',
         name: tableName,
         nb_row: tableDataArray.length,
         description: metaDataset[tableName]?.description,
@@ -611,7 +621,7 @@ export default class Loader {
       const variables = Object.keys(this.db[table.name][0])
       this.db.metaDataset.push({
         id: table.name,
-        metaFolder_id: 'data',
+        ['metaFolder' + this.idSuffix]: 'data',
         name: table.name,
         nb_row: this.db[table.name].length,
         description: metaDataset[table.name]?.description,
@@ -628,7 +638,7 @@ export default class Loader {
       const datasetId = variableRecord.dataset
       this.db.metaVariable.push({
         id: variableId,
-        metaDataset_id: datasetId,
+        ['metaDataset' + this.idSuffix]: datasetId,
         name: variableRecord.variable,
         description: variableRecord.description,
         isInMeta: true,
@@ -640,7 +650,7 @@ export default class Loader {
       const datasetRecord = dataset as Record<string, unknown>
       this.db.metaDataset.push({
         id: datasetId,
-        metaFolder_id: datasetRecord.folder,
+        ['metaFolder' + this.idSuffix]: datasetRecord.folder,
         name: datasetRecord.dataset,
         nb_row: 0,
         description: datasetRecord?.description,
@@ -711,7 +721,7 @@ export default class Loader {
       const datasetVariableId = tableName + '---' + variable
       this.db.metaVariable.push({
         id: datasetVariableId,
-        metaDataset_id: tableName,
+        ['metaDataset' + this.idSuffix]: tableName,
         name: variable,
         description: (
           this.metaVariable[datasetVariableId] as Record<string, unknown>

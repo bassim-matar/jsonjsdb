@@ -1,6 +1,7 @@
 import type { IntegrityResult, TableRow } from './types'
 
 export default class IntegrityChecker {
+  private idSuffix = '_id'
   private tables: string[] = []
   private tablesIds: Record<string, (string | number | undefined)[]> = {}
   private result: IntegrityResult
@@ -83,11 +84,11 @@ export default class IntegrityChecker {
   ): void {
     const tableData = db[table] as TableRow[]
     if (tableData.length === 0) return
-    if (!Object.keys(tableData[0]).includes('parent_id')) return
+    if (!Object.keys(tableData[0]).includes('parent' + this.idSuffix)) return
 
     const parentIdSame: (string | number)[] = []
     for (const row of tableData) {
-      if (row.id != null && row.id === row.parent_id) {
+      if (row.id != null && row.id === row['parent' + this.idSuffix]) {
         parentIdSame.push(row.id)
       }
     }
@@ -102,13 +103,21 @@ export default class IntegrityChecker {
   ): void {
     const tableData = db[table] as TableRow[]
     if (tableData.length === 0) return
-    if (!Object.keys(tableData[0]).includes('parent_id')) return
+    if (!Object.keys(tableData[0]).includes('parent' + this.idSuffix)) return
 
     const parentIdNotFound: (string | number)[] = []
     for (const row of tableData) {
-      if (row.parent_id === null || row.parent_id === '') continue
-      if (!this.tablesIds[table].includes(row.parent_id as string | number)) {
-        parentIdNotFound.push(row.parent_id as string | number)
+      if (
+        row['parent' + this.idSuffix] === null ||
+        row['parent' + this.idSuffix] === ''
+      )
+        continue
+      if (
+        !this.tablesIds[table].includes(
+          row['parent' + this.idSuffix] as string | number,
+        )
+      ) {
+        parentIdNotFound.push(row['parent' + this.idSuffix] as string | number)
       }
     }
     if (parentIdNotFound.length > 0) {
@@ -123,17 +132,17 @@ export default class IntegrityChecker {
     const foreignTables: string[] = []
     for (const variable in tableData[0]) {
       if (
-        variable !== 'parent_id' &&
-        variable.endsWith('_id') &&
-        this.tables.includes(variable.slice(0, -3))
+        variable !== 'parent' + this.idSuffix &&
+        variable.endsWith(this.idSuffix) &&
+        this.tables.includes(variable.slice(0, -this.idSuffix.length))
       ) {
-        foreignTables.push(variable.slice(0, -3))
+        foreignTables.push(variable.slice(0, -this.idSuffix.length))
       }
     }
 
     const foreignIdNotFound: Record<string, (string | number)[]> = {}
     for (const foreignTable of foreignTables) {
-      const foreignVar = foreignTable + '_id'
+      const foreignVar = foreignTable + this.idSuffix
       const foreignTableIdNotFound: (string | number)[] = []
 
       for (const row of tableData) {

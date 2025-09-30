@@ -51,6 +51,7 @@ export default class Jsonjsdb<
   integrityChecker: IntegrityChecker
   tables!: TableCollection<TEntityTypeMap>
   metadata!: DatabaseMetadata
+  private idSuffix = '_id'
   private _use: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
   private _useRecursive: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
 
@@ -202,8 +203,8 @@ export default class Jsonjsdb<
       foreignValue = foreignValue as string | number
     }
 
-    let foreignKey = foreignTable + '_id'
-    if (foreignTable === table) foreignKey = 'parent_id'
+    let foreignKey = foreignTable + this.idSuffix
+    if (foreignTable === table) foreignKey = 'parent' + this.idSuffix
 
     const indexAll = this.metadata.index[table][foreignKey]
     if (!indexAll || !(foreignValue in indexAll)) return []
@@ -290,7 +291,7 @@ export default class Jsonjsdb<
     relatedTable: string,
   ): number {
     if (!(relatedTable in this.metadata.index)) return 0
-    const index = this.metadata.index[relatedTable][table + '_id']
+    const index = this.metadata.index[relatedTable][table + this.idSuffix]
     if (!index) return 0
     if (!(id in index)) return 0
     const indexValue = index[id]
@@ -312,7 +313,7 @@ export default class Jsonjsdb<
     while (iterationNum < iterationMax) {
       iterationNum += 1
       const parentRow = parent as TEntityTypeMap[K]
-      const parentId = parentRow.parent_id
+      const parentId = parentRow['parent' + this.idSuffix]
 
       if ([0, '', null].includes(parentId as string | number))
         return parents.reverse()
@@ -325,7 +326,7 @@ export default class Jsonjsdb<
           'get_parents() type',
           from,
           'cannot find id',
-          parentBeforeRow.parent_id,
+          parentBeforeRow['parent' + this.idSuffix],
         )
         return []
       }
@@ -364,7 +365,7 @@ export default class Jsonjsdb<
       if (
         firstItem &&
         typeof firstItem === 'object' &&
-        'parent_id' in firstItem
+        'parent' + this.idSuffix in firstItem
       ) {
         ;(this._useRecursive as Record<string, boolean>)[entity] = true
       }
