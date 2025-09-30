@@ -1,7 +1,13 @@
 import DBrowser from './DBrowser'
 import Loader from './Loader'
 import IntegrityChecker from './IntegrityChecker'
-import type { IntegrityResult, Schema, DatabaseMetadata } from './types'
+import type {
+  IntegrityResult,
+  Schema,
+  DatabaseMetadata,
+  DatabaseRow,
+  TableCollection,
+} from './types'
 
 type JsonjsdbConfig = {
   path: string
@@ -13,12 +19,6 @@ type JsonjsdbConfig = {
 }
 
 type PartialJsonjsdbConfig = Partial<JsonjsdbConfig>
-
-type DatabaseRow = {
-  id?: string | number
-  parent_id?: string | number | null
-  [key: string]: unknown
-}
 
 type InitOption = {
   filter?: {
@@ -47,7 +47,7 @@ export default class Jsonjsdb<
   browser: DBrowser
   loader: Loader
   integrityChecker: IntegrityChecker
-  tables!: TEntityTypeMap
+  tables!: TableCollection<TEntityTypeMap>
   metadata!: DatabaseMetadata
   private _use: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
   private _useRecursive: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
@@ -117,7 +117,7 @@ export default class Jsonjsdb<
       this.config.path,
       this.config.useCache,
       option,
-    )) as TEntityTypeMap
+    )) as TableCollection<TEntityTypeMap>
     this.metadata = this.loader.metadata
 
     this.computeUsage()
@@ -364,6 +364,9 @@ export default class Jsonjsdb<
 
   async checkIntegrity(): Promise<IntegrityResult> {
     await this.loader.loadTables(this.config.path, false)
-    return this.integrityChecker.check(this.loader.db, this.metadata.tables)
+    return this.integrityChecker.check(
+      this.loader.db,
+      this.loader.metadata.tables,
+    )
   }
 }

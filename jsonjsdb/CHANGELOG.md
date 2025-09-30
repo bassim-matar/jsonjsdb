@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.7.2 (2025-09-30)
+
+- fix: tables type and and checkIntegrity method in Jsonjsdb class
+
 ## 0.7.1 (2025-09-29)
 
 - add: support for undefined values in ForeignTableObj interface

@@ -40,3 +40,15 @@ export type TableInfo = {
   last_modif?: string | number
   alias?: boolean
 }
+
+export type DatabaseRow = {
+  id?: string | number
+  parent_id?: string | number | null
+  [key: string]: unknown
+}
+
+export type TableCollection<
+  TEntityTypeMap extends Record<string, DatabaseRow>,
+> = {
+  [K in keyof TEntityTypeMap]: TEntityTypeMap[K][]
+}
