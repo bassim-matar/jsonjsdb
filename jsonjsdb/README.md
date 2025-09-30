@@ -123,6 +123,7 @@ By default, the application uses a configuration automatically embedded in your 
 - **data-app-name**: Application identifier (keep as `"dtnr"`)
 - **data-path**: Path to your database folder (usually `"data/db"`)
 - **data-db-key**: Unique key for your data instance (generate new one if needed)
+- **data-escape-html**: Set to `"false"` to disable automatic HTML escaping (default: `"true"`, secure by default)
 
 You can customize this configuration by passing the ID of the HTML div containing the configuration:
 
@@ -205,7 +206,11 @@ Creates a new Jsonjsdb instance.
 const db = new Jsonjsdb()
 
 // Custom configuration object
-const db = new Jsonjsdb({ path: 'data/db', appName: 'myapp' })
+const db = new Jsonjsdb({
+  path: 'data/db',
+  appName: 'myapp',
+  escapeHtml: false,
+})
 
 // HTML configuration selector
 const db = new Jsonjsdb('#my-config')
@@ -229,26 +234,37 @@ Initializes the database by loading all tables.
 const db = new Jsonjsdb()
 const result = await db.init()
 console.log('Database initialized:', result === db) // true
+
+// Disable HTML escaping for this initialization
+await db.init({ escapeHtml: false })
 ```
 
 **Parameters:**
 
 - `option` (optional): Configuration options for initialization
+  - `escapeHtml` (boolean): Enable/disable HTML escaping (default: `true`)
+  - `filter`: Filter options
+  - `aliases`: Table aliases
+  - Other options...
 
 **Returns:** Promise<Jsonjsdb> - Returns the database instance
 
-#### `load(filePath, name)`
+#### `load(filePath, name, escapeHtml?)`
 
 Loads a specific jsonjs file.
 
 ```js
 const data = await db.load('custom_table.json.js', 'custom_table')
+
+// Load without HTML escaping
+const rawData = await db.load('custom.json.js', 'custom', false)
 ```
 
 **Parameters:**
 
 - `filePath`: Path to the jsonjs file (relative to db path)
 - `name`: Name for the loaded data
+- `escapeHtml` (optional): Enable/disable HTML escaping (default: `true`)
 
 **Returns:** Promise<any>
 

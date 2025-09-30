@@ -363,4 +363,139 @@ describe('jsonjsdb', () => {
       expect(Array.isArray(result.emptyId)).toBe(true)
     })
   })
+
+  describe('HTML escaping - global vs local options', () => {
+    it('should escape HTML by default (global: true, local: default)', async () => {
+      const dbTest = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        browserKey: 'gdf9898fdsTEST1',
+        path: 'test/db',
+      })
+      await dbTest.init({ escapeHtml: true })
+
+      const userTags = dbTest.getAll('user_tag')
+      expect(userTags[0].note).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      )
+      expect(userTags[1].note).toBe('Safe &lt;b&gt;content&lt;/b&gt;')
+    })
+
+    it('should not escape HTML when global option is false', async () => {
+      const dbTest = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        browserKey: 'gdf9898fdsTEST2',
+        path: 'test/db',
+      })
+      await dbTest.init({ escapeHtml: false })
+
+      const userTags = dbTest.getAll('user_tag')
+      expect(userTags[0].note).toBe('<script>alert("xss")</script>')
+      expect(userTags[1].note).toBe('Safe <b>content</b>')
+    })
+
+    it('should use local option (false) when global is true', async () => {
+      const dbTest = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        browserKey: 'gdf9898fdsTEST3',
+        path: 'test/db',
+      })
+      await dbTest.init({ escapeHtml: true })
+
+      const data = await dbTest.load('', 'user_tag', false)
+      expect((data[0] as any).note).toBe('<script>alert("xss")</script>')
+      expect((data[1] as any).note).toBe('Safe <b>content</b>')
+
+      const userTags = dbTest.getAll('user_tag')
+      expect(userTags[0].note).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      )
+    })
+
+    it('should use local option (true) when global is false', async () => {
+      const dbTest = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        browserKey: 'gdf9898fdsTEST4',
+        path: 'test/db',
+      })
+      await dbTest.init({ escapeHtml: false })
+
+      const data = await dbTest.load('', 'user_tag', true)
+      expect((data[0] as any).note).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      )
+      expect((data[1] as any).note).toBe('Safe &lt;b&gt;content&lt;/b&gt;')
+
+      const userTags = dbTest.getAll('user_tag')
+      expect(userTags[0].note).toBe('<script>alert("xss")</script>')
+    })
+
+    it('should not affect global option after local calls', async () => {
+      const dbTest = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        browserKey: 'gdf9898fdsTEST5',
+        path: 'test/db',
+      })
+      await dbTest.init({ escapeHtml: true })
+
+      let userTags = dbTest.getAll('user_tag')
+      expect(userTags[0].note).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      )
+
+      await dbTest.load('', 'user_tag', false)
+
+      userTags = dbTest.getAll('user_tag')
+      expect(userTags[0].note).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      )
+
+      await dbTest.load('', 'user_tag', true)
+
+      userTags = dbTest.getAll('user_tag')
+      expect(userTags[0].note).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      )
+    })
+
+    it('should use config.escapeHtml when set in constructor', async () => {
+      const dbTest1 = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        browserKey: 'gdf9898fdsTEST6',
+        path: 'test/db',
+        escapeHtml: false,
+      })
+      await dbTest1.init()
+
+      let userTags = dbTest1.getAll('user_tag')
+      expect(userTags[0].note).toBe('<script>alert("xss")</script>')
+
+      const dbTest2 = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        browserKey: 'gdf9898fdsTEST7',
+        path: 'test/db',
+        escapeHtml: true,
+      })
+      await dbTest2.init()
+
+      userTags = dbTest2.getAll('user_tag')
+      expect(userTags[0].note).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      )
+    })
+
+    it('should override config.escapeHtml with init option', async () => {
+      const dbTest = new Jsonjsdb({
+        dbKey: 'gdf9898fds',
+        browserKey: 'gdf9898fdsTEST8',
+        path: 'test/db',
+        escapeHtml: false,
+      })
+      await dbTest.init({ escapeHtml: true })
+
+      const userTags = dbTest.getAll('user_tag')
+      expect(userTags[0].note).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      )
+    })
+  })
 })

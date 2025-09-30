@@ -16,6 +16,7 @@ type JsonjsdbConfig = {
   appName: string
   useCache: boolean
   useEncryption: boolean
+  escapeHtml: boolean
 }
 
 type PartialJsonjsdbConfig = Partial<JsonjsdbConfig>
@@ -30,6 +31,7 @@ type InitOption = {
   useCache?: boolean
   version?: number | string
   limit?: number
+  escapeHtml?: boolean
 }
 
 type ForeignTableObj = {
@@ -60,6 +62,7 @@ export default class Jsonjsdb<
       appName: 'jsonjsdb',
       useCache: false,
       useEncryption: false,
+      escapeHtml: true,
     }
 
     let processedConfig: PartialJsonjsdbConfig = {}
@@ -76,7 +79,7 @@ export default class Jsonjsdb<
       this.config.appName,
       this.config.useEncryption,
     )
-    this.loader = new Loader(this.browser)
+    this.loader = new Loader(this.browser, this.config.escapeHtml)
     this.integrityChecker = new IntegrityChecker()
   }
   private getHtmlConfig(
@@ -98,6 +101,7 @@ export default class Jsonjsdb<
     if (dataset.useCache) config.useCache = dataset.useCache === 'true'
     if (dataset.useEncryption)
       config.useEncryption = dataset.useEncryption === 'true'
+    if (dataset.escapeHtml) config.escapeHtml = dataset.escapeHtml === 'true'
 
     return config
   }
@@ -123,11 +127,20 @@ export default class Jsonjsdb<
     this.computeUsage()
     return this
   }
-  async load(filePath: string, name: string): Promise<unknown[]> {
+  async load(
+    filePath: string,
+    name: string,
+    escapeHtml = true,
+  ): Promise<unknown[]> {
     filePath = this.config.path + '/' + filePath
-    const data = await this.loader.loadJsonjs(filePath, name)
+    const data = await this.loader.loadJsonjs(filePath, name, {
+      useCache: false,
+      version: Date.now(),
+      escapeHtml,
+    })
     return data
   }
+
   get<K extends keyof TEntityTypeMap>(
     table: K & string,
     id: string | number,

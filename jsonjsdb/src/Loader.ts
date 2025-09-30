@@ -1,3 +1,4 @@
+import escapeHtml from 'escape-html'
 import DBrowser from './DBrowser'
 import type { DatabaseMetadata, TableInfo, TableRow } from './types'
 
@@ -10,6 +11,7 @@ type LoadOption = {
   aliases?: Array<{ table: string; alias: string }>
   useCache?: boolean
   version?: number | string
+  escapeHtml?: boolean
 }
 
 declare global {
@@ -28,6 +30,7 @@ export default class Loader {
   private tableIndexCache?: Record<string, string | number | undefined>
   private lastModifTimestamp?: number
   private metaVariable: Record<string, unknown> = {}
+  private escapeHtml = true
 
   public db: Record<string, TableRow[]> = {}
 
@@ -43,15 +46,18 @@ export default class Loader {
     dbSchema: undefined,
   }
 
-  constructor(browser: DBrowser) {
+  constructor(browser: DBrowser, escapeHtml = true) {
     window.jsonjs = {}
     this.browser = browser
+    this.escapeHtml = escapeHtml
   }
   async load(
     path: string,
     useCache = false,
     option: LoadOption = {},
   ): Promise<Record<string, unknown>> {
+    const defaultEscapeHtml = this.escapeHtml
+    this.escapeHtml = option.escapeHtml ?? defaultEscapeHtml
     await this.loadTables(path, useCache)
     this.normalizeSchema()
     if (option.filter?.values?.length && option.filter.values.length > 0) {
@@ -93,8 +99,11 @@ export default class Loader {
         }
         let data = window.jsonjs.data![tableName]
         delete window.jsonjs.data![tableName]
+        const shouldEscape = option?.escapeHtml ?? this.escapeHtml
         if (data.length > 0 && Array.isArray(data[0])) {
-          data = this.arrayToObject(data as unknown[][])
+          data = this.arrayToObject(data as unknown[][], shouldEscape)
+        } else {
+          data = this.applyEscapeHtml(data, shouldEscape)
         }
         resolve(data)
         document.querySelectorAll(`script[src="${src}"]`)[0].remove()
@@ -112,18 +121,41 @@ export default class Loader {
       document.head.appendChild(script)
     })
   }
-  private arrayToObject(data: unknown[][]): Record<string, unknown>[] {
-    const [headers, ...rows] = data
-    const headerArray = headers as unknown[]
-    const rowArrays = rows as unknown[][]
-
-    return rowArrays.map((row): Record<string, unknown> => {
-      const rowArray = row as unknown[]
-      return rowArray.reduce<Record<string, unknown>>((acc, item, index) => {
-        const key = headerArray[index] as string
-        return { ...acc, [key]: item }
-      }, {})
-    })
+  private arrayToObject(
+    data: unknown[][],
+    shouldEscape = true,
+  ): Record<string, unknown>[] {
+    if (data.length === 0) return []
+    const headers = data[0].map(h => String(h))
+    const headersLength = headers.length
+    const dataLength = data.length
+    const records = new Array<Record<string, unknown>>(dataLength - 1)
+    for (let i = 1; i < dataLength; i += 1) {
+      const row = data[i]
+      const rowObject: Record<string, unknown> = {}
+      for (let j = 0; j < headersLength; j += 1) {
+        const value = row[j]
+        rowObject[headers[j]] =
+          typeof value === 'string' && shouldEscape ? escapeHtml(value) : value
+      }
+      records[i - 1] = rowObject
+    }
+    return records
+  }
+  private applyEscapeHtml(data: unknown[], shouldEscape = true): unknown[] {
+    if (!shouldEscape || data.length === 0) return data
+    const dataLength = data.length
+    const records = new Array<Record<string, unknown>>(dataLength)
+    for (let i = 0; i < dataLength; i += 1) {
+      const row = data[i] as Record<string, unknown>
+      const rowObject: Record<string, unknown> = {}
+      for (const key in row) {
+        const value = row[key]
+        rowObject[key] = typeof value === 'string' ? escapeHtml(value) : value
+      }
+      records[i] = rowObject
+    }
+    return records
   }
   private isInCache(tableName: string, version?: number | string): boolean {
     if (!this.tableIndexCache) return false
@@ -134,7 +166,11 @@ export default class Loader {
   async loadJsonjs(
     path: string,
     tableName: string,
-    option?: { useCache: boolean; version: number | string },
+    option?: {
+      useCache: boolean
+      version: number | string
+      escapeHtml?: boolean
+    },
   ): Promise<unknown[]> {
     if (path.slice(-1) === '/') path = path.slice(0, -1)
     if (window.jsonjs === undefined) window.jsonjs = {}
@@ -184,6 +220,7 @@ export default class Loader {
         this.loadJsonjs(path, table.name, {
           version: table.last_modif ?? Date.now(),
           useCache: useCache,
+          escapeHtml: this.escapeHtml,
         }),
       )
     }
@@ -485,7 +522,7 @@ export default class Loader {
       dbSchema.length > 0 &&
       Array.isArray(dbSchema[0])
     ) {
-      dbSchema = this.arrayToObject(dbSchema as unknown[][])
+      dbSchema = this.arrayToObject(dbSchema as unknown[][], this.escapeHtml)
     }
     this.metadata.dbSchema = dbSchema
   }
