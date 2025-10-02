@@ -123,7 +123,7 @@ By default, the application uses a configuration automatically embedded in your 
 - **data-app-name**: Application identifier (keep as `"dtnr"`)
 - **data-path**: Path to your database folder (usually `"data/db"`)
 - **data-db-key**: Unique key for your data instance (generate new one if needed)
-- **data-escape-html**: Set to `"false"` to disable automatic HTML escaping (default: `"true"`, secure by default)
+- **data-valid-id-chars** (optional): Valid characters for IDs (default: `"a-zA-Z0-9_,-"`). Invalid characters will be removed automatically
 
 You can customize this configuration by passing the ID of the HTML div containing the configuration:
 
@@ -193,6 +193,14 @@ To implement relational database functionality, specific naming conventions are 
 - Foreign keys are columns named after the foreign table with the suffix _\_id_,
   for example: _yourTable_id_
 
+**ID Standardization:**
+
+All ID values (in `id`, `*_id`, and `*_ids` columns) are automatically cleaned to ensure data consistency:
+
+- Invalid characters are removed based on `validIdChars` configuration (default: alphanumeric, underscore, comma, hyphen)
+- Whitespace and special characters are stripped
+- Example: `"user@123"` → `"user123"`, `"tag 1, tag 2"` → `"tag1,tag2"`
+
 ## API Reference
 
 ### Constructor
@@ -209,7 +217,7 @@ const db = new Jsonjsdb()
 const db = new Jsonjsdb({
   path: 'data/db',
   appName: 'myapp',
-  escapeHtml: false,
+  validIdChars: 'a-zA-Z0-9',
 })
 
 // HTML configuration selector
@@ -219,6 +227,10 @@ const db = new Jsonjsdb('#my-config')
 **Parameters:**
 
 - `config` (optional): Configuration object or string selector for HTML configuration element
+  - `path`: Path to database folder
+  - `appName`: Application name
+  - `validIdChars`: Valid characters for IDs (default: `'a-zA-Z0-9_,-'`)
+  - Other options...
 
 **Returns:** Jsonjsdb instance
 
@@ -235,36 +247,30 @@ const db = new Jsonjsdb()
 const result = await db.init()
 console.log('Database initialized:', result === db) // true
 
-// Disable HTML escaping for this initialization
-await db.init({ escapeHtml: false })
+await db.init()
 ```
 
 **Parameters:**
 
 - `option` (optional): Configuration options for initialization
-  - `escapeHtml` (boolean): Enable/disable HTML escaping (default: `true`)
   - `filter`: Filter options
   - `aliases`: Table aliases
   - Other options...
 
 **Returns:** Promise<Jsonjsdb> - Returns the database instance
 
-#### `load(filePath, name, escapeHtml?)`
+#### `load(filePath, name)`
 
 Loads a specific jsonjs file.
 
 ```js
 const data = await db.load('custom_table.json.js', 'custom_table')
-
-// Load without HTML escaping
-const rawData = await db.load('custom.json.js', 'custom', false)
 ```
 
 **Parameters:**
 
 - `filePath`: Path to the jsonjs file (relative to db path)
 - `name`: Name for the loaded data
-- `escapeHtml` (optional): Enable/disable HTML escaping (default: `true`)
 
 **Returns:** Promise<any>
 

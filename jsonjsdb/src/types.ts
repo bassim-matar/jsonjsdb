@@ -1,3 +1,15 @@
+export type JsonjsdbConfig = {
+  path: string
+  dbKey: string | boolean
+  browserKey: string | boolean
+  appName: string
+  useCache: boolean
+  useEncryption: boolean
+  validIdChars: string
+}
+
+export type PartialJsonjsdbConfig = Partial<JsonjsdbConfig>
+
 export type IntegrityResult = {
   emptyId: string[]
   duplicateId: Record<string, (string | number)[]>
