@@ -19,12 +19,12 @@ export const evolutionSchema = [
   {
     column: 'entity_id',
     type: String,
-    value: (row: EvolutionEntry) => String(row.entity_id || ''),
+    value: (row: EvolutionEntry) => String(row.entityId || ''),
   },
   {
     column: 'parent_entity_id',
     type: String,
-    value: (row: EvolutionEntry) => String(row.parent_entity_id || ''),
+    value: (row: EvolutionEntry) => String(row.parentEntityId || ''),
   },
   {
     column: 'variable',
@@ -34,12 +34,12 @@ export const evolutionSchema = [
   {
     column: 'old_value',
     type: String,
-    value: (row: EvolutionEntry) => String(row.old_value || ''),
+    value: (row: EvolutionEntry) => String(row.oldValue || ''),
   },
   {
     column: 'new_value',
     type: String,
-    value: (row: EvolutionEntry) => String(row.new_value || ''),
+    value: (row: EvolutionEntry) => String(row.newValue || ''),
   },
   {
     column: 'name',

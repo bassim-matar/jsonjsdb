@@ -6,8 +6,8 @@ type UserWithEmail = { id: number; name: string; email: string }
 type UserWithCompany = {
   id: number
   name: string
-  company_id: number
-  department_id: number
+  companyId: number
+  departmentId: number
 }
 
 const assertDefined = <T>(value: T | undefined): T => {
@@ -88,7 +88,7 @@ describe('compareDatasets', () => {
 
       expect(result).toHaveLength(1)
       expect(result[0].type).toBe('add')
-      expect(result[0].entity_id).toBe('Jane---jane@test.com')
+      expect(result[0].entityId).toBe('Jane---jane@test.com')
     })
 
     it('should throw error when dataset has insufficient columns for ID generation', () => {
@@ -116,11 +116,11 @@ describe('compareDatasets', () => {
         timestamp: mockTimestamp,
         type: 'add',
         entity: 'user',
-        entity_id: 2,
-        parent_entity_id: null,
+        entityId: 2,
+        parentEntityId: null,
         variable: null,
-        old_value: null,
-        new_value: null,
+        oldValue: null,
+        newValue: null,
         name: null,
       })
     })
@@ -137,7 +137,7 @@ describe('compareDatasets', () => {
 
       expect(result).toHaveLength(2)
       expect(result.every(entry => entry.type === 'add')).toBe(true)
-      expect(result.map(entry => entry.entity_id)).toEqual([2, 3])
+      expect(result.map(entry => entry.entityId)).toEqual([2, 3])
     })
 
     it('should detect additions when old dataset is empty', () => {
@@ -157,10 +157,10 @@ describe('compareDatasets', () => {
   describe('Delete operations', () => {
     it('should detect deleted records', () => {
       const oldData = [
-        { id: 1, name: 'John', company_id: 5 },
-        { id: 2, name: 'Jane', company_id: 3 },
+        { id: 1, name: 'John', companyId: 5 },
+        { id: 2, name: 'Jane', companyId: 3 },
       ]
-      const newData = [{ id: 1, name: 'John', company_id: 5 }]
+      const newData = [{ id: 1, name: 'John', companyId: 5 }]
 
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
@@ -169,16 +169,16 @@ describe('compareDatasets', () => {
         timestamp: mockTimestamp,
         type: 'delete',
         entity: 'user',
-        entity_id: 2,
-        parent_entity_id: 3, // First _id field found
+        entityId: 2,
+        parentEntityId: 3, // First _id field found
         variable: null,
-        old_value: null,
-        new_value: null,
+        oldValue: null,
+        newValue: null,
         name: 'Jane', // name field if exists
       })
     })
 
-    it('should handle records without parent_id or name', () => {
+    it('should handle records without parentId or name', () => {
       const oldData = [
         { id: 1, email: 'john@test.com' },
         { id: 2, email: 'jane@test.com' },
@@ -188,7 +188,7 @@ describe('compareDatasets', () => {
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
       expect(result).toHaveLength(1)
-      expect(result[0].parent_entity_id).toBe(null)
+      expect(result[0].parentEntityId).toBe(null)
       expect(result[0].name).toBe(null)
     })
 
@@ -224,11 +224,11 @@ describe('compareDatasets', () => {
         timestamp: mockTimestamp,
         type: 'update',
         entity: 'user',
-        entity_id: 1,
-        parent_entity_id: null,
+        entityId: 1,
+        parentEntityId: null,
         variable: 'name',
-        old_value: 'John',
-        new_value: 'Johnny',
+        oldValue: 'John',
+        newValue: 'Johnny',
         name: null,
       })
 
@@ -236,11 +236,11 @@ describe('compareDatasets', () => {
         timestamp: mockTimestamp,
         type: 'update',
         entity: 'user',
-        entity_id: 1,
-        parent_entity_id: null,
+        entityId: 1,
+        parentEntityId: null,
         variable: 'email',
-        old_value: 'john@old.com',
-        new_value: 'john@new.com',
+        oldValue: 'john@old.com',
+        newValue: 'john@new.com',
         name: null,
       })
     })
@@ -261,28 +261,28 @@ describe('compareDatasets', () => {
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
       expect(result).toHaveLength(1)
-      expect(result[0].old_value).toBe(null)
-      expect(result[0].new_value).toBe('New description')
+      expect(result[0].oldValue).toBe(null)
+      expect(result[0].newValue).toBe('New description')
     })
 
     it('should handle new and removed fields', () => {
-      const oldData = [{ id: 1, name: 'John', old_field: 'value' }]
-      const newData = [{ id: 1, name: 'John', new_field: 'new_value' }]
+      const oldData = [{ id: 1, name: 'John', oldField: 'value' }]
+      const newData = [{ id: 1, name: 'John', newField: 'new_value' }]
 
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
       expect(result).toHaveLength(2)
 
-      const removedField = result.find(entry => entry.variable === 'old_field')
-      const addedField = result.find(entry => entry.variable === 'new_field')
+      const removedField = result.find(entry => entry.variable === 'oldField')
+      const addedField = result.find(entry => entry.variable === 'newField')
 
       expect(removedField).toBeDefined()
       expect(addedField).toBeDefined()
-      expect(assertDefined(removedField).old_value).toBe('value')
-      expect(assertDefined(removedField).new_value).toBe(null)
+      expect(assertDefined(removedField).oldValue).toBe('value')
+      expect(assertDefined(removedField).newValue).toBe(null)
 
-      expect(assertDefined(addedField).old_value).toBe(null)
-      expect(assertDefined(addedField).new_value).toBe('new_value')
+      expect(assertDefined(addedField).oldValue).toBe(null)
+      expect(assertDefined(addedField).newValue).toBe('new_value')
     })
   })
 
@@ -311,10 +311,10 @@ describe('compareDatasets', () => {
 
       expect(addEntry).toBeDefined()
       expect(deleteEntry).toBeDefined()
-      expect(assertDefined(addEntry).entity_id).toBe(4)
-      expect(assertDefined(deleteEntry).entity_id).toBe(2)
+      expect(assertDefined(addEntry).entityId).toBe(4)
+      expect(assertDefined(deleteEntry).entityId).toBe(2)
       expect(updateEntries).toHaveLength(2)
-      expect(updateEntries.every(entry => entry.entity_id === 1)).toBe(true)
+      expect(updateEntries.every(entry => entry.entityId === 1)).toBe(true)
     })
   })
 
@@ -338,12 +338,12 @@ describe('compareDatasets', () => {
       expect(ageUpdate).toBeDefined()
       expect(activeUpdate).toBeDefined()
       expect(scoreUpdate).toBeDefined()
-      expect(assertDefined(ageUpdate).old_value).toBe(25)
-      expect(assertDefined(ageUpdate).new_value).toBe(26)
-      expect(assertDefined(activeUpdate).old_value).toBe(true)
-      expect(assertDefined(activeUpdate).new_value).toBe(false)
-      expect(assertDefined(scoreUpdate).old_value).toBe(95.5)
-      expect(assertDefined(scoreUpdate).new_value).toBe(97.2)
+      expect(assertDefined(ageUpdate).oldValue).toBe(25)
+      expect(assertDefined(ageUpdate).newValue).toBe(26)
+      expect(assertDefined(activeUpdate).oldValue).toBe(true)
+      expect(assertDefined(activeUpdate).newValue).toBe(false)
+      expect(assertDefined(scoreUpdate).oldValue).toBe(95.5)
+      expect(assertDefined(scoreUpdate).newValue).toBe(97.2)
     })
 
     it('should handle string and number IDs', () => {
@@ -366,8 +366,8 @@ describe('compareDatasets', () => {
 
       expect(updateEntry).toBeDefined()
       expect(addEntry).toBeDefined()
-      expect(assertDefined(updateEntry).entity_id).toBe('user_1')
-      expect(assertDefined(addEntry).entity_id).toBe('user_2')
+      expect(assertDefined(updateEntry).entityId).toBe('user_1')
+      expect(assertDefined(addEntry).entityId).toBe('user_2')
     })
   })
 
@@ -375,14 +375,12 @@ describe('compareDatasets', () => {
     it('should return first _id field found', () => {
       // We need to access the helper function through the module
       // Since it's not exported, we'll test it indirectly through the delete operation
-      const oldData = [
-        { id: 1, name: 'John', company_id: 5, department_id: 10 },
-      ]
+      const oldData = [{ id: 1, name: 'John', companyId: 5, departmentId: 10 }]
       const newData: UserWithCompany[] = []
 
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
-      expect(result[0].parent_entity_id).toBe(5) // Should be company_id, first _id field
+      expect(result[0].parentEntityId).toBe(5) // Should be company_id, first _id field
     })
 
     it('should return null when no _id fields exist', () => {
@@ -391,7 +389,7 @@ describe('compareDatasets', () => {
 
       const result = compareDatasets(oldData, newData, mockTimestamp, 'user')
 
-      expect(result[0].parent_entity_id).toBe(null)
+      expect(result[0].parentEntityId).toBe(null)
     })
   })
 })

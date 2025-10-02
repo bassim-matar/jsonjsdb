@@ -41,9 +41,10 @@ export default class Jsonjsdb<
   integrityChecker: IntegrityChecker
   tables!: TableCollection<TEntityTypeMap>
   metadata!: DatabaseMetadata
-  private idSuffix = '_id'
-  private _use: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
-  private _useRecursive: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
+  private idSuffix = 'Id'
+  private usageCache: Partial<Record<keyof TEntityTypeMap, boolean>> = {}
+  private recursiveUsageCache: Partial<Record<keyof TEntityTypeMap, boolean>> =
+    {}
 
   constructor(config?: string | PartialJsonjsdbConfig) {
     this.defaultConfig = {
@@ -152,9 +153,9 @@ export default class Jsonjsdb<
       if (!this.tables[table]) {
         console.error(`table ${table} not found`)
       } else if (!this.metadata.index[table]) {
-        console.error(`table ${table} not found in __index__`)
+        console.error(`table ${table} not found in index`)
       } else if (!('id' in this.metadata.index[table])) {
-        console.error(`table ${table}, props "id" not found in __index__`)
+        console.error(`table ${table}, props "id" not found in index`)
       } else {
         console.error(`error not handled`)
       }
@@ -202,7 +203,7 @@ export default class Jsonjsdb<
 
     if (!Array.isArray(indexes)) {
       if (typeof indexes !== 'number' || !tableData[indexes]) {
-        console.error('get_all() table', table, 'has an index undefined')
+        console.error('getAll() table', table, 'has an index undefined')
         return []
       }
       return [tableData[indexes]]
@@ -212,7 +213,7 @@ export default class Jsonjsdb<
     for (const index of indexes) {
       if (option.limit && variables.length >= option.limit) break
       if (!tableData[index]) {
-        console.error('get_all() table', table, 'has an index undefined')
+        console.error('getAll() table', table, 'has an index undefined')
         continue
       }
       variables.push(tableData[index])
@@ -313,7 +314,7 @@ export default class Jsonjsdb<
       if (!parent) {
         const parentBeforeRow = parentBefore
         console.error(
-          'get_parents() type',
+          'getParents() type',
           from,
           'cannot find id',
           parentBeforeRow['parent' + this.idSuffix],
@@ -322,7 +323,7 @@ export default class Jsonjsdb<
       }
       parents.push(parent)
     }
-    console.error('get_parents()', from, id, 'iteration_max reached')
+    console.error('getParents()', from, id, 'iterationMax reached')
     return []
   }
   addMeta(userData?: Record<string, unknown>, dbSchema?: string[][]): void {
@@ -333,23 +334,23 @@ export default class Jsonjsdb<
   }
 
   get use(): Partial<Record<keyof TEntityTypeMap, boolean>> {
-    return this._use
+    return this.usageCache
   }
 
   get useRecursive(): Partial<Record<keyof TEntityTypeMap, boolean>> {
-    return this._useRecursive
+    return this.recursiveUsageCache
   }
 
   private computeUsage(): void {
-    this._use = {}
-    this._useRecursive = {}
+    this.usageCache = {}
+    this.recursiveUsageCache = {}
 
     for (const entity in this.tables) {
       const table = this.tables[entity]
       if (!Array.isArray(table)) continue
       if (table.length === 0) continue
       if (entity.includes('_')) continue
-      ;(this._use as Record<string, boolean>)[entity] = true
+      ;(this.usageCache as Record<string, boolean>)[entity] = true
 
       const firstItem = table[0]
       if (
@@ -357,7 +358,7 @@ export default class Jsonjsdb<
         typeof firstItem === 'object' &&
         'parent' + this.idSuffix in firstItem
       ) {
-        ;(this._useRecursive as Record<string, boolean>)[entity] = true
+        ;(this.recursiveUsageCache as Record<string, boolean>)[entity] = true
       }
     }
   }

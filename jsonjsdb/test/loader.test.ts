@@ -2,14 +2,26 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import Jsonjsdb from '../src/Jsonjsdb'
 import Loader from '../src/Loader'
 
+type LoaderPrivate = {
+  arrayToObject: (
+    data: unknown[][],
+    shouldStandardizeIds?: boolean,
+  ) => Record<string, unknown>[]
+  applyTransform: (data: unknown[], shouldStandardizeIds?: boolean) => unknown[]
+  standardizeId: (id: string) => string
+  isVariableId: (variable: string) => boolean
+}
+
 describe('Loader', () => {
   const dbKey = 'gdf9898fds'
   const path = 'test/db/' + dbKey
   let loader: Loader
+  let loaderPrivate: LoaderPrivate
 
   beforeEach(() => {
     const db = new Jsonjsdb({ dbKey, path: 'test/db' })
     loader = db.loader
+    loaderPrivate = loader as unknown as LoaderPrivate
   })
 
   describe('load_jsonjs()', () => {
@@ -48,9 +60,8 @@ describe('Loader', () => {
   describe('arrayToObject()', () => {
     it('should convert matrix data into objects', async () => {
       await loader.load(path)
-      const arrayToObject = (loader as any).arrayToObject.bind(loader)
 
-      const result = arrayToObject([
+      const result = loaderPrivate.arrayToObject([
         ['id', 'name', 'age'],
         [1, 'Alice', 30],
         [2, 'Bob'],
@@ -65,33 +76,27 @@ describe('Loader', () => {
 
   describe('standardizeId()', () => {
     it('should not modify valid IDs', async () => {
-      const standardizeId = (loader as any).standardizeId.bind(loader)
-
-      expect(standardizeId('user123')).toBe('user123')
-      expect(standardizeId('abc-def')).toBe('abc-def')
-      expect(standardizeId('abc_def')).toBe('abc_def')
-      expect(standardizeId('abc,def')).toBe('abc,def')
-      expect(standardizeId('ABC123')).toBe('ABC123')
+      expect(loaderPrivate.standardizeId('user123')).toBe('user123')
+      expect(loaderPrivate.standardizeId('abc-def')).toBe('abc-def')
+      expect(loaderPrivate.standardizeId('abc_def')).toBe('abc_def')
+      expect(loaderPrivate.standardizeId('abc,def')).toBe('abc,def')
+      expect(loaderPrivate.standardizeId('ABC123')).toBe('ABC123')
     })
 
     it('should remove invalid characters from IDs', async () => {
-      const standardizeId = (loader as any).standardizeId.bind(loader)
-
-      expect(standardizeId('user@123')).toBe('user123')
-      expect(standardizeId('user 123')).toBe('user 123') // spaces are valid
-      expect(standardizeId('user#123')).toBe('user123')
-      expect(standardizeId('user$123')).toBe('user123')
-      expect(standardizeId('user!@#$123')).toBe('user123')
+      expect(loaderPrivate.standardizeId('user@123')).toBe('user123')
+      expect(loaderPrivate.standardizeId('user 123')).toBe('user 123') // spaces are valid
+      expect(loaderPrivate.standardizeId('user#123')).toBe('user123')
+      expect(loaderPrivate.standardizeId('user$123')).toBe('user123')
+      expect(loaderPrivate.standardizeId('user!@#$123')).toBe('user123')
     })
 
     it('should trim leading and trailing spaces', async () => {
-      const standardizeId = (loader as any).standardizeId.bind(loader)
-
-      expect(standardizeId(' user123 ')).toBe('user123')
-      expect(standardizeId('user\t123')).toBe('user123') // tabs are invalid
-      expect(standardizeId('user\n123')).toBe('user123') // newlines are invalid
-      expect(standardizeId('A B C')).toBe('A B C') // internal spaces are kept
-      expect(standardizeId(' tag1, tag2 ')).toBe('tag1, tag2') // trim but keep internal spaces
+      expect(loaderPrivate.standardizeId(' user123 ')).toBe('user123')
+      expect(loaderPrivate.standardizeId('user\t123')).toBe('user123') // tabs are invalid
+      expect(loaderPrivate.standardizeId('user\n123')).toBe('user123') // newlines are invalid
+      expect(loaderPrivate.standardizeId('A B C')).toBe('A B C') // internal spaces are kept
+      expect(loaderPrivate.standardizeId(' tag1, tag2 ')).toBe('tag1, tag2') // trim but keep internal spaces
     })
 
     it('should handle custom validIdChars configuration', async () => {
@@ -101,22 +106,18 @@ describe('Loader', () => {
         validIdChars: 'a-z0-9',
       })
       const customLoader = db.loader
-      const standardizeId = (customLoader as any).standardizeId.bind(
-        customLoader,
-      )
+      const customLoaderPrivate = customLoader as unknown as LoaderPrivate
 
-      expect(standardizeId('abc123')).toBe('abc123')
-      expect(standardizeId('ABC123')).toBe('123')
-      expect(standardizeId('user_id')).toBe('userid')
-      expect(standardizeId('user-id')).toBe('userid')
+      expect(customLoaderPrivate.standardizeId('abc123')).toBe('abc123')
+      expect(customLoaderPrivate.standardizeId('ABC123')).toBe('123')
+      expect(customLoaderPrivate.standardizeId('user_id')).toBe('userid')
+      expect(customLoaderPrivate.standardizeId('user-id')).toBe('userid')
     })
   })
 
   describe('arrayToObject() with ID standardization', () => {
     it('should standardize IDs in columns ending with _id', async () => {
-      const arrayToObject = (loader as any).arrayToObject.bind(loader)
-
-      const result = arrayToObject(
+      const result = loaderPrivate.arrayToObject(
         [
           ['id', 'user_id', 'name'],
           ['usr@001', 'admin#123', 'Alice'],
@@ -126,15 +127,13 @@ describe('Loader', () => {
       )
 
       expect(result).toEqual([
-        { id: 'usr001', user_id: 'admin123', name: 'Alice' },
-        { id: 'usr 002', user_id: 'user 456', name: 'Bob' }, // internal spaces kept
+        { id: 'usr001', userId: 'admin123', name: 'Alice' },
+        { id: 'usr 002', userId: 'user 456', name: 'Bob' }, // internal spaces kept
       ])
     })
 
     it('should standardize IDs in columns ending with _ids', async () => {
-      const arrayToObject = (loader as any).arrayToObject.bind(loader)
-
-      const result = arrayToObject(
+      const result = loaderPrivate.arrayToObject(
         [
           ['id', 'tag_ids', 'name'],
           ['1', 'tag@1,tag 2', 'Item 1'],
@@ -144,15 +143,13 @@ describe('Loader', () => {
       )
 
       expect(result).toEqual([
-        { id: '1', tag_ids: 'tag1,tag 2', name: 'Item 1' }, // space after comma kept
-        { id: '2', tag_ids: 'tag3', name: 'Item 2' },
+        { id: '1', tagIds: 'tag1,tag 2', name: 'Item 1' }, // space after comma kept
+        { id: '2', tagIds: 'tag3', name: 'Item 2' },
       ])
     })
 
     it('should not standardize non-ID columns', async () => {
-      const arrayToObject = (loader as any).arrayToObject.bind(loader)
-
-      const result = arrayToObject(
+      const result = loaderPrivate.arrayToObject(
         [
           ['id', 'email', 'description'],
           ['1', 'user@example.com', 'Test #1'],
@@ -168,9 +165,7 @@ describe('Loader', () => {
     })
 
     it('should respect shouldStandardizeIds=false', async () => {
-      const arrayToObject = (loader as any).arrayToObject.bind(loader)
-
-      const result = arrayToObject(
+      const result = loaderPrivate.arrayToObject(
         [
           ['id', 'user_id', 'name'],
           ['usr@001', 'admin#123', 'Alice'],
@@ -179,58 +174,48 @@ describe('Loader', () => {
       )
 
       expect(result).toEqual([
-        { id: 'usr@001', user_id: 'admin#123', name: 'Alice' },
+        { id: 'usr@001', userId: 'admin#123', name: 'Alice' },
       ])
     })
   })
 
   describe('applyTransform() with ID standardization', () => {
     it('should standardize IDs in object format data', async () => {
-      const applyTransform = (loader as any).applyTransform.bind(loader)
-
       const data = [
-        { id: 'usr@001', user_id: 'admin#123', name: 'Alice' },
-        { id: 'usr 002', user_id: 'user 456', name: 'Bob' },
+        { id: 'usr@001', userId: 'admin#123', name: 'Alice' },
+        { id: 'usr 002', userId: 'user 456', name: 'Bob' },
       ]
 
-      const result = applyTransform(data, true)
+      const result = loaderPrivate.applyTransform(data, true)
 
       expect(result).toEqual([
-        { id: 'usr001', user_id: 'admin123', name: 'Alice' },
-        { id: 'usr 002', user_id: 'user 456', name: 'Bob' }, // internal spaces kept
+        { id: 'usr001', userId: 'admin123', name: 'Alice' },
+        { id: 'usr 002', userId: 'user 456', name: 'Bob' }, // internal spaces kept
       ])
     })
 
-    it('should handle parent_id field', async () => {
-      const applyTransform = (loader as any).applyTransform.bind(loader)
+    it('should handle parentId field', async () => {
+      const data = [{ id: 'cat@001', parentId: 'cat 000', name: 'Subcategory' }]
 
-      const data = [
-        { id: 'cat@001', parent_id: 'cat 000', name: 'Subcategory' },
-      ]
-
-      const result = applyTransform(data, true)
+      const result = loaderPrivate.applyTransform(data, true)
 
       expect(result).toEqual([
-        { id: 'cat001', parent_id: 'cat 000', name: 'Subcategory' }, // internal space kept
+        { id: 'cat001', parentId: 'cat 000', name: 'Subcategory' }, // internal space kept
       ])
     })
 
     it('should not standardize when shouldStandardizeIds=false', async () => {
-      const applyTransform = (loader as any).applyTransform.bind(loader)
+      const data = [{ id: 'usr@001', userId: 'admin#123', name: 'Alice' }]
 
-      const data = [{ id: 'usr@001', user_id: 'admin#123', name: 'Alice' }]
-
-      const result = applyTransform(data, false)
+      const result = loaderPrivate.applyTransform(data, false)
 
       expect(result).toEqual([
-        { id: 'usr@001', user_id: 'admin#123', name: 'Alice' },
+        { id: 'usr@001', userId: 'admin#123', name: 'Alice' },
       ])
     })
 
     it('should handle empty arrays', async () => {
-      const applyTransform = (loader as any).applyTransform.bind(loader)
-
-      const result = applyTransform([], true)
+      const result = loaderPrivate.applyTransform([], true)
 
       expect(result).toEqual([])
     })
@@ -238,16 +223,14 @@ describe('Loader', () => {
 
   describe('isVariableId()', () => {
     it('should identify ID variables correctly', async () => {
-      const isVariableId = (loader as any).isVariableId.bind(loader)
-
-      expect(isVariableId('id')).toBe(true)
-      expect(isVariableId('user_id')).toBe(true)
-      expect(isVariableId('parent_id')).toBe(true)
-      expect(isVariableId('tag_ids')).toBe(true)
-      expect(isVariableId('category_ids')).toBe(true)
-      expect(isVariableId('name')).toBe(false)
-      expect(isVariableId('email')).toBe(false)
-      expect(isVariableId('id_number')).toBe(false)
+      expect(loaderPrivate.isVariableId('id')).toBe(true)
+      expect(loaderPrivate.isVariableId('userId')).toBe(true)
+      expect(loaderPrivate.isVariableId('parentId')).toBe(true)
+      expect(loaderPrivate.isVariableId('tagIds')).toBe(true)
+      expect(loaderPrivate.isVariableId('categoryIds')).toBe(true)
+      expect(loaderPrivate.isVariableId('name')).toBe(false)
+      expect(loaderPrivate.isVariableId('email')).toBe(false)
+      expect(loaderPrivate.isVariableId('idNumber')).toBe(false)
     })
   })
 })

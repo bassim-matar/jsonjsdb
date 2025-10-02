@@ -4,11 +4,11 @@ export type EvolutionEntry = {
   timestamp: number
   type: 'add' | 'delete' | 'update'
   entity: string
-  entity_id: string | number
-  parent_entity_id: string | number | null
+  entityId: string | number
+  parentEntityId: string | number | null
   variable: string | null
-  old_value: unknown
-  new_value: unknown
+  oldValue: unknown
+  newValue: unknown
   name: string | null
 }
 
@@ -74,10 +74,10 @@ export function compareDatasets(
   const commonIds = [...idsOld].filter(id => idsNew.has(id))
 
   const modifications: {
-    entity_id: string | number
+    entityId: string | number
     variable: string
-    old_value: unknown
-    new_value: unknown
+    oldValue: unknown
+    newValue: unknown
   }[] = []
 
   for (const entityId of commonIds) {
@@ -94,10 +94,10 @@ export function compareDatasets(
       )
         continue
       modifications.push({
-        entity_id: entityId,
+        entityId: entityId,
         variable,
-        old_value: oldValue,
-        new_value: newValue,
+        oldValue: oldValue,
+        newValue: newValue,
       })
     }
   }
@@ -107,11 +107,11 @@ export function compareDatasets(
       timestamp,
       type: 'add',
       entity,
-      entity_id: entityId,
-      parent_entity_id: null,
+      entityId: entityId,
+      parentEntityId: null,
       variable: null,
-      old_value: null,
-      new_value: null,
+      oldValue: null,
+      newValue: null,
       name: null,
     })
   }
@@ -122,11 +122,11 @@ export function compareDatasets(
       timestamp,
       type: 'delete',
       entity,
-      entity_id: entityId,
-      parent_entity_id: getFirstParentId(objOld),
+      entityId: entityId,
+      parentEntityId: getFirstParentId(objOld),
       variable: null,
-      old_value: null,
-      new_value: null,
+      oldValue: null,
+      newValue: null,
       name: (objOld.name as string) || null,
     })
   }
@@ -136,11 +136,11 @@ export function compareDatasets(
       timestamp,
       type: 'update',
       entity,
-      entity_id: mod.entity_id,
-      parent_entity_id: null,
+      entityId: mod.entityId,
+      parentEntityId: null,
       variable: mod.variable,
-      old_value: mod.old_value,
-      new_value: mod.new_value,
+      oldValue: mod.oldValue,
+      newValue: mod.newValue,
       name: null,
     })
   }

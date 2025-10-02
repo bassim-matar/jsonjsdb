@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.7.5 (2025-10-02)
+
+- change: transform variable names to camelCase on data load
+
 ## 0.7.4 (2025-10-02)
 
 - change: update validIdChars configuration to allow spaces

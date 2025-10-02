@@ -28,8 +28,8 @@ declare global {
 
 export default class Loader {
   private tableIndex = '__table__'
-  private cachePrefix = 'db_cache/'
-  private idSuffix = '_id'
+  private cachePrefix = 'dbCache/'
+  private idSuffix = 'Id'
 
   private browser: DBrowser
   private tableIndexCache?: Record<string, string | number | undefined>
@@ -149,12 +149,16 @@ export default class Loader {
     return cleaned
   }
 
+  private snakeToCamel(str: string): string {
+    return str.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase())
+  }
+
   private arrayToObject(
     data: unknown[][],
     shouldStandardizeIds = true,
   ): Record<string, unknown>[] {
     if (data.length === 0) return []
-    const headers = data[0].map(h => String(h))
+    const headers = data[0].map(h => this.snakeToCamel(String(h)))
     const headersLength = headers.length
     const dataLength = data.length
     const records = new Array<Record<string, unknown>>(dataLength - 1)
@@ -178,18 +182,25 @@ export default class Loader {
     data: unknown[],
     shouldStandardizeIds = true,
   ): unknown[] {
-    if (!shouldStandardizeIds || data.length === 0) return data
+    if (data.length === 0) return data
+
+    const firstRow = data[0] as Record<string, unknown>
+    const keys = Object.keys(firstRow)
+    const keysLength = keys.length
+    const camelKeys = keys.map(key => this.snakeToCamel(key))
+    const isIdKeys = camelKeys.map(
+      camelKey => shouldStandardizeIds && this.isVariableId(camelKey),
+    )
     const dataLength = data.length
     const records = new Array<Record<string, unknown>>(dataLength)
+
     for (let i = 0; i < dataLength; i += 1) {
       const row = data[i] as Record<string, unknown>
       const rowObject: Record<string, unknown> = {}
-      for (const key in row) {
-        const value = row[key]
-        rowObject[key] =
-          typeof value === 'string' &&
-          shouldStandardizeIds &&
-          this.isVariableId(key)
+      for (let j = 0; j < keysLength; j += 1) {
+        const value = row[keys[j]]
+        rowObject[camelKeys[j]] =
+          typeof value === 'string' && isIdKeys[j]
             ? this.standardizeId(value)
             : value
       }
@@ -234,7 +245,7 @@ export default class Loader {
       )) as Record<string, string | number | undefined>
       const newTableIndexCache = tablesInfo.reduce(
         (acc, item) => {
-          return { ...acc, [item.name]: item.last_modif }
+          return { ...acc, [item.name]: item.lastModif }
         },
         {} as Record<string, string | number | undefined>,
       )
@@ -258,7 +269,7 @@ export default class Loader {
       tables.push({ name: table.name })
       promises.push(
         this.loadJsonjs(path, table.name, {
-          version: table.last_modif ?? Date.now(),
+          version: table.lastModif ?? Date.now(),
           useCache: useCache,
           shouldStandardizeIds: true,
         }),
@@ -276,8 +287,8 @@ export default class Loader {
     const tableIndexRow = tablesInfo.filter(
       item => item.name === this.tableIndex,
     )
-    if (tableIndexRow.length > 0 && tableIndexRow[0].last_modif) {
-      this.lastModifTimestamp = tableIndexRow[0].last_modif as number
+    if (tableIndexRow.length > 0 && tableIndexRow[0].lastModif) {
+      this.lastModifTimestamp = tableIndexRow[0].lastModif as number
     }
     return tablesInfo.filter(item => item.name !== this.tableIndex)
   }
@@ -374,11 +385,11 @@ export default class Loader {
   }
   idToIndex(tableName: string, id: number | string): number | false {
     if (!this.metadata.index[tableName]) {
-      console.error('id_to_index() table not found: ', tableName)
+      console.error('idToIndex() table not found: ', tableName)
       return false
     }
     if (this.metadata.index[tableName].id[id] === undefined) {
-      console.error('id_to_index() table ', tableName, 'id not found', id)
+      console.error('idToIndex() table ', tableName, 'id not found', id)
       return false
     }
     const indexValue = this.metadata.index[tableName].id[id]
@@ -421,7 +432,7 @@ export default class Loader {
     for (const alias of aliases) {
       const aliasData: Record<string, unknown>[] = []
       if (!(alias.table in this.db)) {
-        console.error('create_alias() table not found:', alias.table)
+        console.error('createAlias() table not found:', alias.table)
         continue
       }
       for (const row of this.db[alias.table]) {
@@ -512,7 +523,7 @@ export default class Loader {
     const index: Record<string | number, number | number[]> = {}
     for (const [i, row] of Object.entries(this.db[table.name])) {
       const rowRecord = row as Record<string, unknown>
-      const parentId = rowRecord.parent_id as string | number
+      const parentId = rowRecord['parent' + this.idSuffix] as string | number
       if (!(parentId in index)) {
         index[parentId] = parseInt(i)
         continue
@@ -522,7 +533,7 @@ export default class Loader {
       }
       ;(index[parentId] as number[]).push(parseInt(i))
     }
-    this.metadata.index[table.name].parent_id = index
+    this.metadata.index[table.name]['parent' + this.idSuffix] = index
     this.metadata.schema.oneToMany.push([table.name, table.name])
   }
   addPrimaryKey(table: { name: string }) {
@@ -584,7 +595,7 @@ export default class Loader {
 
     const virtualMetaTables: string[] = []
     for (const table of this.metadata.tables) {
-      if (!table.last_modif) virtualMetaTables.push(table.name)
+      if (!table.lastModif) virtualMetaTables.push(table.name)
     }
 
     if (this.metadata.dbSchema) {
@@ -616,17 +627,15 @@ export default class Loader {
       isInData: true,
     }
     const metaFolderUserData = {
-      id: 'user_data',
-      name: 'user_data',
+      id: 'userData',
+      name: 'userData',
       description: (
-        (metaFolder as Record<string, unknown>).user_data as Record<
+        (metaFolder as Record<string, unknown>).userData as Record<
           string,
           unknown
         >
       )?.description,
-      isInMeta: (metaFolder as Record<string, unknown>).user_data
-        ? true
-        : false,
+      isInMeta: (metaFolder as Record<string, unknown>).userData ? true : false,
       isInData: true,
     }
     this.db.metaFolder = [metaFolderData, metaFolderUserData]
@@ -642,9 +651,9 @@ export default class Loader {
       )
       this.db.metaDataset.push({
         id: tableName,
-        ['metaFolder' + this.idSuffix]: 'user_data',
+        ['metaFolder' + this.idSuffix]: 'userData',
         name: tableName,
-        nb_row: tableDataArray.length,
+        nbRow: tableDataArray.length,
         description: metaDataset[tableName]?.description,
         isInMeta: metaDataset[tableName] ? true : false,
         isInData: true,
@@ -662,9 +671,9 @@ export default class Loader {
         id: table.name,
         ['metaFolder' + this.idSuffix]: 'data',
         name: table.name,
-        nb_row: this.db[table.name].length,
+        nbRow: this.db[table.name].length,
         description: metaDataset[table.name]?.description,
-        lastUpdateTimestamp: table.last_modif,
+        lastUpdateTimestamp: table.lastModif,
         isInMeta: metaDataset[table.name] ? true : false,
         isInData: true,
       })
@@ -691,7 +700,7 @@ export default class Loader {
         id: datasetId,
         ['metaFolder' + this.idSuffix]: datasetRecord.folder,
         name: datasetRecord.dataset,
-        nb_row: 0,
+        nbRow: 0,
         description: datasetRecord?.description,
         isInMeta: true,
         isInData: false,
@@ -766,9 +775,9 @@ export default class Loader {
           this.metaVariable[datasetVariableId] as Record<string, unknown>
         )?.description,
         type,
-        nb_missing: nbMissing,
-        nb_distinct: distincts.size,
-        nb_duplicate: datasetData.length - distincts.size - nbMissing,
+        nbMissing: nbMissing,
+        nbDistinct: distincts.size,
+        nbDuplicate: datasetData.length - distincts.size - nbMissing,
         values,
         valuesPreview: values ? values.slice(0, 10) : false,
         isInMeta: this.metaVariable[datasetVariableId] ? true : false,

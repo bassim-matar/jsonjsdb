@@ -1,27 +1,13 @@
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 
-const allowedProps = [
-  'crypto-js',
-  'parent_id',
-  'last_modif',
-  'nb_row',
-  'metaFolder_id',
-  'metaDataset_id',
-  'nb_missing',
-  'nb_distinct',
-  'nb_duplicate',
-  'entity_id',
-  'parent_entity_id',
-  'old_value',
-  'new_value',
-]
+const allowedProps = ['crypto-js', '__table__']
 
 export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['**/*.json.js', '**/*.test.ts', '**/dist/**'],
+    ignores: ['**/*.json.js', '**/dist/**'],
   },
   {
     files: ['**/*.{ts,tsx}'],
@@ -56,8 +42,6 @@ export default [
         {
           selector: 'property',
           format: ['camelCase'],
-          leadingUnderscore: 'allow',
-          trailingUnderscore: 'allow',
           filter: {
             regex: `^(${allowedProps.join('|')})$`,
             match: false,

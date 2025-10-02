@@ -10,6 +10,7 @@ import {
   toMatrix,
   readJsonjs,
   writeJsonjs,
+  snakeToCamelKeys,
   TableRow,
   Row,
 } from './TableSerializer'
@@ -22,7 +23,7 @@ type Extension = 'xlsx'
 
 type MetadataItem = {
   name: string
-  last_modif: number
+  lastModif: number
 }
 
 export class JsonjsdbBuilder {
@@ -131,6 +132,7 @@ export class JsonjsdbBuilder {
   private setInputDb(inputDb: Path): void {
     this.inputDb = path.resolve(inputDb)
   }
+
   private async getInputMetadata(folderPath: Path): Promise<MetadataItem[]> {
     try {
       const files = await fs.readdir(folderPath)
@@ -143,7 +145,7 @@ export class JsonjsdbBuilder {
         const name = fileName.split('.')[0]
         fileModifTimes.push({
           name,
-          last_modif: Math.round(stats.mtimeMs / 1000),
+          lastModif: Math.round(stats.mtimeMs / 1000),
         })
       }
       return fileModifTimes
@@ -170,7 +172,7 @@ export class JsonjsdbBuilder {
 
   private metadataListToObject(list: MetadataItem[]): MetadataObj {
     return list.reduce((acc: MetadataObj, row) => {
-      acc[row.name] = row.last_modif
+      acc[row.name] = row.lastModif
       return acc
     }, {})
   }
@@ -219,7 +221,7 @@ export class JsonjsdbBuilder {
     let content = `jsonjs.data['${tableIndex}'] = \n`
     inputMetadata.push({
       name: tableIndex,
-      last_modif: Math.round(Date.now() / 1000),
+      lastModif: Math.round(Date.now() / 1000),
     })
     content += JSON.stringify(inputMetadata, null, 2)
     await fs.writeFile(this.tableIndexFile, content, 'utf-8')
@@ -233,7 +235,7 @@ export class JsonjsdbBuilder {
     const updatePromises = []
     for (const row of inputMetadata) {
       const isInOutput = row.name in outputMetadataObj
-      if (isInOutput && outputMetadataObj[row.name] >= row.last_modif) continue
+      if (isInOutput && outputMetadataObj[row.name] >= row.lastModif) continue
       if (row.name === 'evolution') continue
       updatePromises.push(this.updateTable(row.name))
     }
@@ -249,7 +251,8 @@ export class JsonjsdbBuilder {
       let evolution: TableRow[] = []
       if (existsSync(evolutionFile)) {
         const evolutionRaw = await readExcel(evolutionFile)
-        evolution = toObjects(evolutionRaw as Row[])
+        const evolutionObjects = toObjects(evolutionRaw as Row[])
+        evolution = evolutionObjects.map(row => snakeToCamelKeys(row))
       }
       evolution.push(
         ...this.newEvoEntries.map(entry => entry as unknown as TableRow),
@@ -257,6 +260,7 @@ export class JsonjsdbBuilder {
       const evolutionList = toMatrix(evolution as TableRow[])
       await writeJsonjs(this.outputDb, 'evolution', evolutionList, {
         compact: this.compact,
+        toSnakeCase: true,
       })
       await writeXlsxFile(evolution, {
         schema: evolutionSchema,
@@ -270,14 +274,14 @@ export class JsonjsdbBuilder {
         if (inputMetadataRow.name === 'evolution') {
           evoFound = true
           if (this.newEvoEntries.length > 0) {
-            inputMetadataRow.last_modif = this.updateDbTimestamp
+            inputMetadataRow.lastModif = this.updateDbTimestamp
           }
         }
       }
       if (!evoFound) {
         inputMetadata.push({
           name: 'evolution',
-          last_modif: this.updateDbTimestamp,
+          lastModif: this.updateDbTimestamp,
         })
       }
     }

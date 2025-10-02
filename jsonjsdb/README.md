@@ -152,32 +152,32 @@ The data can be minified or formatted and currently supports two possible struct
 
 #### List of objects
 
-The more readable format:
+The more readable format (shown here with snake_case, which will be transformed to camelCase at runtime):
 
 ```json
 [
   {
-    "column_1": 1,
-    "column_2": "row 1",
-    "column_3": "foo"
+    "id": 1,
+    "user_name": "John Doe",
+    "email_address": "john@example.com"
   },
   {
-    "column_1": 2,
-    "column_2": "row 2",
-    "column_3": "bar"
+    "id": 2,
+    "user_name": "Jane Smith",
+    "email_address": "jane@example.com"
   }
 ]
 ```
 
 #### List of lists
 
-The more compact format:
+The more compact format (column headers will be transformed to camelCase at runtime):
 
 ```json
 [
-  ["column_1", "column_2", "column_3"],
-  [1, "row 1", "foo"],
-  [2, "row 2", "bar"]
+  ["id", "user_name", "email_address"],
+  [1, "John Doe", "john@example.com"],
+  [2, "Jane Smith", "jane@example.com"]
 ]
 ```
 
@@ -192,6 +192,25 @@ To implement relational database functionality, specific naming conventions are 
 - The primary key must be a column named _id_
 - Foreign keys are columns named after the foreign table with the suffix _\_id_,
   for example: _yourTable_id_
+
+**Column Naming and Automatic Transformation:**
+
+- In `.json.js` files (storage format), column names can use either `snake_case` or `camelCase`
+- Column names are **automatically transformed to camelCase** when data is loaded into memory
+- This allows compatibility with database exports, Excel files, and SQL conventions while maintaining JavaScript idiomatic naming at runtime
+- Example: A column named `user_name` in the file becomes `userName` in JavaScript objects
+- Foreign key columns like `user_id` become `userId` when accessed in code
+
+```js
+// In file: user.json.js
+;[{ id: 1, first_name: 'John', last_name: 'Doe', parent_id: null }]
+
+// In JavaScript after loading:
+const user = db.get('user', 1)
+console.log(user.firstName) // "John" (camelCase)
+console.log(user.lastName) // "Doe"
+console.log(user.parentId) // null
+```
 
 **ID Standardization:**
 

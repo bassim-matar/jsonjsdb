@@ -4,6 +4,32 @@ import { promises as fs, existsSync } from 'fs'
 export type TableRow = Record<string, unknown>
 export type Row = unknown[]
 
+function camelToSnake(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
+}
+
+function transformKeysToSnake(data: TableRow[]): TableRow[] {
+  return data.map(row => {
+    const newRow: TableRow = {}
+    for (const [key, value] of Object.entries(row)) {
+      newRow[camelToSnake(key)] = value
+    }
+    return newRow
+  })
+}
+
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase())
+}
+
+export function snakeToCamelKeys(row: TableRow): TableRow {
+  const newRow: TableRow = {}
+  for (const [key, value] of Object.entries(row)) {
+    newRow[snakeToCamel(key)] = value
+  }
+  return newRow
+}
+
 // Converts a 2D matrix (first row headers) into list of objects
 export function toObjects(data: Row[]): TableRow[] {
   if (!data || data.length === 0) return []
@@ -48,16 +74,34 @@ export async function writeJsonjs(
   outputDir: string,
   name: string,
   data: Row[] | TableRow[],
-  options: { compact?: boolean; alreadyObjects?: boolean } = {},
+  options: {
+    compact?: boolean
+    alreadyObjects?: boolean
+    toSnakeCase?: boolean
+  } = {},
 ): Promise<string> {
-  const { compact = false, alreadyObjects = false } = options
+  const {
+    compact = false,
+    alreadyObjects = false,
+    toSnakeCase = false,
+  } = options
+
+  let processedData: TableRow[] | Row[]
+
+  if (alreadyObjects) {
+    processedData = toSnakeCase
+      ? transformKeysToSnake(data as TableRow[])
+      : data
+  } else {
+    const objects = toObjects(data as Row[])
+    processedData = toSnakeCase ? transformKeysToSnake(objects) : objects
+  }
+
   let content = `jsonjs.data['${name}'] = \n`
   if (compact) {
-    content += JSON.stringify(data)
-  } else if (alreadyObjects) {
-    content += JSON.stringify(data, null, 2)
+    content += JSON.stringify(processedData)
   } else {
-    content += JSON.stringify(toObjects(data as Row[]), null, 2)
+    content += JSON.stringify(processedData, null, 2)
   }
   const outputFile = path.join(outputDir, `${name}.json.js`)
   await fs.writeFile(outputFile, content, 'utf-8')
