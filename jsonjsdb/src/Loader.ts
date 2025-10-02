@@ -56,7 +56,7 @@ export default class Loader {
   constructor(browser: DBrowser, config: PartialJsonjsdbConfig) {
     window.jsonjs = {}
     this.browser = browser
-    this.validIdChars = config.validIdChars ?? 'a-zA-Z0-9_,-'
+    this.validIdChars = config.validIdChars ?? 'a-zA-Z0-9_, -'
     this.validIdPattern = new RegExp(`^[${this.validIdChars}]+$`)
     this.invalidIdPattern = new RegExp(`[^${this.validIdChars}]`, 'g')
   }
@@ -140,9 +140,10 @@ export default class Loader {
   }
 
   private standardizeId(id: string): string {
-    if (this.validIdPattern.test(id)) return id
-    const cleaned = id.replace(this.invalidIdPattern, '')
-    if (cleaned !== id) {
+    const trimmed = id.trim()
+    if (this.validIdPattern.test(trimmed)) return trimmed
+    const cleaned = trimmed.replace(this.invalidIdPattern, '')
+    if (cleaned !== trimmed) {
       console.warn(`ID standardized: "${id}" → "${cleaned}"`)
     }
     return cleaned

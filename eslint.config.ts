@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 
 const allowedProps = [
+  'crypto-js',
   'parent_id',
   'last_modif',
   'nb_row',

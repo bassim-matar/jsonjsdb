@@ -9,6 +9,7 @@ export default defineConfig({
       instances: [{ browser: 'chromium', headless: true }],
       screenshotFailures: false,
     },
+    silent: true,
   },
   plugins: [dts({ include: ['src'] })],
   build: {

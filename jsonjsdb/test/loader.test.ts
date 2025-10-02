@@ -78,19 +78,20 @@ describe('Loader', () => {
       const standardizeId = (loader as any).standardizeId.bind(loader)
 
       expect(standardizeId('user@123')).toBe('user123')
-      expect(standardizeId('user 123')).toBe('user123')
+      expect(standardizeId('user 123')).toBe('user 123') // spaces are valid
       expect(standardizeId('user#123')).toBe('user123')
       expect(standardizeId('user$123')).toBe('user123')
       expect(standardizeId('user!@#$123')).toBe('user123')
     })
 
-    it('should remove whitespace characters', async () => {
+    it('should trim leading and trailing spaces', async () => {
       const standardizeId = (loader as any).standardizeId.bind(loader)
 
       expect(standardizeId(' user123 ')).toBe('user123')
-      expect(standardizeId('user\t123')).toBe('user123')
-      expect(standardizeId('user\n123')).toBe('user123')
-      expect(standardizeId('A B C')).toBe('ABC')
+      expect(standardizeId('user\t123')).toBe('user123') // tabs are invalid
+      expect(standardizeId('user\n123')).toBe('user123') // newlines are invalid
+      expect(standardizeId('A B C')).toBe('A B C') // internal spaces are kept
+      expect(standardizeId(' tag1, tag2 ')).toBe('tag1, tag2') // trim but keep internal spaces
     })
 
     it('should handle custom validIdChars configuration', async () => {
@@ -126,7 +127,7 @@ describe('Loader', () => {
 
       expect(result).toEqual([
         { id: 'usr001', user_id: 'admin123', name: 'Alice' },
-        { id: 'usr002', user_id: 'user456', name: 'Bob' },
+        { id: 'usr 002', user_id: 'user 456', name: 'Bob' }, // internal spaces kept
       ])
     })
 
@@ -143,7 +144,7 @@ describe('Loader', () => {
       )
 
       expect(result).toEqual([
-        { id: '1', tag_ids: 'tag1,tag2', name: 'Item 1' },
+        { id: '1', tag_ids: 'tag1,tag 2', name: 'Item 1' }, // space after comma kept
         { id: '2', tag_ids: 'tag3', name: 'Item 2' },
       ])
     })
@@ -196,7 +197,7 @@ describe('Loader', () => {
 
       expect(result).toEqual([
         { id: 'usr001', user_id: 'admin123', name: 'Alice' },
-        { id: 'usr002', user_id: 'user456', name: 'Bob' },
+        { id: 'usr 002', user_id: 'user 456', name: 'Bob' }, // internal spaces kept
       ])
     })
 
@@ -210,7 +211,7 @@ describe('Loader', () => {
       const result = applyTransform(data, true)
 
       expect(result).toEqual([
-        { id: 'cat001', parent_id: 'cat000', name: 'Subcategory' },
+        { id: 'cat001', parent_id: 'cat 000', name: 'Subcategory' }, // internal space kept
       ])
     })
 

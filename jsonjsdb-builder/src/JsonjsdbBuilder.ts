@@ -52,7 +52,7 @@ export class JsonjsdbBuilder {
       return
     }
 
-    this.updateDbTimestamp = Date.now()
+    this.updateDbTimestamp = Math.round(Date.now() / 1000)
     const [inputMetadata, outputMetadata] = await Promise.all([
       this.getInputMetadata(this.inputDb),
       this.getOutputMetadata(),

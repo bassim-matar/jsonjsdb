@@ -396,10 +396,10 @@ describe('jsonjsdb', () => {
         path: 'test/db',
       })
 
-      expect(defaultDb.config.validIdChars).toBe('a-zA-Z0-9_,-')
+      expect(defaultDb.config.validIdChars).toBe('a-zA-Z0-9_, -')
 
       const loaderValidIdChars = (defaultDb.loader as any).validIdChars
-      expect(loaderValidIdChars).toBe('a-zA-Z0-9_,-')
+      expect(loaderValidIdChars).toBe('a-zA-Z0-9_, -')
     })
 
     it('should standardize IDs during data loading with custom validIdChars', async () => {
