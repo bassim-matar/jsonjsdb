@@ -775,6 +775,9 @@ export default class Loader {
         description: (
           this.metaVariable[datasetVariableId] as Record<string, unknown>
         )?.description,
+        storageKey: (
+          this.metaVariable[datasetVariableId] as Record<string, unknown>
+        )?.storageKey,
         type,
         nbMissing: nbMissing,
         nbDistinct: distincts.size,
