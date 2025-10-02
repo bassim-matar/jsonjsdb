@@ -18,6 +18,44 @@ const assertDefined = <T>(value: T | undefined): T => {
 describe('compareDatasets', () => {
   const mockTimestamp = 1694765432
 
+  describe('Timestamp format validation', () => {
+    it('should use seconds format (10 digits) not milliseconds (13 digits)', () => {
+      const oldData = [{ id: 1, name: 'John' }]
+      const newData = [
+        { id: 1, name: 'John' },
+        { id: 2, name: 'Jane' },
+      ]
+
+      const timestampInSeconds = Math.floor(Date.now() / 1000)
+      const result = compareDatasets(
+        oldData,
+        newData,
+        timestampInSeconds,
+        'user',
+      )
+
+      expect(result).toHaveLength(1)
+      expect(result[0].timestamp).toBe(timestampInSeconds)
+      expect(result[0].timestamp.toString().length).toBe(10)
+    })
+
+    it('should detect incorrect milliseconds timestamp format', () => {
+      const oldData = [{ id: 1, name: 'John' }]
+      const newData = [{ id: 1, name: 'Jane' }]
+
+      const timestampInMilliseconds = Date.now()
+      const result = compareDatasets(
+        oldData,
+        newData,
+        timestampInMilliseconds,
+        'user',
+      )
+
+      expect(result[0].timestamp).toBe(timestampInMilliseconds)
+      expect(result[0].timestamp.toString().length).toBe(13)
+    })
+  })
+
   describe('Edge cases and filters', () => {
     it('should return empty array for entities starting with "__"', () => {
       const oldData = [{ id: 1, name: 'test' }]

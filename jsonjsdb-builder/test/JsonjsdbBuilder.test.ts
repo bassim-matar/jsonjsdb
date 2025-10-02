@@ -133,6 +133,56 @@ describe('JsonjsdbBuilder E2E Tests', () => {
       expect(metadataContent).toContain('"name": "__table__"')
     })
 
+    it('should generate evolution with timestamps in seconds format (10 digits)', async () => {
+      const builder = await setupBuilder()
+
+      // First update creates initial state
+      await builder.updateDb(testExcelPath)
+
+      // Modify data to trigger evolution
+      const writeXlsxFile = (await import('write-excel-file/node')).default
+      const userExcelPath = path.join(testExcelPath, 'user.xlsx')
+
+      await writeXlsxFile(
+        [
+          [
+            { type: String, value: 'id' },
+            { type: String, value: 'name' },
+            { type: String, value: 'email' },
+          ],
+          [
+            { type: Number, value: 1 },
+            { type: String, value: 'John Updated' },
+            { type: String, value: 'john@test.com' },
+          ],
+          [
+            { type: Number, value: 2 },
+            { type: String, value: 'Jane' },
+            { type: String, value: 'jane@test.com' },
+          ],
+        ],
+        { filePath: userExcelPath },
+      )
+
+      // Second update generates evolution
+      await builder.updateDb(testExcelPath)
+
+      const evolutionFile = path.join(outputDbDir, 'evolution.json.js')
+      expect(existsSync(evolutionFile)).toBe(true)
+
+      const evolutionContent = await fs.readFile(evolutionFile, 'utf-8')
+      const evolutionData = parseJsonjsFile(evolutionContent, 'evolution')
+
+      expect(evolutionData.length).toBeGreaterThan(0)
+
+      // Verify all timestamps are in seconds format (10 digits), not milliseconds (13 digits)
+      for (const entry of evolutionData) {
+        const timestamp = entry.timestamp as number
+        expect(typeof timestamp).toBe('number')
+        expect(timestamp.toString().length).toBe(10)
+      }
+    })
+
     it('should handle multiple updates correctly', async () => {
       const builder = await setupBuilder()
 

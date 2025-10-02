@@ -90,7 +90,7 @@ export function getTestExcelPath(): string {
 
 /**
  * Creates a temporary copy of Excel files for testing to avoid modifying originals
- * (especially evolution.xlsx which gets written to during tests)
+ * All files including evolution.xlsx are copied to ensure test isolation
  */
 export async function createTempTestExcelPath(
   tempDir: string,
@@ -101,7 +101,8 @@ export async function createTempTestExcelPath(
   // Create temp excel directory
   await fs.mkdir(tempExcelPath, { recursive: true })
 
-  // Copy all Excel files to temp directory
+  // Copy all Excel files to temp directory (including evolution.xlsx)
+  // Each test works on its own copy to avoid modifying the original fixtures
   const files = await fs.readdir(originalPath)
   for (const file of files) {
     if (file.endsWith('.xlsx')) {

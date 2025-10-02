@@ -1,5 +1,10 @@
 # jsonjsdb-builder
 
+## 0.5.3 (2025-10-02)
+
+- fix: ensure test isolation by copying all Excel files (including evolution.xlsx) to temporary directories
+- fix: updateDbTimestamp to be in seconds (10 digits) instead of milliseconds (13 digits)
+
 ## 0.5.2 (2025-09-20)
 
 - fix: remove git tag creation and push from release workflow
