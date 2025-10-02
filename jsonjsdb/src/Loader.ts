@@ -689,6 +689,7 @@ export default class Loader {
         ['metaDataset' + this.idSuffix]: datasetId,
         name: variableRecord.variable,
         description: variableRecord.description,
+        storageKey: variableRecord.storageKey,
         isInMeta: true,
         isInData: false,
       })
