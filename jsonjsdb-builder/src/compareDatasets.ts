@@ -12,9 +12,18 @@ export type EvolutionEntry = {
   name: string | null
 }
 
+const validIdChars = 'a-zA-Z0-9_, -'
+const validIdPattern = new RegExp(`^[${validIdChars}]+$`)
+const invalidIdPattern = new RegExp(`[^${validIdChars}]`, 'g')
+function standardizeId(id: string): string {
+  const trimmed = id.trim()
+  if (validIdPattern.test(trimmed)) return trimmed
+  return trimmed.replace(invalidIdPattern, '')
+}
+
 function addIdIfMissing(dataset: TableRow[]) {
-  if (dataset.length === 0) return
-  if ('id' in dataset[0]) return
+  if (dataset.length === 0) return false
+  if ('id' in dataset[0]) return false
   const keys = Object.keys(dataset[0])
   if (keys.length < 2) {
     throw new Error('Not enough columns to generate id')
@@ -23,6 +32,7 @@ function addIdIfMissing(dataset: TableRow[]) {
   for (const item of dataset) {
     item.id = `${item[key1]}---${item[key2]}`
   }
+  return true
 }
 
 function getFirstParentId(obj: TableRow): string | number | null {
@@ -48,8 +58,9 @@ export function compareDatasets(
   if (entity.startsWith('__')) return newEvoEntries
   if (datasetOld.length === 0 && datasetNew.length === 0) return newEvoEntries
 
-  addIdIfMissing(datasetOld)
-  addIdIfMissing(datasetNew)
+  const hasCompositeIdOld = addIdIfMissing(datasetOld)
+  const hasCompositeIdNew = addIdIfMissing(datasetNew)
+  const hasCompositeId = hasCompositeIdOld || hasCompositeIdNew
 
   const mapOld = new Map<string | number, TableRow>(
     datasetOld.map(item => [item.id as string | number, item]),
@@ -107,12 +118,12 @@ export function compareDatasets(
       timestamp,
       type: 'add',
       entity,
-      entityId: entityId,
-      parentEntityId: null,
+      entityId: hasCompositeId ? standardizeId(String(entityId)) : entityId,
+      parentEntityId: hasCompositeId ? String(entityId).split('---')[0] : null,
       variable: null,
       oldValue: null,
       newValue: null,
-      name: null,
+      name: hasCompositeId ? String(entityId).split('---')[1] : null,
     })
   }
 
@@ -122,12 +133,14 @@ export function compareDatasets(
       timestamp,
       type: 'delete',
       entity,
-      entityId: entityId,
+      entityId: hasCompositeId ? standardizeId(String(entityId)) : entityId,
       parentEntityId: getFirstParentId(objOld),
       variable: null,
       oldValue: null,
       newValue: null,
-      name: (objOld.name as string) || null,
+      name: hasCompositeId
+        ? String(entityId).split('---')[1]
+        : (objOld.name as string) || null,
     })
   }
 
@@ -136,12 +149,16 @@ export function compareDatasets(
       timestamp,
       type: 'update',
       entity,
-      entityId: mod.entityId,
-      parentEntityId: null,
+      entityId: hasCompositeId
+        ? standardizeId(String(mod.entityId))
+        : mod.entityId,
+      parentEntityId: hasCompositeId
+        ? String(mod.entityId).split('---')[0]
+        : null,
       variable: mod.variable,
       oldValue: mod.oldValue,
       newValue: mod.newValue,
-      name: null,
+      name: hasCompositeId ? String(mod.entityId).split('---')[1] : null,
     })
   }
 

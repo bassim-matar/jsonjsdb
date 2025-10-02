@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.5.5 (2025-10-02)
+
+- change: evolution with compositeId get name and standardized entityId
+
 ## 0.5.4 (2025-10-02)
 
 - refactor: enforce camelCase for property with eslint rule

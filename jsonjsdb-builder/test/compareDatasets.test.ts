@@ -88,7 +88,9 @@ describe('compareDatasets', () => {
 
       expect(result).toHaveLength(1)
       expect(result[0].type).toBe('add')
-      expect(result[0].entityId).toBe('Jane---jane@test.com')
+      expect(result[0].entityId).toBe('Jane---janetestcom')
+      expect(result[0].name).toBe('jane@test.com')
+      expect(result[0].parentEntityId).toBe('Jane')
     })
 
     it('should throw error when dataset has insufficient columns for ID generation', () => {
