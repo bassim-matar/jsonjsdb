@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.7.4 (2025-10-02)
+
+- change: update validIdChars configuration to allow spaces
+
 ## 0.7.3 (2025-10-02)
 
 - add: standardizeId method to clean up IDs by removing invalid characters

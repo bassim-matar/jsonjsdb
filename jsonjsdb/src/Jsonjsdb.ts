@@ -53,7 +53,7 @@ export default class Jsonjsdb<
       appName: 'jsonjsdb',
       useCache: false,
       useEncryption: false,
-      validIdChars: 'a-zA-Z0-9_,-',
+      validIdChars: 'a-zA-Z0-9_, -',
     }
 
     let processedConfig: PartialJsonjsdbConfig = {}

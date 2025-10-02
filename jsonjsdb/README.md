@@ -123,7 +123,7 @@ By default, the application uses a configuration automatically embedded in your 
 - **data-app-name**: Application identifier (keep as `"dtnr"`)
 - **data-path**: Path to your database folder (usually `"data/db"`)
 - **data-db-key**: Unique key for your data instance (generate new one if needed)
-- **data-valid-id-chars** (optional): Valid characters for IDs (default: `"a-zA-Z0-9_,-"`). Invalid characters will be removed automatically
+- **data-valid-id-chars** (optional): Valid characters for IDs. Default is `"a-zA-Z0-9_, -"` (alphanumeric, underscore, comma, space, and hyphen). Invalid characters will be removed automatically
 
 You can customize this configuration by passing the ID of the HTML div containing the configuration:
 
@@ -197,9 +197,10 @@ To implement relational database functionality, specific naming conventions are 
 
 All ID values (in `id`, `*_id`, and `*_ids` columns) are automatically cleaned to ensure data consistency:
 
-- Invalid characters are removed based on `validIdChars` configuration (default: alphanumeric, underscore, comma, hyphen)
-- Whitespace and special characters are stripped
-- Example: `"user@123"` → `"user123"`, `"tag 1, tag 2"` → `"tag1,tag2"`
+- Leading and trailing whitespace is removed (trimmed)
+- Invalid characters are removed based on `validIdChars` configuration (see Configuration section above)
+- Internal spaces are preserved (e.g., in comma-separated lists like `"tag1, tag2"`)
+- Example: `" user@123 "` → `"user123"`, `"tag 1, tag 2"` → `"tag1, tag2"` (spaces after commas are kept)
 
 ## API Reference
 
@@ -217,7 +218,7 @@ const db = new Jsonjsdb()
 const db = new Jsonjsdb({
   path: 'data/db',
   appName: 'myapp',
-  validIdChars: 'a-zA-Z0-9',
+  validIdChars: 'a-zA-Z0-9_, -', // optional, this is the default
 })
 
 // HTML configuration selector
@@ -229,7 +230,7 @@ const db = new Jsonjsdb('#my-config')
 - `config` (optional): Configuration object or string selector for HTML configuration element
   - `path`: Path to database folder
   - `appName`: Application name
-  - `validIdChars`: Valid characters for IDs (default: `'a-zA-Z0-9_,-'`)
+  - `validIdChars`: Valid characters for IDs
   - Other options...
 
 **Returns:** Jsonjsdb instance
