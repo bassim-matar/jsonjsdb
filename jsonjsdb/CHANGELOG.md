@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.7.6 (2025-10-02)
+
+- add: metaVariable storageKey
+
 ## 0.7.5 (2025-10-02)
 
 - change: transform variable names to camelCase on data load
