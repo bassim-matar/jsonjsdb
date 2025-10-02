@@ -171,11 +171,13 @@ jobs:
             if [[ "${{ steps.builder_changelog.outputs.notes }}" != "" ]]; then
               gh release create "${BUILDER_TAG}" \
                 --title "jsonjsdb-builder ${{ steps.versions.outputs.builder_version }}" \
-                --notes "${{ steps.builder_changelog.outputs.notes }}"
+                --notes "${{ steps.builder_changelog.outputs.notes }}" \
+                --latest=false
             else
               gh release create "${BUILDER_TAG}" \
                 --title "jsonjsdb-builder ${{ steps.versions.outputs.builder_version }}" \
-                --generate-notes
+                --generate-notes \
+                --latest=false
             fi
           fi
         env:
