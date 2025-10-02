@@ -1,5 +1,10 @@
 # jsonjsdb
 
+## 0.7.3 (2025-10-02)
+
+- add: standardizeId method to clean up IDs by removing invalid characters
+- remove: escapeHtml
+
 ## 0.7.2 (2025-09-30)
 
 - add: escapeHtml to prevent XSS attacks when rendering data in HTML context

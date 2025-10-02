@@ -2,24 +2,14 @@ import DBrowser from './DBrowser'
 import Loader from './Loader'
 import IntegrityChecker from './IntegrityChecker'
 import type {
+  JsonjsdbConfig,
+  PartialJsonjsdbConfig,
   IntegrityResult,
   Schema,
   DatabaseMetadata,
   DatabaseRow,
   TableCollection,
 } from './types'
-
-type JsonjsdbConfig = {
-  path: string
-  dbKey: string | boolean
-  browserKey: string | boolean
-  appName: string
-  useCache: boolean
-  useEncryption: boolean
-  escapeHtml: boolean
-}
-
-type PartialJsonjsdbConfig = Partial<JsonjsdbConfig>
 
 type InitOption = {
   filter?: {
@@ -31,7 +21,7 @@ type InitOption = {
   useCache?: boolean
   version?: number | string
   limit?: number
-  escapeHtml?: boolean
+  validIdChars?: string
 }
 
 type ForeignTableObj = {
@@ -63,7 +53,7 @@ export default class Jsonjsdb<
       appName: 'jsonjsdb',
       useCache: false,
       useEncryption: false,
-      escapeHtml: true,
+      validIdChars: 'a-zA-Z0-9_,-',
     }
 
     let processedConfig: PartialJsonjsdbConfig = {}
@@ -80,7 +70,7 @@ export default class Jsonjsdb<
       this.config.appName,
       this.config.useEncryption,
     )
-    this.loader = new Loader(this.browser, this.config.escapeHtml)
+    this.loader = new Loader(this.browser, this.config)
     this.integrityChecker = new IntegrityChecker()
   }
   private getHtmlConfig(
@@ -102,7 +92,7 @@ export default class Jsonjsdb<
     if (dataset.useCache) config.useCache = dataset.useCache === 'true'
     if (dataset.useEncryption)
       config.useEncryption = dataset.useEncryption === 'true'
-    if (dataset.escapeHtml) config.escapeHtml = dataset.escapeHtml === 'true'
+    if (dataset.validIdChars) config.validIdChars = dataset.validIdChars
 
     return config
   }
@@ -131,13 +121,13 @@ export default class Jsonjsdb<
   async load(
     filePath: string,
     name: string,
-    escapeHtml = true,
+    shouldStandardizeIds = true,
   ): Promise<unknown[]> {
     filePath = this.config.path + '/' + filePath
     const data = await this.loader.loadJsonjs(filePath, name, {
       useCache: false,
       version: Date.now(),
-      escapeHtml,
+      shouldStandardizeIds,
     })
     return data
   }

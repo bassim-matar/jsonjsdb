@@ -1,6 +1,10 @@
-import escapeHtml from 'escape-html'
 import DBrowser from './DBrowser'
-import type { DatabaseMetadata, TableInfo, TableRow } from './types'
+import type {
+  PartialJsonjsdbConfig,
+  DatabaseMetadata,
+  TableInfo,
+  TableRow,
+} from './types'
 
 type LoadOption = {
   filter?: {
@@ -11,7 +15,7 @@ type LoadOption = {
   aliases?: Array<{ table: string; alias: string }>
   useCache?: boolean
   version?: number | string
-  escapeHtml?: boolean
+  shouldStandardizeIds?: boolean
 }
 
 declare global {
@@ -31,7 +35,9 @@ export default class Loader {
   private tableIndexCache?: Record<string, string | number | undefined>
   private lastModifTimestamp?: number
   private metaVariable: Record<string, unknown> = {}
-  private escapeHtml = true
+  private validIdChars: string
+  private validIdPattern: RegExp
+  private invalidIdPattern: RegExp
 
   public db: Record<string, TableRow[]> = {}
 
@@ -47,18 +53,18 @@ export default class Loader {
     dbSchema: undefined,
   }
 
-  constructor(browser: DBrowser, escapeHtml = true) {
+  constructor(browser: DBrowser, config: PartialJsonjsdbConfig) {
     window.jsonjs = {}
     this.browser = browser
-    this.escapeHtml = escapeHtml
+    this.validIdChars = config.validIdChars ?? 'a-zA-Z0-9_,-'
+    this.validIdPattern = new RegExp(`^[${this.validIdChars}]+$`)
+    this.invalidIdPattern = new RegExp(`[^${this.validIdChars}]`, 'g')
   }
   async load(
     path: string,
     useCache = false,
     option: LoadOption = {},
   ): Promise<Record<string, unknown>> {
-    const defaultEscapeHtml = this.escapeHtml
-    this.escapeHtml = option.escapeHtml ?? defaultEscapeHtml
     await this.loadTables(path, useCache)
     this.normalizeSchema()
     if (option.filter?.values?.length && option.filter.values.length > 0) {
@@ -100,11 +106,13 @@ export default class Loader {
         }
         let data = window.jsonjs.data![tableName]
         delete window.jsonjs.data![tableName]
-        const shouldEscape = option?.escapeHtml ?? this.escapeHtml
         if (data.length > 0 && Array.isArray(data[0])) {
-          data = this.arrayToObject(data as unknown[][], shouldEscape)
+          data = this.arrayToObject(
+            data as unknown[][],
+            option?.shouldStandardizeIds,
+          )
         } else {
-          data = this.applyEscapeHtml(data, shouldEscape)
+          data = this.applyTransform(data, option?.shouldStandardizeIds)
         }
         resolve(data)
         document.querySelectorAll(`script[src="${src}"]`)[0].remove()
@@ -122,9 +130,27 @@ export default class Loader {
       document.head.appendChild(script)
     })
   }
+
+  private isVariableId(variable: string): boolean {
+    return (
+      variable === 'id' ||
+      variable.endsWith(this.idSuffix) ||
+      variable.endsWith(this.idSuffix + 's')
+    )
+  }
+
+  private standardizeId(id: string): string {
+    if (this.validIdPattern.test(id)) return id
+    const cleaned = id.replace(this.invalidIdPattern, '')
+    if (cleaned !== id) {
+      console.warn(`ID standardized: "${id}" → "${cleaned}"`)
+    }
+    return cleaned
+  }
+
   private arrayToObject(
     data: unknown[][],
-    shouldEscape = true,
+    shouldStandardizeIds = true,
   ): Record<string, unknown>[] {
     if (data.length === 0) return []
     const headers = data[0].map(h => String(h))
@@ -137,14 +163,21 @@ export default class Loader {
       for (let j = 0; j < headersLength; j += 1) {
         const value = row[j]
         rowObject[headers[j]] =
-          typeof value === 'string' && shouldEscape ? escapeHtml(value) : value
+          typeof value === 'string' &&
+          shouldStandardizeIds &&
+          this.isVariableId(headers[j])
+            ? this.standardizeId(value)
+            : value
       }
       records[i - 1] = rowObject
     }
     return records
   }
-  private applyEscapeHtml(data: unknown[], shouldEscape = true): unknown[] {
-    if (!shouldEscape || data.length === 0) return data
+  private applyTransform(
+    data: unknown[],
+    shouldStandardizeIds = true,
+  ): unknown[] {
+    if (!shouldStandardizeIds || data.length === 0) return data
     const dataLength = data.length
     const records = new Array<Record<string, unknown>>(dataLength)
     for (let i = 0; i < dataLength; i += 1) {
@@ -152,7 +185,12 @@ export default class Loader {
       const rowObject: Record<string, unknown> = {}
       for (const key in row) {
         const value = row[key]
-        rowObject[key] = typeof value === 'string' ? escapeHtml(value) : value
+        rowObject[key] =
+          typeof value === 'string' &&
+          shouldStandardizeIds &&
+          this.isVariableId(key)
+            ? this.standardizeId(value)
+            : value
       }
       records[i] = rowObject
     }
@@ -170,7 +208,7 @@ export default class Loader {
     option?: {
       useCache: boolean
       version: number | string
-      escapeHtml?: boolean
+      shouldStandardizeIds?: boolean
     },
   ): Promise<unknown[]> {
     if (path.slice(-1) === '/') path = path.slice(0, -1)
@@ -221,7 +259,7 @@ export default class Loader {
         this.loadJsonjs(path, table.name, {
           version: table.last_modif ?? Date.now(),
           useCache: useCache,
-          escapeHtml: this.escapeHtml,
+          shouldStandardizeIds: true,
         }),
       )
     }
@@ -532,7 +570,7 @@ export default class Loader {
       dbSchema.length > 0 &&
       Array.isArray(dbSchema[0])
     ) {
-      dbSchema = this.arrayToObject(dbSchema as unknown[][], this.escapeHtml)
+      dbSchema = this.arrayToObject(dbSchema as unknown[][])
     }
     this.metadata.dbSchema = dbSchema
   }

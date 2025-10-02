@@ -63,117 +63,190 @@ describe('Loader', () => {
     })
   })
 
-  describe('HTML escaping', () => {
-    it('should escape HTML entities in arrayToObject by default', async () => {
-      await loader.load(path)
-      const arrayToObject = (loader as any).arrayToObject.bind(loader)
+  describe('standardizeId()', () => {
+    it('should not modify valid IDs', async () => {
+      const standardizeId = (loader as any).standardizeId.bind(loader)
 
-      const result = arrayToObject([
-        ['id', 'content', 'description'],
-        [1, '<script>alert("xss")</script>', 'Test & Demo'],
-        [2, 'Hello <b>World</b>', 'Price: $10 > $5'],
-      ])
-
-      expect(result).toEqual([
-        {
-          id: 1,
-          content: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-          description: 'Test &amp; Demo',
-        },
-        {
-          id: 2,
-          content: 'Hello &lt;b&gt;World&lt;/b&gt;',
-          description: 'Price: $10 &gt; $5',
-        },
-      ])
+      expect(standardizeId('user123')).toBe('user123')
+      expect(standardizeId('abc-def')).toBe('abc-def')
+      expect(standardizeId('abc_def')).toBe('abc_def')
+      expect(standardizeId('abc,def')).toBe('abc,def')
+      expect(standardizeId('ABC123')).toBe('ABC123')
     })
 
-    it('should not escape HTML when escapeHtml option is false', async () => {
-      await loader.load(path, false, { escapeHtml: false })
+    it('should remove invalid characters from IDs', async () => {
+      const standardizeId = (loader as any).standardizeId.bind(loader)
+
+      expect(standardizeId('user@123')).toBe('user123')
+      expect(standardizeId('user 123')).toBe('user123')
+      expect(standardizeId('user#123')).toBe('user123')
+      expect(standardizeId('user$123')).toBe('user123')
+      expect(standardizeId('user!@#$123')).toBe('user123')
+    })
+
+    it('should remove whitespace characters', async () => {
+      const standardizeId = (loader as any).standardizeId.bind(loader)
+
+      expect(standardizeId(' user123 ')).toBe('user123')
+      expect(standardizeId('user\t123')).toBe('user123')
+      expect(standardizeId('user\n123')).toBe('user123')
+      expect(standardizeId('A B C')).toBe('ABC')
+    })
+
+    it('should handle custom validIdChars configuration', async () => {
+      const db = new Jsonjsdb({
+        dbKey,
+        path: 'test/db',
+        validIdChars: 'a-z0-9',
+      })
+      const customLoader = db.loader
+      const standardizeId = (customLoader as any).standardizeId.bind(
+        customLoader,
+      )
+
+      expect(standardizeId('abc123')).toBe('abc123')
+      expect(standardizeId('ABC123')).toBe('123')
+      expect(standardizeId('user_id')).toBe('userid')
+      expect(standardizeId('user-id')).toBe('userid')
+    })
+  })
+
+  describe('arrayToObject() with ID standardization', () => {
+    it('should standardize IDs in columns ending with _id', async () => {
       const arrayToObject = (loader as any).arrayToObject.bind(loader)
 
       const result = arrayToObject(
         [
-          ['id', 'content'],
-          [1, '<script>alert("xss")</script>'],
-          [2, 'Hello <b>World</b>'],
+          ['id', 'user_id', 'name'],
+          ['usr@001', 'admin#123', 'Alice'],
+          ['usr 002', 'user 456', 'Bob'],
         ],
-        false,
+        true,
       )
 
       expect(result).toEqual([
-        { id: 1, content: '<script>alert("xss")</script>' },
-        { id: 2, content: 'Hello <b>World</b>' },
+        { id: 'usr001', user_id: 'admin123', name: 'Alice' },
+        { id: 'usr002', user_id: 'user456', name: 'Bob' },
       ])
     })
 
-    it('should escape HTML in applyEscapeHtml by default', async () => {
-      await loader.load(path)
-      const applyEscapeHtml = (loader as any).applyEscapeHtml.bind(loader)
-
-      const result = applyEscapeHtml([
-        {
-          id: 1,
-          content: '<script>alert("xss")</script>',
-          name: 'Test & Demo',
-        },
-        { id: 2, content: 'Hello <b>World</b>', name: 'Price: $10 > $5' },
-      ])
-
-      expect(result).toEqual([
-        {
-          id: 1,
-          content: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-          name: 'Test &amp; Demo',
-        },
-        {
-          id: 2,
-          content: 'Hello &lt;b&gt;World&lt;/b&gt;',
-          name: 'Price: $10 &gt; $5',
-        },
-      ])
-    })
-
-    it('should not escape HTML in applyEscapeHtml when escapeHtml option is false', async () => {
-      await loader.load(path, false, { escapeHtml: false })
-      const applyEscapeHtml = (loader as any).applyEscapeHtml.bind(loader)
-
-      const result = applyEscapeHtml(
-        [
-          { id: 1, content: '<script>alert("xss")</script>' },
-          { id: 2, content: 'Hello <b>World</b>' },
-        ],
-        false,
-      )
-
-      expect(result).toEqual([
-        { id: 1, content: '<script>alert("xss")</script>' },
-        { id: 2, content: 'Hello <b>World</b>' },
-      ])
-    })
-
-    it('should not escape non-string values', async () => {
-      await loader.load(path)
+    it('should standardize IDs in columns ending with _ids', async () => {
       const arrayToObject = (loader as any).arrayToObject.bind(loader)
 
-      const result = arrayToObject([
-        ['id', 'count', 'active', 'data'],
-        [1, 42, true, null],
-        [2, 100, false, undefined],
-      ])
+      const result = arrayToObject(
+        [
+          ['id', 'tag_ids', 'name'],
+          ['1', 'tag@1,tag 2', 'Item 1'],
+          ['2', 'tag#3', 'Item 2'],
+        ],
+        true,
+      )
 
       expect(result).toEqual([
-        { id: 1, count: 42, active: true, data: null },
-        { id: 2, count: 100, active: false, data: undefined },
+        { id: '1', tag_ids: 'tag1,tag2', name: 'Item 1' },
+        { id: '2', tag_ids: 'tag3', name: 'Item 2' },
+      ])
+    })
+
+    it('should not standardize non-ID columns', async () => {
+      const arrayToObject = (loader as any).arrayToObject.bind(loader)
+
+      const result = arrayToObject(
+        [
+          ['id', 'email', 'description'],
+          ['1', 'user@example.com', 'Test #1'],
+          ['2', 'admin@test.com', 'Item #2'],
+        ],
+        true,
+      )
+
+      expect(result).toEqual([
+        { id: '1', email: 'user@example.com', description: 'Test #1' },
+        { id: '2', email: 'admin@test.com', description: 'Item #2' },
+      ])
+    })
+
+    it('should respect shouldStandardizeIds=false', async () => {
+      const arrayToObject = (loader as any).arrayToObject.bind(loader)
+
+      const result = arrayToObject(
+        [
+          ['id', 'user_id', 'name'],
+          ['usr@001', 'admin#123', 'Alice'],
+        ],
+        false,
+      )
+
+      expect(result).toEqual([
+        { id: 'usr@001', user_id: 'admin#123', name: 'Alice' },
+      ])
+    })
+  })
+
+  describe('applyTransform() with ID standardization', () => {
+    it('should standardize IDs in object format data', async () => {
+      const applyTransform = (loader as any).applyTransform.bind(loader)
+
+      const data = [
+        { id: 'usr@001', user_id: 'admin#123', name: 'Alice' },
+        { id: 'usr 002', user_id: 'user 456', name: 'Bob' },
+      ]
+
+      const result = applyTransform(data, true)
+
+      expect(result).toEqual([
+        { id: 'usr001', user_id: 'admin123', name: 'Alice' },
+        { id: 'usr002', user_id: 'user456', name: 'Bob' },
+      ])
+    })
+
+    it('should handle parent_id field', async () => {
+      const applyTransform = (loader as any).applyTransform.bind(loader)
+
+      const data = [
+        { id: 'cat@001', parent_id: 'cat 000', name: 'Subcategory' },
+      ]
+
+      const result = applyTransform(data, true)
+
+      expect(result).toEqual([
+        { id: 'cat001', parent_id: 'cat000', name: 'Subcategory' },
+      ])
+    })
+
+    it('should not standardize when shouldStandardizeIds=false', async () => {
+      const applyTransform = (loader as any).applyTransform.bind(loader)
+
+      const data = [{ id: 'usr@001', user_id: 'admin#123', name: 'Alice' }]
+
+      const result = applyTransform(data, false)
+
+      expect(result).toEqual([
+        { id: 'usr@001', user_id: 'admin#123', name: 'Alice' },
       ])
     })
 
     it('should handle empty arrays', async () => {
-      await loader.load(path)
-      const applyEscapeHtml = (loader as any).applyEscapeHtml.bind(loader)
+      const applyTransform = (loader as any).applyTransform.bind(loader)
 
-      const result = applyEscapeHtml([])
+      const result = applyTransform([], true)
+
       expect(result).toEqual([])
+    })
+  })
+
+  describe('isVariableId()', () => {
+    it('should identify ID variables correctly', async () => {
+      const isVariableId = (loader as any).isVariableId.bind(loader)
+
+      expect(isVariableId('id')).toBe(true)
+      expect(isVariableId('user_id')).toBe(true)
+      expect(isVariableId('parent_id')).toBe(true)
+      expect(isVariableId('tag_ids')).toBe(true)
+      expect(isVariableId('category_ids')).toBe(true)
+      expect(isVariableId('name')).toBe(false)
+      expect(isVariableId('email')).toBe(false)
+      expect(isVariableId('id_number')).toBe(false)
     })
   })
 })

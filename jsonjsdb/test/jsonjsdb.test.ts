@@ -364,138 +364,100 @@ describe('jsonjsdb', () => {
     })
   })
 
-  describe('HTML escaping - global vs local options', () => {
-    it('should escape HTML by default (global: true, local: default)', async () => {
-      const dbTest = new Jsonjsdb({
+  describe('validIdChars configuration', () => {
+    it('should pass validIdChars from Jsonjsdb to Loader via config', async () => {
+      const customDb = new Jsonjsdb({
         dbKey: 'gdf9898fds',
-        browserKey: 'gdf9898fdsTEST1',
         path: 'test/db',
+        validIdChars: 'a-z0-9',
       })
-      await dbTest.init({ escapeHtml: true })
 
-      const userTags = dbTest.getAll('user_tag')
-      expect(userTags[0].note).toBe(
-        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-      )
-      expect(userTags[1].note).toBe('Safe &lt;b&gt;content&lt;/b&gt;')
+      // Check that config has been set correctly
+      expect(customDb.config.validIdChars).toBe('a-z0-9')
+
+      // Check that loader received the config
+      const loaderValidIdChars = (customDb.loader as any).validIdChars
+      expect(loaderValidIdChars).toBe('a-z0-9')
+
+      // Verify regex patterns are created correctly
+      const validIdPattern = (customDb.loader as any).validIdPattern
+      const invalidIdPattern = (customDb.loader as any).invalidIdPattern
+
+      expect(validIdPattern.test('abc123')).toBe(true)
+      expect(validIdPattern.test('ABC123')).toBe(false) // Uppercase not allowed
+      expect(validIdPattern.test('abc_123')).toBe(false) // Underscore not allowed
+
+      expect('ABC_123'.replace(invalidIdPattern, '')).toBe('123')
     })
 
-    it('should not escape HTML when global option is false', async () => {
-      const dbTest = new Jsonjsdb({
+    it('should use default validIdChars when not specified', async () => {
+      const defaultDb = new Jsonjsdb({
         dbKey: 'gdf9898fds',
-        browserKey: 'gdf9898fdsTEST2',
         path: 'test/db',
       })
-      await dbTest.init({ escapeHtml: false })
 
-      const userTags = dbTest.getAll('user_tag')
-      expect(userTags[0].note).toBe('<script>alert("xss")</script>')
-      expect(userTags[1].note).toBe('Safe <b>content</b>')
+      expect(defaultDb.config.validIdChars).toBe('a-zA-Z0-9_,-')
+
+      const loaderValidIdChars = (defaultDb.loader as any).validIdChars
+      expect(loaderValidIdChars).toBe('a-zA-Z0-9_,-')
     })
 
-    it('should use local option (false) when global is true', async () => {
-      const dbTest = new Jsonjsdb({
+    it('should standardize IDs during data loading with custom validIdChars', async () => {
+      const customDb = new Jsonjsdb({
         dbKey: 'gdf9898fds',
-        browserKey: 'gdf9898fdsTEST3',
         path: 'test/db',
+        validIdChars: 'a-zA-Z0-9_',
       })
-      await dbTest.init({ escapeHtml: true })
 
-      const data = await dbTest.load('', 'user_tag', false)
-      expect((data[0] as any).note).toBe('<script>alert("xss")</script>')
-      expect((data[1] as any).note).toBe('Safe <b>content</b>')
+      await customDb.init()
 
-      const userTags = dbTest.getAll('user_tag')
-      expect(userTags[0].note).toBe(
-        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
+      // The standardizeId method should have been applied
+      // Check that loader's standardizeId respects the custom config
+      const standardizeId = (customDb.loader as any).standardizeId.bind(
+        customDb.loader,
       )
+
+      expect(standardizeId('user-123')).toBe('user123') // Hyphen removed
+      expect(standardizeId('user,123')).toBe('user123') // Comma removed
+      expect(standardizeId('user_123')).toBe('user_123') // Underscore kept
     })
 
-    it('should use local option (true) when global is false', async () => {
-      const dbTest = new Jsonjsdb({
-        dbKey: 'gdf9898fds',
-        browserKey: 'gdf9898fdsTEST4',
-        path: 'test/db',
-      })
-      await dbTest.init({ escapeHtml: false })
+    it('should read validIdChars from HTML config', () => {
+      // Create a mock HTML element
+      const configDiv = document.createElement('div')
+      configDiv.id = 'test-config'
+      configDiv.setAttribute('data-path', 'test/db')
+      configDiv.setAttribute('data-db-key', 'gdf9898fds')
+      configDiv.setAttribute('data-valid-id-chars', '0-9a-z')
+      document.body.appendChild(configDiv)
 
-      const data = await dbTest.load('', 'user_tag', true)
-      expect((data[0] as any).note).toBe(
-        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-      )
-      expect((data[1] as any).note).toBe('Safe &lt;b&gt;content&lt;/b&gt;')
+      const htmlDb = new Jsonjsdb('#test-config')
 
-      const userTags = dbTest.getAll('user_tag')
-      expect(userTags[0].note).toBe('<script>alert("xss")</script>')
+      expect(htmlDb.config.validIdChars).toBe('0-9a-z')
+
+      const loaderValidIdChars = (htmlDb.loader as any).validIdChars
+      expect(loaderValidIdChars).toBe('0-9a-z')
+
+      // Cleanup
+      document.body.removeChild(configDiv)
     })
 
-    it('should not affect global option after local calls', async () => {
-      const dbTest = new Jsonjsdb({
-        dbKey: 'gdf9898fds',
-        browserKey: 'gdf9898fdsTEST5',
-        path: 'test/db',
-      })
-      await dbTest.init({ escapeHtml: true })
+    it('should handle HTML config with camelCase dataset attribute', () => {
+      // Create a mock HTML element
+      const configDiv = document.createElement('div')
+      configDiv.id = 'test-config-camel'
+      configDiv.setAttribute('data-path', 'test/db')
+      configDiv.setAttribute('data-db-key', 'gdf9898fds')
+      // Browser automatically converts data-valid-id-chars to dataset.validIdChars
+      configDiv.dataset.validIdChars = 'A-Z'
+      document.body.appendChild(configDiv)
 
-      let userTags = dbTest.getAll('user_tag')
-      expect(userTags[0].note).toBe(
-        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-      )
+      const htmlDb = new Jsonjsdb('#test-config-camel')
 
-      await dbTest.load('', 'user_tag', false)
+      expect(htmlDb.config.validIdChars).toBe('A-Z')
 
-      userTags = dbTest.getAll('user_tag')
-      expect(userTags[0].note).toBe(
-        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-      )
-
-      await dbTest.load('', 'user_tag', true)
-
-      userTags = dbTest.getAll('user_tag')
-      expect(userTags[0].note).toBe(
-        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-      )
-    })
-
-    it('should use config.escapeHtml when set in constructor', async () => {
-      const dbTest1 = new Jsonjsdb({
-        dbKey: 'gdf9898fds',
-        browserKey: 'gdf9898fdsTEST6',
-        path: 'test/db',
-        escapeHtml: false,
-      })
-      await dbTest1.init()
-
-      let userTags = dbTest1.getAll('user_tag')
-      expect(userTags[0].note).toBe('<script>alert("xss")</script>')
-
-      const dbTest2 = new Jsonjsdb({
-        dbKey: 'gdf9898fds',
-        browserKey: 'gdf9898fdsTEST7',
-        path: 'test/db',
-        escapeHtml: true,
-      })
-      await dbTest2.init()
-
-      userTags = dbTest2.getAll('user_tag')
-      expect(userTags[0].note).toBe(
-        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-      )
-    })
-
-    it('should override config.escapeHtml with init option', async () => {
-      const dbTest = new Jsonjsdb({
-        dbKey: 'gdf9898fds',
-        browserKey: 'gdf9898fdsTEST8',
-        path: 'test/db',
-        escapeHtml: false,
-      })
-      await dbTest.init({ escapeHtml: true })
-
-      const userTags = dbTest.getAll('user_tag')
-      expect(userTags[0].note).toBe(
-        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;',
-      )
+      // Cleanup
+      document.body.removeChild(configDiv)
     })
   })
 })
