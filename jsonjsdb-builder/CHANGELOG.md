@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.5.4 (2025-10-02)
+
+- refactor: enforce camelCase for property with eslint rule
+
 ## 0.5.3 (2025-10-02)
 
 - fix: ensure test isolation by copying all Excel files (including evolution.xlsx) to temporary directories

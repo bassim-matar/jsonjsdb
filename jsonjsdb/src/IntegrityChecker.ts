@@ -1,7 +1,7 @@
 import type { IntegrityResult, TableRow } from './types'
 
 export default class IntegrityChecker {
-  private idSuffix = '_id'
+  private idSuffix = 'Id'
   private tables: string[] = []
   private tablesIds: Record<string, (string | number | undefined)[]> = {}
   private result: IntegrityResult

@@ -20,7 +20,7 @@ export type IntegrityResult = {
 
 export type TableRow = {
   id?: string | number
-  parent_id?: string | number | null
+  parentId?: string | number | null
   [key: string]: unknown
 }
 
@@ -49,13 +49,13 @@ export type DatabaseMetadata = {
 
 export type TableInfo = {
   name: string
-  last_modif?: string | number
+  lastModif?: string | number
   alias?: boolean
 }
 
 export type DatabaseRow = {
   id?: string | number
-  parent_id?: string | number | null
+  parentId?: string | number | null
   [key: string]: unknown
 }
 

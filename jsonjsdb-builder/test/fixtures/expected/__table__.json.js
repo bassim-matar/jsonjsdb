@@ -1,19 +1,18 @@
-jsonjs.data['__table__'] = 
-[
+jsonjs.data['__table__'] = [
   {
-    "name": "evolution",
-    "last_modif": 1757694383
+    name: 'evolution',
+    lastModif: 1757694383,
   },
   {
-    "name": "tag",
-    "last_modif": 1738189734
+    name: 'tag',
+    lastModif: 1738189734,
   },
   {
-    "name": "user",
-    "last_modif": 1738189737
+    name: 'user',
+    lastModif: 1738189737,
   },
   {
-    "name": "__table__",
-    "last_modif": 1757694383
-  }
+    name: '__table__',
+    lastModif: 1757694383,
+  },
 ]

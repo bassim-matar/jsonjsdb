@@ -1,6 +1,17 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 import Jsonjsdb from '../src/Jsonjsdb'
 
+type JsonjsdbPrivate = {
+  computeUsage: () => void
+}
+
+type LoaderPrivate = {
+  validIdChars: string
+  validIdPattern: RegExp
+  invalidIdPattern: RegExp
+  standardizeId: (id: string) => string
+}
+
 describe('jsonjsdb', () => {
   let db: Jsonjsdb
 
@@ -58,9 +69,9 @@ describe('jsonjsdb', () => {
 
       // Verify that alias records have the correct structure
       expect(owners[0]).toHaveProperty('id')
-      expect(owners[0]).toHaveProperty('user_id')
+      expect(owners[0]).toHaveProperty('userId')
       expect(managers[0]).toHaveProperty('id')
-      expect(managers[0]).toHaveProperty('user_id')
+      expect(managers[0]).toHaveProperty('userId')
     })
   })
 
@@ -237,14 +248,13 @@ describe('jsonjsdb', () => {
       })
 
       it('should detect recursive entities correctly', () => {
-        // Since test data doesn't have parent_id, let's test the logic by mocking
-        const originalTables = db.tables
-        const originalComputeUsage = db['computeUsage'].bind(db)
+        const dbPrivate = db as unknown as JsonjsdbPrivate
+        const originalComputeUsage = dbPrivate.computeUsage.bind(db)
 
         // Create mock data with proper types
         const recursiveData = [
-          { id: 1, name: 'test 1', parent_id: null },
-          { id: 2, name: 'test 2', parent_id: 1 },
+          { id: 1, name: 'test 1', parentId: null },
+          { id: 2, name: 'test 2', parentId: 1 },
         ]
 
         // Temporarily add the recursive table using Object.defineProperty
@@ -274,7 +284,8 @@ describe('jsonjsdb', () => {
       })
 
       it('should handle empty tables correctly', () => {
-        const originalComputeUsage = db['computeUsage'].bind(db)
+        const dbPrivate = db as unknown as JsonjsdbPrivate
+        const originalComputeUsage = dbPrivate.computeUsage.bind(db)
 
         // Add an empty table temporarily
         Object.defineProperty(db.tables, 'emptytable', {
@@ -318,7 +329,6 @@ describe('jsonjsdb', () => {
       const schema2 = db.getSchema()
 
       // Get initial lengths
-      const initialAliasesLength = schema2.aliases.length
       const initialOneToOneLength = schema2.oneToOne.length
 
       // Modify the first copy
@@ -376,12 +386,12 @@ describe('jsonjsdb', () => {
       expect(customDb.config.validIdChars).toBe('a-z0-9')
 
       // Check that loader received the config
-      const loaderValidIdChars = (customDb.loader as any).validIdChars
-      expect(loaderValidIdChars).toBe('a-z0-9')
+      const loaderPrivate = customDb.loader as unknown as LoaderPrivate
+      expect(loaderPrivate.validIdChars).toBe('a-z0-9')
 
       // Verify regex patterns are created correctly
-      const validIdPattern = (customDb.loader as any).validIdPattern
-      const invalidIdPattern = (customDb.loader as any).invalidIdPattern
+      const validIdPattern = loaderPrivate.validIdPattern
+      const invalidIdPattern = loaderPrivate.invalidIdPattern
 
       expect(validIdPattern.test('abc123')).toBe(true)
       expect(validIdPattern.test('ABC123')).toBe(false) // Uppercase not allowed
@@ -398,8 +408,8 @@ describe('jsonjsdb', () => {
 
       expect(defaultDb.config.validIdChars).toBe('a-zA-Z0-9_, -')
 
-      const loaderValidIdChars = (defaultDb.loader as any).validIdChars
-      expect(loaderValidIdChars).toBe('a-zA-Z0-9_, -')
+      const loaderPrivate = defaultDb.loader as unknown as LoaderPrivate
+      expect(loaderPrivate.validIdChars).toBe('a-zA-Z0-9_, -')
     })
 
     it('should standardize IDs during data loading with custom validIdChars', async () => {
@@ -413,9 +423,8 @@ describe('jsonjsdb', () => {
 
       // The standardizeId method should have been applied
       // Check that loader's standardizeId respects the custom config
-      const standardizeId = (customDb.loader as any).standardizeId.bind(
-        customDb.loader,
-      )
+      const loaderPrivate = customDb.loader as unknown as LoaderPrivate
+      const standardizeId = loaderPrivate.standardizeId.bind(customDb.loader)
 
       expect(standardizeId('user-123')).toBe('user123') // Hyphen removed
       expect(standardizeId('user,123')).toBe('user123') // Comma removed
@@ -435,8 +444,8 @@ describe('jsonjsdb', () => {
 
       expect(htmlDb.config.validIdChars).toBe('0-9a-z')
 
-      const loaderValidIdChars = (htmlDb.loader as any).validIdChars
-      expect(loaderValidIdChars).toBe('0-9a-z')
+      const loaderPrivate = htmlDb.loader as unknown as LoaderPrivate
+      expect(loaderPrivate.validIdChars).toBe('0-9a-z')
 
       // Cleanup
       document.body.removeChild(configDiv)

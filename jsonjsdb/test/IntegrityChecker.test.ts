@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import IntegrityChecker from '../src/IntegrityChecker'
+import type { TableRow, TableInfo } from '../src/types'
+
+type TestDatabase = {
+  __table__?: TableInfo[]
+  [tableName: string]: TableRow[] | TableInfo[] | undefined
+}
 
 describe('IntegrityChecker', () => {
   let checker: IntegrityChecker
@@ -8,11 +14,10 @@ describe('IntegrityChecker', () => {
     checker = new IntegrityChecker()
   })
 
-  const checkWithTables = (db: any) => {
-    // Extract table names from __table__ property, then remove it from db
+  function checkWithTables(db: TestDatabase) {
     const tables = db.__table__ || []
-    const { __table__, ...dataOnly } = db
-    return checker.check(dataOnly, tables)
+    delete db.__table__
+    return checker.check(db as Record<string, TableRow[]>, tables)
   }
 
   describe('Constructor', () => {
@@ -139,9 +144,9 @@ describe('IntegrityChecker', () => {
       const db = {
         __table__: [{ name: 'category' }],
         category: [
-          { id: 1, name: 'Electronics', parent_id: null },
-          { id: 2, name: 'Phones', parent_id: 1 },
-          { id: 3, name: 'Self-referencing', parent_id: 3 },
+          { id: 1, name: 'Electronics', parentId: null },
+          { id: 2, name: 'Phones', parentId: 1 },
+          { id: 3, name: 'Self-referencing', parentId: 3 },
         ],
       }
 
@@ -172,9 +177,9 @@ describe('IntegrityChecker', () => {
       const db = {
         __table__: [{ name: 'category' }],
         category: [
-          { id: 1, name: 'Electronics', parent_id: null },
-          { id: 2, name: 'Phones', parent_id: 1 },
-          { id: 3, name: 'Invalid', parent_id: 999 },
+          { id: 1, name: 'Electronics', parentId: null },
+          { id: 2, name: 'Phones', parentId: 1 },
+          { id: 3, name: 'Invalid', parentId: 999 },
         ],
       }
 
@@ -188,9 +193,9 @@ describe('IntegrityChecker', () => {
       const db = {
         __table__: [{ name: 'category' }],
         category: [
-          { id: 1, name: 'Electronics', parent_id: null },
-          { id: 2, name: 'Phones', parent_id: '' },
-          { id: 3, name: 'Tablets', parent_id: 1 },
+          { id: 1, name: 'Electronics', parentId: null },
+          { id: 2, name: 'Phones', parentId: '' },
+          { id: 3, name: 'Tablets', parentId: 1 },
         ],
       }
 
@@ -209,18 +214,18 @@ describe('IntegrityChecker', () => {
           { id: 2, name: 'Jane' },
         ],
         post: [
-          { id: 1, title: 'Post 1', user_id: 1 },
-          { id: 2, title: 'Post 2', user_id: 999 },
-          { id: 3, title: 'Post 3', user_id: 2 },
+          { id: 1, title: 'Post 1', userId: 1 },
+          { id: 2, title: 'Post 2', userId: 999 },
+          { id: 3, title: 'Post 3', userId: 2 },
         ],
       }
 
       const result = checkWithTables(db)
 
       expect(result.foreignIdNotFound.post).toBeDefined()
-      expect(result.foreignIdNotFound.post.user_id).toContain(999)
-      expect(result.foreignIdNotFound.post.user_id).not.toContain(1)
-      expect(result.foreignIdNotFound.post.user_id).not.toContain(2)
+      expect(result.foreignIdNotFound.post.userId).toContain(999)
+      expect(result.foreignIdNotFound.post.userId).not.toContain(1)
+      expect(result.foreignIdNotFound.post.userId).not.toContain(2)
     })
 
     it('should ignore null and empty foreign key values', () => {
@@ -228,9 +233,9 @@ describe('IntegrityChecker', () => {
         __table__: [{ name: 'user' }, { name: 'post' }],
         user: [{ id: 1, name: 'John' }],
         post: [
-          { id: 1, title: 'Post 1', user_id: 1 },
-          { id: 2, title: 'Post 2', user_id: null },
-          { id: 3, title: 'Post 3', user_id: '' },
+          { id: 1, title: 'Post 1', userId: 1 },
+          { id: 2, title: 'Post 2', userId: null },
+          { id: 3, title: 'Post 3', userId: '' },
         ],
       }
 
@@ -243,8 +248,8 @@ describe('IntegrityChecker', () => {
       const db = {
         __table__: [{ name: 'category' }],
         category: [
-          { id: 1, name: 'Electronics', parent_id: null },
-          { id: 2, name: 'Phones', parent_id: 1 },
+          { id: 1, name: 'Electronics', parentId: null },
+          { id: 2, name: 'Phones', parentId: 1 },
         ],
       }
 
@@ -265,13 +270,13 @@ describe('IntegrityChecker', () => {
           { id: 1, name: 'Duplicate John' }, // Duplicate ID
         ],
         post: [
-          { id: 1, title: 'Post 1', user_id: 1 },
-          { id: 2, title: 'Post 2', user_id: 999 }, // Invalid foreign key
+          { id: 1, title: 'Post 1', userId: 1 },
+          { id: 2, title: 'Post 2', userId: 999 }, // Invalid foreign key
         ],
         comment: [
-          { id: 1, text: 'Comment 1', post_id: 1, user_id: 1 },
-          { id: 2, text: 'Comment 2', post_id: 999, user_id: 1 }, // Invalid post_id
-          { id: 3, text: 'Comment 3', post_id: 1, user_id: 888 }, // Invalid user_id
+          { id: 1, text: 'Comment 1', postId: 1, userId: 1 },
+          { id: 2, text: 'Comment 2', postId: 999, userId: 1 }, // Invalid postId
+          { id: 3, text: 'Comment 3', postId: 1, userId: 888 }, // Invalid userId
         ],
       }
 
@@ -284,9 +289,9 @@ describe('IntegrityChecker', () => {
       expect(result.duplicateId.user).toContain(1)
 
       // Check foreign key violations
-      expect(result.foreignIdNotFound.post.user_id).toContain(999)
-      expect(result.foreignIdNotFound.comment.post_id).toContain(999)
-      expect(result.foreignIdNotFound.comment.user_id).toContain(888)
+      expect(result.foreignIdNotFound.post.userId).toContain(999)
+      expect(result.foreignIdNotFound.comment.postId).toContain(999)
+      expect(result.foreignIdNotFound.comment.userId).toContain(888)
     })
 
     it('should handle valid database with no issues', () => {
@@ -297,8 +302,8 @@ describe('IntegrityChecker', () => {
           { id: 2, name: 'Jane' },
         ],
         post: [
-          { id: 1, title: 'Post 1', user_id: 1 },
-          { id: 2, title: 'Post 2', user_id: 2 },
+          { id: 1, title: 'Post 1', userId: 1 },
+          { id: 2, title: 'Post 2', userId: 2 },
         ],
       }
 
@@ -333,8 +338,8 @@ describe('IntegrityChecker', () => {
           { id: 2, name: 'Jane' },
         ],
         post: [
-          { id: 1, title: 'Post 1', user_id: '1' },
-          { id: 2, title: 'Post 2', user_id: 2 },
+          { id: 1, title: 'Post 1', userId: '1' },
+          { id: 2, title: 'Post 2', userId: 2 },
         ],
       }
 
