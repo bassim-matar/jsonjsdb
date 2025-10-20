@@ -42,7 +42,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.core-changes.outputs.changed == 'true'
-        run: npm ci
+        run: npm ci --no-audit
 
       - name: Cache Playwright browsers
         if: steps.core-changes.outputs.changed == 'true'
@@ -129,7 +129,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.builder-changes.outputs.changed == 'true'
-        run: npm ci
+        run: npm ci --no-audit
 
       - name: Run ESLint
         if: steps.builder-changes.outputs.changed == 'true'
