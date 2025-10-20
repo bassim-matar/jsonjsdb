@@ -93,16 +93,24 @@ describe('Vite Integration', () => {
   })
 
   describe('getVitePlugins', () => {
-    it('should return array of plugins including FullReload', async () => {
+    it('should return array of plugins with FullReload', async () => {
       const builder = new JsonjsdbBuilder({ configPath })
       await builder.setOutputDb(outputDbDir)
       await builder.updateDb(testExcelPath)
 
-      const plugins = builder.getVitePlugins()
+      const mockFullReload = (path: string | string[]) => ({
+        name: 'vite-plugin-full-reload',
+        path,
+      })
+
+      const plugins = builder.getVitePlugins(mockFullReload)
       expect(Array.isArray(plugins)).toBe(true)
       expect(plugins.length).toBe(2)
       const firstPlugin = plugins[0] as { name: string }
       expect(firstPlugin.name).toBe('jsonjsdbAddConfig')
+      const secondPlugin = plugins[1] as { name: string; path: string }
+      expect(secondPlugin.name).toBe('vite-plugin-full-reload')
+      expect(secondPlugin.path).toBe(builder.getTableIndexFile())
     })
   })
 
@@ -167,7 +175,12 @@ describe('Vite Integration', () => {
         configPath,
       })
 
-      const plugins = builder.getVitePlugins()
+      const mockFullReload = (path: string | string[]) => ({
+        name: 'vite-plugin-full-reload',
+        path,
+      })
+
+      const plugins = builder.getVitePlugins(mockFullReload)
       expect(Array.isArray(plugins)).toBe(true)
       expect(plugins.length).toBe(2)
     })

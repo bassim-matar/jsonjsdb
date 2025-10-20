@@ -74,6 +74,7 @@ Configure a simple watcher and auto-reload in your Vite setup:
 
 ```js
 import { defineConfig } from 'vite'
+import FullReload from 'vite-plugin-full-reload'
 import { initJsonjsdbBuilder } from 'jsonjsdb-builder'
 
 const builder = await initJsonjsdbBuilder(
@@ -88,8 +89,14 @@ const builder = await initJsonjsdbBuilder(
 )
 
 export default defineConfig({
-  plugins: builder.getVitePlugins(),
+  plugins: builder.getVitePlugins(FullReload),
 })
+```
+
+**Install required dependencies:**
+
+```bash
+npm install -D vite-plugin-full-reload
 ```
 
 This includes:

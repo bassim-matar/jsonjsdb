@@ -3,7 +3,6 @@ import { promises as fs, existsSync } from 'fs'
 import readExcel from 'read-excel-file/node'
 import writeXlsxFile from 'write-excel-file/node'
 import chokidar from 'chokidar'
-import FullReload from 'vite-plugin-full-reload'
 import { type PluginOption } from 'vite'
 import { evolutionSchema } from './evolutionSchema'
 import { compareDatasets, EvolutionEntry } from './compareDatasets'
@@ -115,8 +114,11 @@ export class JsonjsdbBuilder {
     }
   }
 
-  public getVitePlugins(configPath?: string): PluginOption[] {
-    return [this.getVitePlugin(configPath), FullReload(this.tableIndexFile)]
+  public getVitePlugins(
+    fullReload: (path: string | string[]) => PluginOption,
+    configPath?: string,
+  ): PluginOption[] {
+    return [this.getVitePlugin(configPath), fullReload(this.tableIndexFile)]
   }
 
   public async updatePreview(
