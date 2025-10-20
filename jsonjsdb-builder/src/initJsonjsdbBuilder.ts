@@ -3,7 +3,7 @@ import { JsonjsdbBuilder } from './JsonjsdbBuilder'
 export async function initJsonjsdbBuilder(
   paths: {
     dbPath: string
-    dbSourcePath: string
+    dbSourcePath?: string
     previewPath?: string
     mdPath?: string
     configPath?: string
@@ -20,7 +20,11 @@ export async function initJsonjsdbBuilder(
 
   await builder.setOutputDb(paths.dbPath)
 
-  const updatePromises: Promise<void>[] = [builder.updateDb(paths.dbSourcePath)]
+  const updatePromises: Promise<void>[] = []
+
+  if (paths.dbSourcePath) {
+    updatePromises.push(builder.updateDb(paths.dbSourcePath))
+  }
 
   if (paths.previewPath) {
     updatePromises.push(builder.updatePreview('preview', paths.previewPath))
@@ -32,7 +36,7 @@ export async function initJsonjsdbBuilder(
 
   await Promise.all(updatePromises)
 
-  if (options.isDevelopment) {
+  if (options.isDevelopment && paths.dbSourcePath) {
     builder.watchDb(paths.dbSourcePath)
   }
 
