@@ -1,5 +1,5 @@
 export { JsonjsdbBuilder } from './JsonjsdbBuilder'
-export { jsonjsdbAddConfig } from './jsonjsdbAddConfig'
+export { initJsonjsdbBuilder } from './initJsonjsdbBuilder'
 export {
   toObjects as jsonjsdbToObjects,
   toMatrix as jsonjsdbToMatrix,

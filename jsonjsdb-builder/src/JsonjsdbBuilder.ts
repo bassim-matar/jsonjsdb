@@ -3,6 +3,8 @@ import { promises as fs, existsSync } from 'fs'
 import readExcel from 'read-excel-file/node'
 import writeXlsxFile from 'write-excel-file/node'
 import chokidar from 'chokidar'
+import FullReload from 'vite-plugin-full-reload'
+import { type PluginOption } from 'vite'
 import { evolutionSchema } from './evolutionSchema'
 import { compareDatasets, EvolutionEntry } from './compareDatasets'
 import {
@@ -35,8 +37,9 @@ export class JsonjsdbBuilder {
   private tableIndexFile: Path
   private updateDbTimestamp: number
   private newEvoEntries: EvolutionEntry[]
+  private configPath?: string
 
-  constructor(option: { compact?: boolean } = {}) {
+  constructor(option: { compact?: boolean; configPath?: string } = {}) {
     this.inputDb = ''
     this.outputDb = ''
     this.tableIndexFile = ''
@@ -44,6 +47,7 @@ export class JsonjsdbBuilder {
     this.extension = 'xlsx'
     this.updateDbTimestamp = 0
     this.newEvoEntries = []
+    this.configPath = option.configPath
   }
 
   public async updateDb(inputDb: Path): Promise<void> {
@@ -91,6 +95,28 @@ export class JsonjsdbBuilder {
 
   public getTableIndexFile(): Path {
     return this.tableIndexFile
+  }
+
+  public getVitePlugin(configPath?: string): PluginOption {
+    const finalConfigPath = configPath ?? this.configPath
+    if (!finalConfigPath) {
+      throw new Error(
+        'Config path must be provided either in constructor or getVitePlugin()',
+      )
+    }
+    return {
+      name: 'jsonjsdbAddConfig',
+      transformIndexHtml: {
+        order: 'post',
+        handler: async (html: string) => {
+          return html + '\n' + (await fs.readFile(finalConfigPath, 'utf8'))
+        },
+      },
+    }
+  }
+
+  public getVitePlugins(configPath?: string): PluginOption[] {
+    return [this.getVitePlugin(configPath), FullReload(this.tableIndexFile)]
   }
 
   public async updatePreview(
