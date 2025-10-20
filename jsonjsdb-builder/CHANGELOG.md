@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.5.7 (2025-10-20)
+
+- fix: make dbSourcePath optional and handle its absence in initJsonjsdbBuilder
+
 ## 0.5.6 (2025-10-20)
 
 - feat: enhance Vite integration with new builder initialization and plugin support
