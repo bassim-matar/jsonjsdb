@@ -70,29 +70,40 @@ await builder.updatePreview('preview', 'db')
 
 ## Vite Integration
 
-A direct watch helper is no longer shipped (former watcher class removed). You can configure a simple watcher in your Vite setup:
+Configure a simple watcher and auto-reload in your Vite setup:
 
 ```js
 import { defineConfig } from 'vite'
 import FullReload from 'vite-plugin-full-reload'
-import { JsonjsdbBuilder, jsonjsdbAddConfig } from 'jsonjsdb-builder'
+import { initJsonjsdbBuilder } from 'jsonjsdb-builder'
 
-const builder = new JsonjsdbBuilder()
-await builder.setOutputDb('app_db')
-await builder.updateDb('db') // initial Excel import
-await builder.updateMdDir('markdown', 'content_md') // initial markdown import
-
-if (process.env.NODE_ENV === 'development') {
-  builder.watchDb('db')
-}
+const builder = await initJsonjsdbBuilder(
+  {
+    dbPath: 'public/data/db',
+    dbSourcePath: 'public/data/db-source',
+    previewPath: 'public/data/dataset',
+    mdPath: 'public/data/md',
+    configPath: 'public/data/jsonjsdb-config.html',
+  },
+  { isDevelopment: process.env.NODE_ENV === 'development' },
+)
 
 export default defineConfig({
-  plugins: [
-    jsonjsdbAddConfig('data/jsonjsdb-config.html'),
-    FullReload(builder.getTableIndexFile()),
-  ],
+  plugins: builder.getVitePlugins(FullReload),
 })
 ```
+
+**Install required dependencies:**
+
+```bash
+npm install -D vite-plugin-full-reload
+```
+
+This includes:
+
+- Database watching in development mode
+- Config injection plugin
+- Auto-reload on database changes
 
 ## Low-level Utilities
 
