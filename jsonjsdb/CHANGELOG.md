@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.7.8 (2025-10-23)
+
+- add: sourcemap generation in Vite build configuration
+
 ## 0.7.7 (2025-10-02)
 
 - fix: metaVariable storageKey
