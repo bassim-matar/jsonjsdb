@@ -14,6 +14,7 @@ export default defineConfig({
   plugins: [dts({ include: ['src'] })],
   build: {
     minify: 'terser',
+    sourcemap: true,
     lib: {
       entry: './src/Jsonjsdb.ts',
       name: 'Jsonjsdb',
