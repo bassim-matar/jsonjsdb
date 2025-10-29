@@ -180,18 +180,9 @@ export class JsonjsdbBuilder {
   }
 
   private async getOutputMetadata(): Promise<MetadataItem[]> {
-    let tablesMetadata = []
-    if (existsSync(this.tableIndexFile)) {
-      const fileContent = await fs.readFile(this.tableIndexFile, 'utf-8')
-      try {
-        const lines = fileContent.split('\n')
-        lines.shift()
-        tablesMetadata = JSON.parse(lines.join('\n'))
-      } catch (e) {
-        console.error(`Jsonjsdb: error reading ${this.tableIndexFile}: ${e}`)
-      }
-    }
-    return tablesMetadata
+    if (!existsSync(this.tableIndexFile)) return []
+    const fileContent = await fs.readFile(this.tableIndexFile, 'utf-8')
+    return JSON.parse(fileContent)
   }
 
   private metadataListToObject(list: MetadataItem[]): MetadataObj {
