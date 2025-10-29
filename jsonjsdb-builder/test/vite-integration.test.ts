@@ -142,19 +142,6 @@ describe('Vite Integration', () => {
       expect(existsSync(path.join(outputDbDir, '__table__.json.js'))).toBe(true)
     })
 
-    it('should support compact option', async () => {
-      const builder = await initJsonjsdbBuilder(
-        {
-          dbPath: outputDbDir,
-          dbSourcePath: testExcelPath,
-          configPath,
-        },
-        { compact: true },
-      )
-
-      expect(builder).toBeInstanceOf(JsonjsdbBuilder)
-    })
-
     it('should watch in development mode', async () => {
       const builder = await initJsonjsdbBuilder(
         {

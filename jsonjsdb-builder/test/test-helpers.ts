@@ -11,8 +11,8 @@ export function validateJsonjsFile(
 ): boolean {
   try {
     const prefixes = [
-      `jsonjs.data['${tableName}'] = \n`,
-      `jsonjs.data["${tableName}"] = \n`,
+      `jsonjs.data['${tableName}'] = `,
+      `jsonjs.data["${tableName}"] = `,
     ]
 
     const prefix = prefixes.find(p => content.startsWith(p))
@@ -26,19 +26,44 @@ export function validateJsonjsFile(
 }
 
 /**
- * Parses JsonjsDB file content and returns the data
+ * Parses JsonjsDB file content and returns the data as matrix (array of arrays)
  */
 export function parseJsonjsFile(
   content: string,
   tableName: string,
-): Record<string, unknown>[] {
-  const expectedPrefix = `jsonjs.data['${tableName}'] = \n`
+): unknown[][] {
+  const expectedPrefix = `jsonjs.data['${tableName}'] = `
   if (!content.startsWith(expectedPrefix)) {
     throw new Error(`Invalid JsonjsDB file format for table: ${tableName}`)
   }
 
-  const jsonContent = content.slice(expectedPrefix.length)
+  let jsonContent = content.slice(expectedPrefix.length).trim()
+
+  // Convert JavaScript single quotes to JSON double quotes
+  // This handles Prettier formatting the fixture files
+  jsonContent = jsonContent.replace(/'([^']*)'/g, '"$1"')
+
+  // Remove trailing commas (not valid in JSON but Prettier adds them)
+  jsonContent = jsonContent.replace(/,(\s*[\]}])/g, '$1')
+
   return JSON.parse(jsonContent)
+} /**
+ * Converts matrix format to objects (for comparison)
+ */
+export function matrixToObjects(
+  matrix: unknown[][],
+): Record<string, unknown>[] {
+  if (!matrix || matrix.length === 0) return []
+  const headers = matrix[0] as string[]
+  const objects: Record<string, unknown>[] = []
+  for (const row of matrix.slice(1)) {
+    const obj: Record<string, unknown> = {}
+    for (const [index, header] of headers.entries()) {
+      obj[header] = row[index]
+    }
+    objects.push(obj)
+  }
+  return objects
 }
 
 /**
@@ -70,7 +95,17 @@ export function validateMetadataFile(
   expectedTables: string[],
 ): boolean {
   try {
-    const data = parseJsonjsFile(content, '__table__')
+    let data: Record<string, unknown>[]
+
+    // Check if it's a .json.js file (starts with jsonjs.data)
+    if (content.startsWith("jsonjs.data['__table__']")) {
+      const matrix = parseJsonjsFile(content, '__table__')
+      data = matrixToObjects(matrix)
+    } else {
+      // It's a plain .json file
+      data = JSON.parse(content)
+    }
+
     const tableNames = data
       .map((item: Record<string, unknown>) => item.name as string)
       .filter((name: string) => name !== '__table__')
@@ -138,7 +173,8 @@ export async function getExpectedResults(): Promise<
       const tableName = file.replace('.json.js', '')
       const filePath = path.join(referenceDir, file)
       const content = await fs.readFile(filePath, 'utf-8')
-      results[tableName] = parseJsonjsFile(content, tableName)
+      const matrix = parseJsonjsFile(content, tableName)
+      results[tableName] = matrixToObjects(matrix)
     }
   }
 

@@ -30,19 +30,17 @@ type MetadataItem = {
 export class JsonjsdbBuilder {
   private inputDb: Path
   private outputDb: Path
-  private compact: boolean
   private extension: Extension
-  private tableIndexFilename: string = `${tableIndex}.json.js`
+  private tableIndexFilename: string = `${tableIndex}.json`
   private tableIndexFile: Path
   private updateDbTimestamp: number
   private newEvoEntries: EvolutionEntry[]
   private configPath?: string
 
-  constructor(option: { compact?: boolean; configPath?: string } = {}) {
+  constructor(option: { configPath?: string } = {}) {
     this.inputDb = ''
     this.outputDb = ''
     this.tableIndexFile = ''
-    this.compact = option.compact ?? false
     this.extension = 'xlsx'
     this.updateDbTimestamp = 0
     this.newEvoEntries = []
@@ -135,9 +133,7 @@ export class JsonjsdbBuilder {
       const filePath = path.join(sourcePath, fileName)
       const tableData = await readExcel(filePath)
       const name = fileName.split('.')[0]
-      await writeJsonjs(outputPath, name, tableData, {
-        compact: this.compact,
-      })
+      await writeJsonjs(outputPath, name, tableData)
     }
   }
 
@@ -212,7 +208,7 @@ export class JsonjsdbBuilder {
     }
     const items = await fs.readdir(outputDb, { withFileTypes: true })
     const files = items.filter(
-      item => item.isFile() && item.name.endsWith('.json.js'),
+      item => item.isFile() && item.name.endsWith('.json'),
     ).length
     if (files > 0) return outputDb
     const folders = items.filter(item => item.isDirectory())
@@ -228,8 +224,13 @@ export class JsonjsdbBuilder {
     const outputFiles = await fs.readdir(this.outputDb)
     for (const fileName of outputFiles) {
       const table = fileName.split('.')[0]
-      if (!fileName.endsWith(`.json.js`)) continue
-      if (fileName === `${tableIndex}.json.js`) continue
+      if (!fileName.endsWith(`.json.js`) && !fileName.endsWith(`.json`))
+        continue
+      if (
+        fileName === `${tableIndex}.json.js` ||
+        fileName === `${tableIndex}.json`
+      )
+        continue
       if (table in inputMetadataObj) continue
       if (table === 'evolution') continue
       const filePath = path.join(this.outputDb, fileName)
@@ -246,13 +247,12 @@ export class JsonjsdbBuilder {
   ): Promise<void> {
     outputMetadata = outputMetadata.filter(row => row.name !== tableIndex)
     if (JSON.stringify(inputMetadata) === JSON.stringify(outputMetadata)) return
-    let content = `jsonjs.data['${tableIndex}'] = \n`
     inputMetadata.push({
       name: tableIndex,
       lastModif: Math.round(Date.now() / 1000),
     })
-    content += JSON.stringify(inputMetadata, null, 2)
-    await fs.writeFile(this.tableIndexFile, content, 'utf-8')
+    const metadataMatrix = toMatrix(inputMetadata)
+    await writeJsonjs(this.outputDb, tableIndex, metadataMatrix)
   }
 
   private async updateTables(
@@ -273,7 +273,7 @@ export class JsonjsdbBuilder {
   }
 
   private async saveEvolution(inputMetadata: MetadataItem[]): Promise<void> {
-    const evolutionFileJsonjs = path.join(this.outputDb, `evolution.json.js`)
+    const evolutionFileJsonjs = path.join(this.outputDb, `evolution.json`)
     const evolutionFile = path.join(this.inputDb, `evolution.xlsx`)
     if (this.newEvoEntries.length > 0) {
       let evolution: TableRow[] = []
@@ -287,7 +287,6 @@ export class JsonjsdbBuilder {
       )
       const evolutionList = toMatrix(evolution as TableRow[])
       await writeJsonjs(this.outputDb, 'evolution', evolutionList, {
-        compact: this.compact,
         toSnakeCase: true,
       })
       await writeXlsxFile(evolution, {
@@ -319,9 +318,7 @@ export class JsonjsdbBuilder {
     const inputFile = path.join(this.inputDb, `${table}.xlsx`)
     const tableData = await readExcel(inputFile)
     await this.addNewEvoEntries(table, tableData)
-    await writeJsonjs(this.outputDb, table, tableData, {
-      compact: this.compact,
-    })
+    await writeJsonjs(this.outputDb, table, tableData)
     console.log(`Jsonjsdb updating ${table}`)
   }
 
@@ -330,7 +327,7 @@ export class JsonjsdbBuilder {
     tableData: Row[],
   ): Promise<void> {
     const oldTableData = await readJsonjs(
-      path.join(this.outputDb, `${table}.json.js`),
+      path.join(this.outputDb, `${table}.json`),
     )
     const newEvoEntries = compareDatasets(
       oldTableData,

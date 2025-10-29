@@ -8,15 +8,9 @@ export async function initJsonjsdbBuilder(
     mdPath?: string
     configPath?: string
   },
-  options: {
-    isDevelopment?: boolean
-    compact?: boolean
-  } = {},
+  options: { isDevelopment?: boolean } = {},
 ) {
-  const builder = new JsonjsdbBuilder({
-    configPath: paths.configPath,
-    compact: options.compact,
-  })
+  const builder = new JsonjsdbBuilder({ configPath: paths.configPath })
 
   await builder.setOutputDb(paths.dbPath)
 

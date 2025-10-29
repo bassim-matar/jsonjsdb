@@ -71,31 +71,10 @@ describe('TableSerializer utilities', () => {
 
     const parsed = parseJsonjsFile(content, 'sample')
     expect(parsed).toEqual([
-      { id: 1, value: 'Hello' },
-      { id: 2, value: 'World' },
+      ['id', 'value'],
+      [1, 'Hello'],
+      [2, 'World'],
     ])
-  })
-
-  it('write compact mode should not pretty print objects', async () => {
-    const tmpDir = path.join(
-      process.cwd(),
-      'test/fixtures/temp-serializer-compact',
-    )
-    await fs.mkdir(tmpDir, { recursive: true })
-    tempDirs.push(tmpDir)
-
-    const matrix = [
-      ['id', 'x'],
-      [1, 10],
-      [2, 20],
-    ]
-    await jsonjsdbWriteFile(tmpDir, 'compact_table', matrix, { compact: true })
-
-    const filePath = path.join(tmpDir, 'compact_table.json.js')
-    const content = await fs.readFile(filePath, 'utf-8')
-    expect(validateJsonjsFile(content, 'compact_table')).toBe(true)
-    // In compact mode there should be no indentation for objects array
-    expect(content).not.toMatch(/\n\s{2}\{/) // crude check for pretty indent
   })
 
   it('readJsonjs should return [] for missing file', async () => {
