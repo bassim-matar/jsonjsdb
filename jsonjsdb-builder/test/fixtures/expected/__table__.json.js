@@ -1,18 +1,7 @@
 jsonjs.data['__table__'] = [
-  {
-    name: 'evolution',
-    lastModif: 1757694383,
-  },
-  {
-    name: 'tag',
-    lastModif: 1738189734,
-  },
-  {
-    name: 'user',
-    lastModif: 1738189737,
-  },
-  {
-    name: '__table__',
-    lastModif: 1757694383,
-  },
+  ['name', 'lastModif'],
+  ['evolution', 1757694383],
+  ['tag', 1738189734],
+  ['user', 1738189737],
+  ['__table__', 1757694383],
 ]

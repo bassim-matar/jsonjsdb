@@ -8,14 +8,11 @@ function camelToSnake(str: string): string {
   return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
 }
 
-function transformKeysToSnake(data: TableRow[]): TableRow[] {
-  return data.map(row => {
-    const newRow: TableRow = {}
-    for (const [key, value] of Object.entries(row)) {
-      newRow[camelToSnake(key)] = value
-    }
-    return newRow
-  })
+function transformKeysToSnake(data: Row[]): Row[] {
+  if (!data || data.length === 0) return []
+  const headers = data[0] as string[]
+  const transformedHeaders = headers.map(header => camelToSnake(header))
+  return [transformedHeaders, ...data.slice(1)]
 }
 
 function snakeToCamel(str: string): string {
@@ -57,53 +54,41 @@ export function toMatrix(objects: TableRow[]): Row[] {
   return rows
 }
 
-// Reads a jsonjs file and returns list of objects
 export async function readJsonjs(filePath: string): Promise<TableRow[]> {
   if (!existsSync(filePath)) return []
-  const jsData = await fs.readFile(filePath, 'utf8')
-  const jsonString = jsData.slice(jsData.indexOf('\n') + 1)
-  const data = JSON.parse(jsonString)
-  if (data.length > 0 && Array.isArray(data[0])) {
-    return toObjects(data as Row[])
-  }
-  return data
+  const content = await fs.readFile(filePath, 'utf8')
+  return JSON.parse(content)
 }
 
-// Helper to write directly to disk
+async function writeJsonjsFile(outputFile: string, name: string, data: Row[]) {
+  const content = `jsonjs.data['${name}'] = ${JSON.stringify(data)}`
+  await fs.writeFile(`${outputFile}.js.temp`, content, 'utf-8')
+  await fs.rename(`${outputFile}.js.temp`, `${outputFile}.js`)
+}
+
+async function writeJsonFile(outputFile: string, data: TableRow[]) {
+  const content = JSON.stringify(data, null, 2)
+  await fs.writeFile(`${outputFile}.temp`, content, 'utf-8')
+  await fs.rename(`${outputFile}.temp`, outputFile)
+}
+
 export async function writeJsonjs(
   outputDir: string,
   name: string,
-  data: Row[] | TableRow[],
+  arrayOfArray: Row[],
   options: {
-    compact?: boolean
-    alreadyObjects?: boolean
     toSnakeCase?: boolean
   } = {},
-): Promise<string> {
-  const {
-    compact = false,
-    alreadyObjects = false,
-    toSnakeCase = false,
-  } = options
+) {
+  const { toSnakeCase = false } = options
+  const outputFile = path.join(outputDir, `${name}.json`)
 
-  let processedData: TableRow[] | Row[]
+  arrayOfArray = toSnakeCase ? transformKeysToSnake(arrayOfArray) : arrayOfArray
 
-  if (alreadyObjects) {
-    processedData = toSnakeCase
-      ? transformKeysToSnake(data as TableRow[])
-      : data
-  } else {
-    const objects = toObjects(data as Row[])
-    processedData = toSnakeCase ? transformKeysToSnake(objects) : objects
-  }
+  await Promise.all([
+    writeJsonjsFile(outputFile, name, arrayOfArray),
+    writeJsonFile(outputFile, toObjects(arrayOfArray)),
+  ])
 
-  let content = `jsonjs.data['${name}'] = \n`
-  if (compact) {
-    content += JSON.stringify(processedData)
-  } else {
-    content += JSON.stringify(processedData, null, 2)
-  }
-  const outputFile = path.join(outputDir, `${name}.json.js`)
-  await fs.writeFile(outputFile, content, 'utf-8')
   return outputFile
 }

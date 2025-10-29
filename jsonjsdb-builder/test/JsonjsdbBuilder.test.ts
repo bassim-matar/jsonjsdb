@@ -46,18 +46,19 @@ describe('JsonjsdbBuilder E2E Tests', () => {
     }
   })
 
-  async function setupBuilder(options?: {
-    compact?: boolean
-  }): Promise<JsonjsdbBuilder> {
-    const builder = new JsonjsdbBuilder(options)
+  async function setupBuilder(): Promise<JsonjsdbBuilder> {
+    const builder = new JsonjsdbBuilder()
     await builder.setOutputDb(outputDbDir)
     return builder
   }
 
   async function assertBasicFiles(): Promise<void> {
     expect(existsSync(path.join(outputDbDir, '__table__.json.js'))).toBe(true)
+    expect(existsSync(path.join(outputDbDir, '__table__.json'))).toBe(true)
     expect(existsSync(path.join(outputDbDir, 'user.json.js'))).toBe(true)
+    expect(existsSync(path.join(outputDbDir, 'user.json'))).toBe(true)
     expect(existsSync(path.join(outputDbDir, 'tag.json.js'))).toBe(true)
+    expect(existsSync(path.join(outputDbDir, 'tag.json'))).toBe(true)
   }
 
   describe('Core conversion functionality', () => {
@@ -90,7 +91,15 @@ describe('JsonjsdbBuilder E2E Tests', () => {
           path.join(outputDbDir, `${tableName}.json.js`),
           'utf-8',
         )
-        const generatedData = parseJsonjsFile(generatedContent, tableName)
+        const generatedMatrix = parseJsonjsFile(generatedContent, tableName)
+        const generatedData = generatedMatrix.slice(1).map((row: unknown[]) => {
+          const headers = generatedMatrix[0] as string[]
+          const obj: Record<string, unknown> = {}
+          headers.forEach((header: string, index: number) => {
+            obj[header] = row[index]
+          })
+          return obj
+        })
         const expectedData = expectedResults[tableName]
 
         expect(compareDatasets(generatedData, expectedData)).toBe(true)
@@ -99,8 +108,8 @@ describe('JsonjsdbBuilder E2E Tests', () => {
   })
 
   describe('Configuration options', () => {
-    it('should work with compact mode', async () => {
-      const builder = await setupBuilder({ compact: true })
+    it('should create output files correctly', async () => {
+      const builder = await setupBuilder()
       await builder.updateDb(testExcelPath)
 
       expect(builder.getOutputDb()).toBe(path.resolve(outputDbDir))
@@ -122,15 +131,15 @@ describe('JsonjsdbBuilder E2E Tests', () => {
       await builder.updateDb(testExcelPath)
 
       const tableIndexFile = builder.getTableIndexFile()
-      expect(tableIndexFile.endsWith('__table__.json.js')).toBe(true)
+      expect(tableIndexFile.endsWith('__table__.json')).toBe(true)
 
       const metadataContent = await fs.readFile(tableIndexFile, 'utf-8')
       expect(validateMetadataFile(metadataContent, ['user', 'tag'])).toBe(true)
 
-      // Check specific content
-      expect(metadataContent).toContain('"name": "user"')
-      expect(metadataContent).toContain('"name": "tag"')
-      expect(metadataContent).toContain('"name": "__table__"')
+      // Check specific content (now in matrix format)
+      expect(metadataContent).toContain('"user"')
+      expect(metadataContent).toContain('"tag"')
+      expect(metadataContent).toContain('"__table__"')
     })
 
     it('should generate evolution with timestamps in seconds format (10 digits)', async () => {
@@ -171,13 +180,15 @@ describe('JsonjsdbBuilder E2E Tests', () => {
       expect(existsSync(evolutionFile)).toBe(true)
 
       const evolutionContent = await fs.readFile(evolutionFile, 'utf-8')
-      const evolutionData = parseJsonjsFile(evolutionContent, 'evolution')
+      const evolutionMatrix = parseJsonjsFile(evolutionContent, 'evolution')
+      const evolutionData = evolutionMatrix.slice(1) // Skip header row
 
       expect(evolutionData.length).toBeGreaterThan(0)
 
       // Verify all timestamps are in seconds format (10 digits), not milliseconds (13 digits)
-      for (const entry of evolutionData) {
-        const timestamp = entry.timestamp as number
+      // Timestamp is the first column (index 0)
+      for (const row of evolutionData) {
+        const timestamp = row[0] as number
         expect(typeof timestamp).toBe('number')
         expect(timestamp.toString().length).toBe(10)
       }

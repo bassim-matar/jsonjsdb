@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.6.0 (2025-10-29)
+
+- add: both json and jsonjs file output
+
 ## 0.5.7 (2025-10-20)
 
 - fix: make dbSourcePath optional and handle its absence in initJsonjsdbBuilder

@@ -8,6 +8,11 @@ A development tool for converting relational database tables into jsonjs format 
 
 Currently supports Excel (.xlsx) files as source, where each file represents one database table.
 
+**Output formats:** The builder generates two file formats for each table:
+
+- `.json.js` - Compact matrix format (array of arrays) for browser loading without server (on file://)
+- `.json` - Standard JSON format (array of objects) for readability and tooling
+
 ## Installation
 
 ```bash
@@ -41,8 +46,13 @@ await builder.updateDb('db') // Source Excel files directory
 
 **Parameters:**
 
-- `app_db`: Target directory for generated jsonjs files
+- `app_db`: Target directory for generated files (creates both .json and .json.js files)
 - `db`: Source directory containing .xlsx files
+
+**Output:** For each Excel table, two files are generated:
+
+- `<table>.json.js` - Compact matrix format for the browser
+- `<table>.json` - Standard JSON format for editing/inspection
 
 ## Markdown Import
 
@@ -54,10 +64,11 @@ import { JsonjsdbBuilder } from 'jsonjsdb-builder'
 const builder = new JsonjsdbBuilder()
 await builder.setOutputDb('app_db')
 await builder.updateMdDir('markdown', 'content_md')
-// Generates app_db/markdown/<file>.json.js
+// Generates app_db/markdown/<file>.json.js and <file>.json
 ```
 
-The generated format is: `jsonjs.data["<name>"] = [{ "content": "..." }]`.
+The `.json.js` format is: `jsonjs.data["<name>"] = [["content"], ["..."]]` (matrix).  
+The `.json` format is: `[{ "content": "..." }]` (objects).
 
 ## Preview Generation
 
@@ -138,11 +149,11 @@ await jsonjsdbWrite('app_db', 'users', [
 Methods:
 
 - `setOutputDb(dir: string)`: Ensure/create and set the output directory.
-- `updateDb(inputDir: string)`: Convert all `.xlsx` files into jsonjs tables and update metadata / evolution log.
-- `updateMdDir(subdir: string, sourceDir: string)`: Import a markdown directory as jsonjs tables (key = file basename).
+- `updateDb(inputDir: string)`: Convert all `.xlsx` files into jsonjs tables (generates both `.json` and `.json.js` files) and update metadata / evolution log.
+- `updateMdDir(subdir: string, sourceDir: string)`: Import a markdown directory as jsonjs tables (generates both formats).
 - `updatePreview(subfolder: string, sourceDir: string)`: Perform a simple read of source Excel files into a subfolder (no metadata changes).
 - `getOutputDb(): string`: Absolute path of the output directory.
-- `getTableIndexFile(): string`: Path of the `__table__.json.js` index file.
+- `getTableIndexFile(): string`: Path of the `__table__.json` index file (standard JSON format).
 
 Utilities:
 
@@ -157,15 +168,25 @@ Typical generated structure inside `outputDb`:
 
 ```
 app_db/
-  __table__.json.js         # Table index + metadata
-  user.json.js
-  tag.json.js
-  evolution.json.js         # Evolution log (only if changes)
+  __table__.json.js         # Table index + metadata (matrix format)
+  __table__.json            # Table index + metadata (objects format)
+  user.json.js              # User table (matrix format)
+  user.json                 # User table (objects format)
+  tag.json.js               # Tag table (matrix format)
+  tag.json                  # Tag table (objects format)
+  evolution.json.js         # Evolution log (only if changes, matrix format)
+  evolution.json            # Evolution log (objects format)
   markdown/
-    intro.json.js
+    intro.json.js           # Markdown content (matrix format)
+    intro.json              # Markdown content (objects format)
   preview/
-    user.json.js            # copy generated via updatePreview
+    user.json.js            # Preview copy (via updatePreview)
 ```
+
+**Format details:**
+
+- `.json.js` files contain compact matrix data: `jsonjs.data['name'] = [["col1","col2"],[val1,val2]]`
+- `.json` files contain standard JSON objects: `[{"col1":val1,"col2":val2}]`
 
 ## License
 

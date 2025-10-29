@@ -1,18 +1,6 @@
-jsonjs.data['tag'] = 
-[
-  {
-    "id": 1,
-    "name": "tag_1",
-    "parent_id": null
-  },
-  {
-    "id": 2,
-    "name": "tag_2",
-    "parent_id": 1
-  },
-  {
-    "id": 3,
-    "name": "tag_333",
-    "parent_id": 2
-  }
+jsonjs.data['tag'] = [
+  ['id', 'name', 'parent_id'],
+  [1, 'tag_1', null],
+  [2, 'tag_2', 1],
+  [3, 'tag_333', 2],
 ]
