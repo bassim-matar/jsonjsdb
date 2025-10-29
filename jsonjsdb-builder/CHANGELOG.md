@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.6.1 (2025-10-29)
+
+- fix: `__table__` loading in json format
+
 ## 0.6.0 (2025-10-29)
 
 - add: both json and jsonjs file output
