@@ -5,7 +5,7 @@
 
 # Jsonjsdb
 
-A comprehensive client-side relational database solution for static Single Page Applications (SPA). Jsonjsdb enables offline data storage and querying capabilities when running applications on the local file system without requiring server infrastructure.
+A comprehensive client-side relational database solution for static Single Page Applications (SPA). Jsonjsdb enables offline data storage and querying capabilities when running applications locally (file://) or over HTTP/HTTPS (localhost or production servers).
 
 ## Table of Contents
 
@@ -42,8 +42,8 @@ This monorepo contains two complementary packages:
 The main client-side database library for frontend applications.
 
 - ✅ Client-side relational database
-- ✅ File system compatibility (file://)
-- ✅ No server required
+- ✅ File system (file://) and HTTP/HTTPS support
+- ✅ Runs locally or on web servers
 - ✅ Memory-based fast queries
 - ✅ Supports 100-200MB databases
 

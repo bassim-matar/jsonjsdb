@@ -7,7 +7,7 @@
 
 > 📖 For project overview, use cases, and limitations, see the [main documentation](../README.md)
 
-A client-side relational database solution for static Single Page Applications. This library enables offline data storage and querying when running applications on the local file system without server infrastructure.
+A client-side relational database solution for static Single Page Applications. This library enables offline data storage and querying when running applications both locally (file://) and over HTTP/HTTPS (localhost or production servers).
 
 ## Table of Contents
 
@@ -100,9 +100,11 @@ The relational database has specific structural requirements:
 - By default, the database is contained in a folder named _db_.
   This folder should be located in the same directory as the HTML file (entry point).
 - The database folder can be customized using the configuration parameters (see Configuration section below).
-- The db folder contains tables represented by files with the _.json.js_ extension.
-  Each jsonjs file represents a table.
-- The db folder contains a file named _\_\_table\_\_.json.js_ that lists all table names.
+- The db folder contains tables represented by files:
+  - `.json.js` extension when using file:// protocol (local file system)
+  - `.json` extension when using HTTP/HTTPS protocol (localhost or web server)
+- Each file represents a table.
+- The db folder contains a file named `__table__.json.js` (or `__table__.json` for HTTP) that lists all table names.
 
 ### Configuration
 
@@ -133,26 +135,21 @@ const db = new Jsonjsdb('#jsonjsdb-config')
 
 ### The jsonjs file
 
-The jsonjs file begins with the JavaScript instantiation of the JSON data,
-typically on the first line.
+**For file:// protocol (`.json.js` files):**
+
+JavaScript wrapper with minified data in **list of lists** format (compact):
 
 ```js
-jsonjs.data.my_table_name =
+jsonjs.data.my_table_name = [
+  ['id', 'user_name', 'email_address'],
+  [1, 'John Doe', 'john@example.com'],
+  [2, 'Jane Smith', 'jane@example.com'],
+]
 ```
 
-or
+**For HTTP/HTTPS protocol (`.json` files):**
 
-```js
-jsonjs.data['my_table_name'] =
-```
-
-Following this, typically on the second line, is the JSON data,
-which always represents a simple table structure with columns and rows.
-The data can be minified or formatted and currently supports two possible structures:
-
-#### List of objects
-
-The more readable format (shown here with snake_case, which will be transformed to camelCase at runtime):
+Standard JSON files in **list of objects** format (human-readable):
 
 ```json
 [
@@ -166,18 +163,6 @@ The more readable format (shown here with snake_case, which will be transformed 
     "user_name": "Jane Smith",
     "email_address": "jane@example.com"
   }
-]
-```
-
-#### List of lists
-
-The more compact format (column headers will be transformed to camelCase at runtime):
-
-```json
-[
-  ["id", "user_name", "email_address"],
-  [1, "John Doe", "john@example.com"],
-  [2, "Jane Smith", "jane@example.com"]
 ]
 ```
 
