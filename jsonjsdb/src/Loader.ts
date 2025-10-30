@@ -140,9 +140,8 @@ export default class Loader {
     tableName: string,
     option?: LoadOption,
   ): Promise<unknown[]> {
-    const url =
-      `${path}/${tableName}.json` +
-      (option?.version ? `?v=${option.version}` : '')
+    const version = option?.version ?? Math.random()
+    const url = `${path}/${tableName}.json?v=${version}`
 
     try {
       const response = await fetch(url, { cache: 'default' })
