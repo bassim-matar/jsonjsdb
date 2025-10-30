@@ -227,8 +227,15 @@ describe('JsonjsdbBuilder E2E Tests', () => {
       const content = await fs.readFile(outputFile, 'utf-8')
       expect(validateJsonjsFile(content, 'test')).toBe(true)
       expect(content).toContain(
-        '"content":"# Test Title\\n\\nThis is a test markdown file."',
+        '# Test Title\\n\\nThis is a test markdown file.',
       )
+
+      const jsonFile = path.join(mdOutputDir, 'test.json')
+      const jsonContent = await fs.readFile(jsonFile, 'utf-8')
+      const data = JSON.parse(jsonContent)
+      expect(data).toEqual([
+        { content: '# Test Title\n\nThis is a test markdown file.' },
+      ])
     })
   })
 })

@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.6.2 (2025-10-30)
+
+- fix: use writeJsonjs() for updateMdDir()
+
 ## 0.6.1 (2025-10-29)
 
 - fix: `__table__` loading in json format
