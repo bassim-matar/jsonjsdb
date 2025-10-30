@@ -290,7 +290,7 @@ describe('Loader', () => {
       window.fetch = originalFetch
     })
 
-    it('should not append ?v= when version is not provided', async () => {
+    it('should append ?v= with random value when version is not provided', async () => {
       let fetchedUrl = ''
 
       const originalFetch = window.fetch
@@ -306,8 +306,8 @@ describe('Loader', () => {
         useCache: false,
       })
 
-      expect(fetchedUrl).toBe('https://example.com/db/testTable.json')
-      expect(fetchedUrl).not.toContain('?v=')
+      expect(fetchedUrl).toContain('https://example.com/db/testTable.json?v=')
+      expect(fetchedUrl).toMatch(/\?v=0\.\d+/)
 
       window.fetch = originalFetch
     })

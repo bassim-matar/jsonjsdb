@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.8.2 (2025-10-30)
+
+- fix: cache url invalidation for files without version
+
 ## 0.8.1 (2025-10-30)
 
 - fix: isHttpProtocol based on window.location.protocol
