@@ -53,7 +53,7 @@ The main client-side database library for frontend applications.
 
 Development tooling to convert Excel files to jsonjs database format.
 
-- ✅ Excel to jsonjs conversion
+- ✅ Excel to .json and .json.js conversion
 - ✅ Vite integration
 - ✅ Watch mode for development
 - ✅ Automatic database updates

@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.8.1 (2025-10-30)
+
+- fix: isHttpProtocol based on window.location.protocol
+
 ## 0.8.0 (2025-10-30)
 
 - add: both json and jsonjs file input support depending on environment
