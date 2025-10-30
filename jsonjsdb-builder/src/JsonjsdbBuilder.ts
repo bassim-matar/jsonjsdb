@@ -146,10 +146,8 @@ export class JsonjsdbBuilder {
       const outFileName = file.split('.md')[0]
       const outDir = path.join(this.outputDb, mdDir)
       if (!existsSync(outDir)) await fs.mkdir(outDir, { recursive: true })
-      const outFilePath = path.join(outDir, `${outFileName}.json.js`)
-      const json = JSON.stringify([{ content: fileContent }])
-      const jsonjs = `jsonjs.data["${outFileName}"] = \n` + json
-      await fs.writeFile(outFilePath, jsonjs, 'utf8')
+      const tableData = [['content'], [fileContent]]
+      await writeJsonjs(outDir, outFileName, tableData)
     }
   }
 
