@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.6.3 (2025-10-30)
+
+- fix: ensure index table is saved in snake_case
+
 ## 0.6.2 (2025-10-30)
 
 - fix: use writeJsonjs() for updateMdDir()

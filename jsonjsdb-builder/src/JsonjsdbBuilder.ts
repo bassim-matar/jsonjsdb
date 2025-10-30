@@ -241,7 +241,9 @@ export class JsonjsdbBuilder {
       lastModif: Math.round(Date.now() / 1000),
     })
     const metadataMatrix = toMatrix(inputMetadata)
-    await writeJsonjs(this.outputDb, tableIndex, metadataMatrix)
+    await writeJsonjs(this.outputDb, tableIndex, metadataMatrix, {
+      toSnakeCase: true,
+    })
   }
 
   private async updateTables(
@@ -307,7 +309,7 @@ export class JsonjsdbBuilder {
     const inputFile = path.join(this.inputDb, `${table}.xlsx`)
     const tableData = await readExcel(inputFile)
     await this.addNewEvoEntries(table, tableData)
-    await writeJsonjs(this.outputDb, table, tableData)
+    await writeJsonjs(this.outputDb, table, tableData, { toSnakeCase: true })
     console.log(`Jsonjsdb updating ${table}`)
   }
 
