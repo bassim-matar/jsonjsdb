@@ -271,8 +271,7 @@ export default class Loader {
   ): Promise<unknown[]> {
     if (path.slice(-1) === '/') path = path.slice(0, -1)
 
-    const isHttpProtocol =
-      path.startsWith('http://') || path.startsWith('https://')
+    const isHttpProtocol = window.location.protocol.startsWith('http')
 
     if (!isHttpProtocol) {
       if (window.jsonjs === undefined) window.jsonjs = {}
