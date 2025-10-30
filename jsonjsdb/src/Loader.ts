@@ -60,6 +60,7 @@ export default class Loader {
     this.validIdPattern = new RegExp(`^[${this.validIdChars}]+$`)
     this.invalidIdPattern = new RegExp(`[^${this.validIdChars}]`, 'g')
   }
+
   async load(
     path: string,
     useCache = false,
@@ -74,16 +75,19 @@ export default class Loader {
     this.createIndex()
     return this.db
   }
+
   async loadFromCache(tableName: string): Promise<unknown[]> {
     return this.browser.get(this.cachePrefix + tableName) as Promise<unknown[]>
   }
+
   async saveToCache(
     data: unknown[] | Record<string, unknown>,
     tableName: string,
   ): Promise<void> {
     this.browser.set(this.cachePrefix + tableName, data)
   }
-  async loadFromFile(
+
+  async loadViaScript(
     path: string,
     tableName: string,
     option?: LoadOption,
@@ -129,6 +133,45 @@ export default class Loader {
       }
       document.head.appendChild(script)
     })
+  }
+
+  async loadViaFetch(
+    path: string,
+    tableName: string,
+    option?: LoadOption,
+  ): Promise<unknown[]> {
+    const url =
+      `${path}/${tableName}.json` +
+      (option?.version ? `?v=${option.version}` : '')
+
+    try {
+      const response = await fetch(url, { cache: 'default' })
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP error! status: ${response.status} for table "${tableName}"`,
+        )
+      }
+
+      let data = (await response.json()) as unknown[]
+
+      if (data.length > 0 && Array.isArray(data[0])) {
+        data = this.arrayToObject(
+          data as unknown[][],
+          option?.shouldStandardizeIds,
+        )
+      } else {
+        data = this.applyTransform(data, option?.shouldStandardizeIds)
+      }
+
+      if (option?.useCache) this.saveToCache(data, tableName)
+
+      return data
+    } catch (error) {
+      const errorMsg = `Failed to load table "${tableName}" from "${url}": ${error}`
+      console.error(errorMsg)
+      throw new Error(errorMsg)
+    }
   }
 
   private isVariableId(variable: string): boolean {
@@ -178,6 +221,7 @@ export default class Loader {
     }
     return records
   }
+
   private applyTransform(
     data: unknown[],
     shouldStandardizeIds = true,
@@ -208,12 +252,14 @@ export default class Loader {
     }
     return records
   }
+
   private isInCache(tableName: string, version?: number | string): boolean {
     if (!this.tableIndexCache) return false
     if (!(tableName in this.tableIndexCache)) return false
     if (this.tableIndexCache[tableName] !== version) return false
     return true
   }
+
   async loadJsonjs(
     path: string,
     tableName: string,
@@ -224,14 +270,26 @@ export default class Loader {
     },
   ): Promise<unknown[]> {
     if (path.slice(-1) === '/') path = path.slice(0, -1)
-    if (window.jsonjs === undefined) window.jsonjs = {}
-    if (window.jsonjs.data === undefined) window.jsonjs.data = {}
+
+    const isHttpProtocol =
+      path.startsWith('http://') || path.startsWith('https://')
+
+    if (!isHttpProtocol) {
+      if (window.jsonjs === undefined) window.jsonjs = {}
+      if (window.jsonjs.data === undefined) window.jsonjs.data = {}
+    }
+
     if (option?.useCache && this.isInCache(tableName, option.version)) {
       return this.loadFromCache(tableName)
+    }
+
+    if (isHttpProtocol) {
+      return this.loadViaFetch(path, tableName, option)
     } else {
-      return this.loadFromFile(path, tableName, option)
+      return this.loadViaScript(path, tableName, option)
     }
   }
+
   async loadTables(path: string, useCache: boolean): Promise<void> {
     let tablesInfo = (await this.loadJsonjs(
       path,
@@ -280,9 +338,11 @@ export default class Loader {
       this.db[tables[i].name] = tableData as TableRow[]
     }
   }
+
   getLastModifTimestamp(): number {
     return this.lastModifTimestamp || 0
   }
+
   extractLastModif(tablesInfo: TableInfo[]): TableInfo[] {
     const tableIndexRow = tablesInfo.filter(
       item => item.name === this.tableIndex,
@@ -292,6 +352,7 @@ export default class Loader {
     }
     return tablesInfo.filter(item => item.name !== this.tableIndex)
   }
+
   checkConformity(tablesInfo: TableInfo[]): TableInfo[] {
     const validatedTables: TableInfo[] = []
     const allNames: string[] = []
@@ -309,6 +370,7 @@ export default class Loader {
     }
     return validatedTables
   }
+
   normalizeSchema() {
     for (const table of this.metadata.tables) {
       if (this.db[table.name].length === 0) continue
@@ -336,6 +398,7 @@ export default class Loader {
       }
     }
   }
+
   filter(filter: { entity?: string; variable?: string; values?: unknown[] }) {
     if (!('entity' in filter) || !filter.entity) return false
     if (!('variable' in filter) || !filter.variable) return false
@@ -383,6 +446,7 @@ export default class Loader {
       }
     }
   }
+
   idToIndex(tableName: string, id: number | string): number | false {
     if (!this.metadata.index[tableName]) {
       console.error('idToIndex() table not found: ', tableName)
@@ -396,6 +460,7 @@ export default class Loader {
     // For id index, we expect only a single number, not an array
     return typeof indexValue === 'number' ? indexValue : false
   }
+
   createAlias(
     initialAliases: Array<{ table: string; alias: string }> | null = null,
   ) {
@@ -445,6 +510,7 @@ export default class Loader {
       this.metadata.schema.aliases.push(alias.alias)
     }
   }
+
   createIndex() {
     this.metadata.index = {}
     for (const table of this.metadata.tables) {
@@ -463,6 +529,7 @@ export default class Loader {
       }
     }
   }
+
   processManyToMany(table: { name: string }, side: string) {
     const index: Record<string | number, number | number[]> = {}
     const tablesName = table.name.split('_')
@@ -505,6 +572,7 @@ export default class Loader {
       ])
     }
   }
+
   processOneToMany(table: { name: string }) {
     for (const variable in this.db[table.name][0]) {
       if (variable === 'parent' + this.idSuffix) {
@@ -519,6 +587,7 @@ export default class Loader {
       }
     }
   }
+
   processSelfOneToMany(table: { name: string }) {
     const index: Record<string | number, number | number[]> = {}
     for (const [i, row] of Object.entries(this.db[table.name])) {
@@ -536,6 +605,7 @@ export default class Loader {
     this.metadata.index[table.name]['parent' + this.idSuffix] = index
     this.metadata.schema.oneToMany.push([table.name, table.name])
   }
+
   addPrimaryKey(table: { name: string }) {
     const index: Record<string | number, number> = {}
     if (!(table.name in this.db)) return false
@@ -548,6 +618,7 @@ export default class Loader {
     }
     this.metadata.index[table.name].id = index
   }
+
   addForeignKey(variable: string, table: { name: string }) {
     const index: Record<string, number | number[]> = {}
     for (const [i, row] of Object.entries(this.db[table.name])) {
@@ -576,6 +647,7 @@ export default class Loader {
       ])
     }
   }
+
   addDbSchema(dbSchema: unknown) {
     if (
       Array.isArray(dbSchema) &&
@@ -586,6 +658,7 @@ export default class Loader {
     }
     this.metadata.dbSchema = dbSchema
   }
+
   addMeta(userData?: Record<string, unknown>, schema?: unknown): void {
     const metaDataset: Record<string, Record<string, unknown>> = {}
     const metaFolder: Record<string, Record<string, unknown>> = {}
@@ -717,6 +790,7 @@ export default class Loader {
     this.processOneToMany({ name: 'metaDataset' })
     this.processOneToMany({ name: 'metaVariable' })
   }
+
   addMetaVariables(
     tableName: string,
     datasetData: unknown[],

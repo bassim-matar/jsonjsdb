@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Jsonjsdb from '../src/Jsonjsdb'
 import Loader from '../src/Loader'
 
@@ -231,6 +231,85 @@ describe('Loader', () => {
       expect(loaderPrivate.isVariableId('name')).toBe(false)
       expect(loaderPrivate.isVariableId('email')).toBe(false)
       expect(loaderPrivate.isVariableId('idNumber')).toBe(false)
+    })
+  })
+
+  describe('Cache versioning with ?v= parameter', () => {
+    it('should append ?v=version to loadViaFetch URLs', async () => {
+      const version = 987654321
+      let fetchedUrl = ''
+
+      const originalFetch = window.fetch
+      window.fetch = vi.fn((url: string | URL | Request) => {
+        fetchedUrl = url.toString()
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([{ id: '1', name: 'Test' }]),
+        } as Response)
+      })
+
+      await loader.loadViaFetch('https://example.com/db', 'testTable', {
+        version,
+        useCache: false,
+      })
+
+      expect(fetchedUrl).toBe(
+        'https://example.com/db/testTable.json?v=' + version,
+      )
+      expect(fetchedUrl).toContain('?v=' + version)
+
+      window.fetch = originalFetch
+    })
+
+    it('should use different cache entries for different versions in fetch', async () => {
+      const urls: string[] = []
+
+      const originalFetch = window.fetch
+      window.fetch = vi.fn((url: string | URL | Request) => {
+        urls.push(url.toString())
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([{ id: '1', name: 'Test' }]),
+        } as Response)
+      })
+
+      await loader.loadViaFetch('https://example.com/db', 'user', {
+        version: 1000,
+        useCache: false,
+      })
+
+      await loader.loadViaFetch('https://example.com/db', 'user', {
+        version: 2000,
+        useCache: false,
+      })
+
+      expect(urls[0]).toBe('https://example.com/db/user.json?v=1000')
+      expect(urls[1]).toBe('https://example.com/db/user.json?v=2000')
+      expect(urls[0]).not.toBe(urls[1])
+
+      window.fetch = originalFetch
+    })
+
+    it('should not append ?v= when version is not provided', async () => {
+      let fetchedUrl = ''
+
+      const originalFetch = window.fetch
+      window.fetch = vi.fn((url: string | URL | Request) => {
+        fetchedUrl = url.toString()
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([{ id: '1', name: 'Test' }]),
+        } as Response)
+      })
+
+      await loader.loadViaFetch('https://example.com/db', 'testTable', {
+        useCache: false,
+      })
+
+      expect(fetchedUrl).toBe('https://example.com/db/testTable.json')
+      expect(fetchedUrl).not.toContain('?v=')
+
+      window.fetch = originalFetch
     })
   })
 })
