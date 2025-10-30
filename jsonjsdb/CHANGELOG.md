@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.8.0 (2025-10-30)
+
+- add: both json and jsonjs file input support depending on environment
+
 ## 0.7.8 (2025-10-23)
 
 - add: sourcemap generation in Vite build configuration
