@@ -1,14 +1,1 @@
-jsonjs.data['email'] = [
-  {
-    id: 'email_1',
-    name: 'email 1',
-    user_id: 1,
-    admin_id: 2,
-  },
-  {
-    id: 'email_2',
-    name: 'email 2',
-    user_id: 2,
-    admin_id: 3,
-  },
-]
+jsonjs.data['email'] = [['id','name','user_id','admin_id'],['email_1','email 1',1,2],['email_2','email 2',2,3]]

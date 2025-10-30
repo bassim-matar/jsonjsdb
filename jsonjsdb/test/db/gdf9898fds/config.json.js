@@ -1,10 +1,1 @@
-jsonjs.data['config'] = [
-  {
-    id: 'alias_1',
-    value: 'user : admin',
-  },
-  {
-    id: 'alias_2',
-    value: 'user : partner',
-  },
-]
+jsonjs.data['config'] = [['id','value'],['alias_1','user : admin'],['alias_2','user : partner']]
