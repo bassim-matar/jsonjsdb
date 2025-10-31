@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.6.4 (2025-10-31)
+
+- fix: prevent unnecessary file rewrites when data hasn't changed
+
 ## 0.6.3 (2025-10-30)
 
 - fix: ensure index table is saved in snake_case

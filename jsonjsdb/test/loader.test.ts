@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Jsonjsdb from '../src/Jsonjsdb'
 import Loader from '../src/Loader'
+import testSchema from './fixtures/test-schema.json'
 
 type LoaderPrivate = {
   arrayToObject: (
@@ -48,12 +49,84 @@ describe('Loader', () => {
   })
 
   describe('add_meta()', () => {
-    it('should add metadata', async () => {
+    it('should add metadata without schema', async () => {
       await loader.load(path)
-      await loader.addMeta()
+      loader.addMeta()
       expect(loader.db).toHaveProperty('metaFolder')
       expect(loader.db).toHaveProperty('metaDataset')
       expect(loader.db).toHaveProperty('metaVariable')
+    })
+
+    it('should add metadata with JSON Schema', async () => {
+      await loader.load(path)
+
+      loader.addMeta({}, testSchema)
+
+      expect(loader.db).toHaveProperty('metaFolder')
+      expect(loader.db).toHaveProperty('metaDataset')
+      expect(loader.db).toHaveProperty('metaVariable')
+
+      expect(loader.db.metaFolder).toEqual([
+        {
+          id: 'data',
+          name: 'data',
+          description: 'Main database with catalog metadata',
+          descriptionFr:
+            'Base de données principale avec les metadonnées du catalogue',
+          isInMeta: true,
+          isInData: true,
+        },
+        {
+          id: 'userData',
+          name: 'userData',
+          description: 'Personal database stored in user browser',
+          descriptionFr:
+            'Base de données personnelle stockée dans le navigateur',
+          isInMeta: true,
+          isInData: true,
+        },
+      ])
+
+      const configDataset = loader.db.metaDataset.find(
+        (d: Record<string, unknown>) => d.id === 'config',
+      )
+      expect(configDataset).toBeDefined()
+      expect(configDataset).toMatchObject({
+        id: 'config',
+        metaFolderId: 'data',
+        name: 'config',
+        description: 'General information and entity descriptions',
+        descriptionFr: 'Informations générales et descriptions des entités',
+        isInMeta: true,
+      })
+
+      const configIdVar = loader.db.metaVariable.find(
+        (v: Record<string, unknown>) => v.id === 'config---id',
+      )
+      expect(configIdVar).toBeDefined()
+      expect(configIdVar).toMatchObject({
+        id: 'config---id',
+        metaDatasetId: 'config',
+        name: 'id',
+        description: 'Primary key of configuration element',
+        descriptionFr: "Clé primaire de l'élément de configuration",
+        type: 'string',
+        isInMeta: true,
+      })
+
+      const configValueVar = loader.db.metaVariable.find(
+        (v: Record<string, unknown>) => v.id === 'config---value',
+      )
+      expect(configValueVar).toBeDefined()
+      expect(configValueVar).toMatchObject({
+        id: 'config---value',
+        metaDatasetId: 'config',
+        name: 'value',
+        description: 'Configuration value',
+        descriptionFr: 'Valeur de configuration',
+        type: 'string',
+        isInMeta: true,
+      })
     })
   })
 

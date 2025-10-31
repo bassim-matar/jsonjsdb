@@ -1,0 +1,72 @@
+[
+  {
+    "$id": "https://example.com/schemas/__meta__.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "__meta__",
+    "description": "Meta-schema for entity schemas",
+    "x-description-fr": "Meta-schema pour les schémas d'entités",
+    "x-db-description": {
+      "data": "Main database with catalog metadata",
+      "userData": "Personal database stored in user browser"
+    },
+    "x-db-description-fr": {
+      "data": "Base de données principale avec les metadonnées du catalogue",
+      "userData": "Base de données personnelle stockée dans le navigateur"
+    }
+  },
+  {
+    "$schema": "./__meta__.schema.json",
+    "$id": "https://example.com/schemas/config.json",
+    "x-db": "data",
+    "title": "config",
+    "description": "General information and entity descriptions",
+    "x-description-fr": "Informations générales et descriptions des entités",
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Primary key of configuration element",
+          "x-description-fr": "Clé primaire de l'élément de configuration"
+        },
+        "value": {
+          "type": ["string", "null"],
+          "description": "Configuration value",
+          "x-description-fr": "Valeur de configuration"
+        }
+      }
+    }
+  },
+  {
+    "$schema": "./__meta__.schema.json",
+    "$id": "https://example.com/schemas/user.json",
+    "x-db": "data",
+    "title": "user",
+    "description": "User accounts",
+    "x-description-fr": "Comptes utilisateurs",
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "User ID",
+          "x-description-fr": "ID utilisateur"
+        },
+        "name": {
+          "type": "string",
+          "description": "User name",
+          "x-description-fr": "Nom utilisateur"
+        },
+        "email": {
+          "type": ["string", "null"],
+          "description": "User email address",
+          "x-description-fr": "Adresse email utilisateur"
+        }
+      }
+    }
+  }
+]
