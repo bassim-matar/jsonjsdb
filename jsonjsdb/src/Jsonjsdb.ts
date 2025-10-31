@@ -326,7 +326,10 @@ export default class Jsonjsdb<
     console.error('getParents()', from, id, 'iterationMax reached')
     return []
   }
-  addMeta(userData?: Record<string, unknown>, dbSchema?: string[][]): void {
+  addMeta(
+    userData?: Record<string, unknown>,
+    dbSchema?: Record<string, unknown>[],
+  ): void {
     this.loader.addMeta(userData, dbSchema)
   }
   getLastModifTimestamp(): number {

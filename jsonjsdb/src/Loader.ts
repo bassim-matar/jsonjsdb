@@ -646,7 +646,7 @@ export default class Loader {
     }
   }
 
-  addDbSchema(jsonSchemas: unknown) {
+  addDbSchema(jsonSchemas: Record<string, unknown>[]) {
     if (!Array.isArray(jsonSchemas) || jsonSchemas.length === 0) {
       this.metadata.dbSchema = []
       return
@@ -715,7 +715,10 @@ export default class Loader {
     this.metadata.dbSchema = metaRows
   }
 
-  addMeta(userData?: Record<string, unknown>, schema?: unknown): void {
+  addMeta(
+    userData?: Record<string, unknown>,
+    schema?: Record<string, unknown>[],
+  ): void {
     const metaDataset: Record<string, Record<string, unknown>> = {}
     const metaFolder: Record<string, Record<string, unknown>> = {}
     this.metaVariable = {}
