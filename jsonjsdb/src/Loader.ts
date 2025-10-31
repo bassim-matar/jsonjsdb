@@ -26,6 +26,13 @@ declare global {
   }
 }
 
+function toSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
+}
+function snakeToCamel(str: string): string {
+  return str.replace(/_./g, match => match[1].toUpperCase())
+}
+
 export default class Loader {
   private tableIndex = '__table__'
   private cachePrefix = 'dbCache/'
@@ -656,8 +663,11 @@ export default class Loader {
 
     for (const schema of jsonSchemas) {
       const schemaObj = schema as Record<string, unknown>
+      const datasetName = schemaObj.title as string
 
-      if (schemaObj.title === '__meta__') {
+      if (!datasetName || datasetName === '__table__') continue
+
+      if (datasetName === '__meta__') {
         const dbDescriptions =
           (schemaObj['x-db-description'] as Record<string, string>) || {}
         const dbDescriptionsFr =
@@ -675,9 +685,6 @@ export default class Loader {
         }
         continue
       }
-
-      const datasetName = schemaObj.title as string
-      if (!datasetName) continue
 
       const folderName = (schemaObj['x-db'] as string) || 'data'
       const datasetDescription = schemaObj.description as string
@@ -703,11 +710,11 @@ export default class Loader {
         metaRows.push({
           folder: folderName,
           dataset: datasetName,
-          variable: varName,
+          variable: snakeToCamel(varName),
           description: varSchema.description as string,
           descriptionFr: (varSchema['x-description-fr'] as string) || null,
           type: varSchema.type,
-          storageKey: null,
+          storageKey: toSnakeCase(varName),
         })
       }
     }
