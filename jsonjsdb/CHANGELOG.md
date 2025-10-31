@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.8.3 (2025-10-31)
+
+- change: addDbSchema use JSON Schema
+
 ## 0.8.2 (2025-10-30)
 
 - fix: cache url invalidation for files without version

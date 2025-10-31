@@ -646,15 +646,73 @@ export default class Loader {
     }
   }
 
-  addDbSchema(dbSchema: unknown) {
-    if (
-      Array.isArray(dbSchema) &&
-      dbSchema.length > 0 &&
-      Array.isArray(dbSchema[0])
-    ) {
-      dbSchema = this.arrayToObject(dbSchema as unknown[][])
+  addDbSchema(jsonSchemas: unknown) {
+    if (!Array.isArray(jsonSchemas) || jsonSchemas.length === 0) {
+      this.metadata.dbSchema = []
+      return
     }
-    this.metadata.dbSchema = dbSchema
+
+    const metaRows: Record<string, unknown>[] = []
+
+    for (const schema of jsonSchemas) {
+      const schemaObj = schema as Record<string, unknown>
+
+      if (schemaObj.title === '__meta__') {
+        const dbDescriptions =
+          (schemaObj['x-db-description'] as Record<string, string>) || {}
+        const dbDescriptionsFr =
+          (schemaObj['x-db-description-fr'] as Record<string, string>) || {}
+
+        for (const [folder, description] of Object.entries(dbDescriptions)) {
+          metaRows.push({
+            folder,
+            dataset: null,
+            variable: null,
+            description,
+            descriptionFr: dbDescriptionsFr[folder] || null,
+            storageKey: null,
+          })
+        }
+        continue
+      }
+
+      const datasetName = schemaObj.title as string
+      if (!datasetName) continue
+
+      const folderName = (schemaObj['x-db'] as string) || 'data'
+      const datasetDescription = schemaObj.description as string
+      const datasetDescriptionFr = schemaObj['x-description-fr'] as string
+
+      metaRows.push({
+        folder: folderName,
+        dataset: datasetName,
+        variable: null,
+        description: datasetDescription,
+        descriptionFr: datasetDescriptionFr || null,
+        storageKey: null,
+      })
+
+      const items = schemaObj.items as Record<string, unknown>
+      if (!items || !items.properties) continue
+
+      const properties = items.properties as Record<
+        string,
+        Record<string, unknown>
+      >
+      for (const [varName, varSchema] of Object.entries(properties)) {
+        metaRows.push({
+          folder: folderName,
+          dataset: datasetName,
+          variable: varName,
+          description: varSchema.description as string,
+          descriptionFr: (varSchema['x-description-fr'] as string) || null,
+          type: varSchema.type,
+          storageKey: null,
+        })
+      }
+    }
+
+    this.metadata.dbSchema = metaRows
   }
 
   addMeta(userData?: Record<string, unknown>, schema?: unknown): void {
@@ -694,6 +752,9 @@ export default class Loader {
       description: (
         (metaFolder as Record<string, unknown>).data as Record<string, unknown>
       )?.description,
+      descriptionFr: (
+        (metaFolder as Record<string, unknown>).data as Record<string, unknown>
+      )?.descriptionFr,
       isInMeta: (metaFolder as Record<string, unknown>).data ? true : false,
       isInData: true,
     }
@@ -706,6 +767,12 @@ export default class Loader {
           unknown
         >
       )?.description,
+      descriptionFr: (
+        (metaFolder as Record<string, unknown>).userData as Record<
+          string,
+          unknown
+        >
+      )?.descriptionFr,
       isInMeta: (metaFolder as Record<string, unknown>).userData ? true : false,
       isInData: true,
     }
@@ -726,6 +793,7 @@ export default class Loader {
         name: tableName,
         nbRow: tableDataArray.length,
         description: metaDataset[tableName]?.description,
+        descriptionFr: metaDataset[tableName]?.descriptionFr,
         isInMeta: metaDataset[tableName] ? true : false,
         isInData: true,
       })
@@ -744,6 +812,7 @@ export default class Loader {
         name: table.name,
         nbRow: this.db[table.name].length,
         description: metaDataset[table.name]?.description,
+        descriptionFr: metaDataset[table.name]?.descriptionFr,
         lastUpdateTimestamp: table.lastModif,
         isInMeta: metaDataset[table.name] ? true : false,
         isInData: true,
@@ -760,6 +829,7 @@ export default class Loader {
         ['metaDataset' + this.idSuffix]: datasetId,
         name: variableRecord.variable,
         description: variableRecord.description,
+        descriptionFr: variableRecord.descriptionFr,
         storageKey: variableRecord.storageKey,
         isInMeta: true,
         isInData: false,
@@ -774,6 +844,7 @@ export default class Loader {
         name: datasetRecord.dataset,
         nbRow: 0,
         description: datasetRecord?.description,
+        descriptionFr: datasetRecord?.descriptionFr,
         isInMeta: true,
         isInData: false,
       })
@@ -847,6 +918,9 @@ export default class Loader {
         description: (
           this.metaVariable[datasetVariableId] as Record<string, unknown>
         )?.description,
+        descriptionFr: (
+          this.metaVariable[datasetVariableId] as Record<string, unknown>
+        )?.descriptionFr,
         storageKey: (
           this.metaVariable[datasetVariableId] as Record<string, unknown>
         )?.storageKey,
