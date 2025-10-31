@@ -180,7 +180,10 @@ export class JsonjsdbBuilder {
   private async getOutputMetadata(): Promise<MetadataItem[]> {
     if (!existsSync(this.tableIndexFile)) return []
     const fileContent = await fs.readFile(this.tableIndexFile, 'utf-8')
-    return JSON.parse(fileContent)
+    const metadata = JSON.parse(fileContent)
+    return metadata.map((row: TableRow) =>
+      snakeToCamelKeys(row),
+    ) as MetadataItem[]
   }
 
   private metadataListToObject(list: MetadataItem[]): MetadataObj {
