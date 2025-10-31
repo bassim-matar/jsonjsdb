@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.8.4 (2025-10-31)
+
+- fix: skip `__table__` in addDbSchema() and correct case for var name
+
 ## 0.8.3 (2025-10-31)
 
 - change: addDbSchema use JSON Schema
