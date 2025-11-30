@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.6.5 (2025-11-30)
+
+- fix: update dependencies and fix glob security issue
+
 ## 0.6.4 (2025-10-31)
 
 - fix: prevent unnecessary file rewrites when data hasn't changed
