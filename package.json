@@ -10,9 +10,9 @@
   "author": "Bassim Matar",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bassim-matar/jsonjsdb.git"
+    "url": "https://github.com/datannur/jsonjsdb.git"
   },
-  "homepage": "https://github.com/bassim-matar/jsonjsdb#readme",
+  "homepage": "https://github.com/datannur/jsonjsdb#readme",
   "scripts": {
     "build": "npm run build:core && npm run build:builder",
     "build:core": "cd jsonjsdb && npm run build",

@@ -4,6 +4,7 @@
   "description": "Jsonjsdb database builder",
   "type": "module",
   "license": "MIT",
+  "author": "Bassim Matar",
   "keywords": [
     "json",
     "database",
@@ -14,9 +15,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bassim-matar/jsonjsdb.git"
+    "url": "git+https://github.com/datannur/jsonjsdb.git"
   },
-  "homepage": "https://github.com/bassim-matar/jsonjsdb/tree/main/jsonjsdb-builder#readme",
+  "homepage": "https://github.com/datannur/jsonjsdb/tree/main/jsonjsdb-builder#readme",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
