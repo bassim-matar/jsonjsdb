@@ -1,5 +1,9 @@
 # jsonjsdb-builder
 
+## 0.6.6 (2025-12-14)
+
+- refactor: migrate to organisation datannur
+
 ## 0.6.5 (2025-11-30)
 
 - fix: update dependencies and fix glob security issue
