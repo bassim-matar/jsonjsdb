@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.8.6 (2025-12-14)
+
+- refactor: migrate to organisation datannur
+
 ## 0.8.5 (2025-11-30)
 
 - fix: update dependencies
