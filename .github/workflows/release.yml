@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   release:
@@ -135,17 +136,13 @@ jobs:
         if: steps.changes.outputs.core_changed == 'true'
         run: |
           cd jsonjsdb
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          npm publish --access public --provenance
 
       - name: Publish jsonjsdb-builder to npm
         if: steps.changes.outputs.builder_changed == 'true'
         run: |
           cd jsonjsdb-builder
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          npm publish --access public --provenance
 
       - name: Create git tags and releases
         if: steps.changes.outputs.core_changed == 'true' || steps.changes.outputs.builder_changed == 'true'

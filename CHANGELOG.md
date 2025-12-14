@@ -12,7 +12,11 @@ For detailed changes, see individual package changelogs:
 
 ## Project Overview
 
-#### 2025-10-02
+### 2025-12-14
+
+- refactor: migrate to organisation datannur and use npm trusted publisher
+
+### 2025-10-02
 
 - refactor: enforce camelCase for property with eslint rule
 
