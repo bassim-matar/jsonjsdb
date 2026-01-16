@@ -1,6 +1,6 @@
 {
   "name": "jsonjsdb",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "description": "Jsonjsdb database",
   "type": "module",
   "license": "MIT",

@@ -306,8 +306,7 @@ export default class Jsonjsdb<
       const parentRow = parent as TEntityTypeMap[K]
       const parentId = parentRow['parent' + this.idSuffix]
 
-      if ([0, '', null].includes(parentId as string | number))
-        return parents.reverse()
+      if (!parentId && parentId !== 0) return parents.reverse()
 
       const parentBefore = parent
       parent = this.get(from, parentId as string | number)
