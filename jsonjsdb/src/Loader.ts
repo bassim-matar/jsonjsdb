@@ -501,10 +501,7 @@ export default class Loader {
 
     for (const alias of aliases) {
       const aliasData: Record<string, unknown>[] = []
-      if (!(alias.table in this.db)) {
-        console.error('createAlias() table not found:', alias.table)
-        continue
-      }
+      if (!(alias.table in this.db)) continue
       for (const row of this.db[alias.table]) {
         const aliasDataRow: Record<string, unknown> = { id: row.id }
         aliasDataRow[alias.table + this.idSuffix] = row.id

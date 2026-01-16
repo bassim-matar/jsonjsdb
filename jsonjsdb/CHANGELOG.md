@@ -1,5 +1,9 @@
 # jsonjsdb
 
+## 0.8.8 (2026-01-16)
+
+- remove: error log for missing table in aliases processing
+
 ## 0.8.7 (2026-01-04)
 
 - fix: update dependencies
