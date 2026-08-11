@@ -42,7 +42,7 @@
     "lint": "eslint src"
   },
   "devDependencies": {
-    "@vitest/browser": "^4.1.8",
+    "@vitest/browser": "^4.1.10",
     "@vitest/browser-playwright": "^4.1.8",
     "@vitest/ui": "^4.1.8",
     "playwright": "^1.60.0",
